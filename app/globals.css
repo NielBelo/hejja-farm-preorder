@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --hejja-green: rgb(70, 204, 141);
+}
+
+html {
+  min-height: 100%;
+  background: white;
+}
+
+body {
+  min-height: 100vh;
+  position: relative;
+  color: #111827;
+}
+
+/* Háttérkép + fehér átmenet */
+body::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+
+  background-image:
+    linear-gradient(
+      to bottom,
+      rgba(255,255,255,0.6) 0%,
+      rgba(255,255,255,0.7) 20%,
+      rgba(255,255,255,0.85) 50%,
+      rgba(255,255,255,1) 80%,
+      rgba(255,255,255,1) 100%
+    ),
+    url("/images/background.jpeg");
+
+  background-size:
+    100% 1000px,
+    100% auto;
+
+  background-position:
+    center top,
+    center top;
+
+  background-repeat:
+    no-repeat,
+    no-repeat;
+}
+
+/* Chrome, Edge, Safari */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
