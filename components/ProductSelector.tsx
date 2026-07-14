@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import {  useEffect, useState } from "react";
 import Image from "next/image";
 import {
     ChevronRightIcon,
@@ -32,6 +32,13 @@ type OrderItem = {
     showValidation: boolean;
 };
 
+type ProductSelectorProps = {
+    products: Product[];
+    packages: PackageOption[];
+    maxAvailableQuantity: number | null;
+    resetKey: number;
+};
+
 const DEFAULT_NOTE = "Átlagos méret megfelelő";
 
 const emptyItem = (collapsed = false): OrderItem => ({
@@ -45,14 +52,17 @@ const emptyItem = (collapsed = false): OrderItem => ({
     showValidation: false
 });
 
+
 export default function ProductSelector({
     products,
     packages,
-}: {
-    products: Product[];
-    packages: PackageOption[];
-}) {
+    maxAvailableQuantity,
+    resetKey,
+}: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>([emptyItem(false)]);
+    useEffect(() => {
+    setItems([emptyItem(false)]);
+}, [resetKey]);
 
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -61,18 +71,42 @@ export default function ProductSelector({
         item.quantity !== 1 ||
         item.selectedNote !== DEFAULT_NOTE;
 
-    const updateItem = (index: number, changes: Partial<OrderItem>) => {
-        setItems((prev) => {
-            const updated = prev.map((item, i) =>
-                i === index
-    ? {
-          ...item,
-          ...changes,
-          touched: true,
-          showValidation: false,
-      }
-    : item
-            );
+const getRemainingQuantity = (items: OrderItem[], currentIndex: number) => {
+    const used = items.reduce((sum, item, index) => {
+        if (index === currentIndex) return sum;
+        return sum + item.quantity;
+    }, 0);
+
+    return Math.max(
+        1,
+        (maxAvailableQuantity ?? 100) - used
+    );
+};
+
+const updateItem = (index: number, changes: Partial<OrderItem>) => {
+    setItems((prev) => {
+
+        const remaining = getRemainingQuantity(prev, index);
+
+        const updated = prev.map((item, i) => {
+            if (i !== index) return item;
+
+            const newQuantity =
+                changes.quantity !== undefined
+                    ? Math.min(
+                          remaining,
+                          Math.max(1, changes.quantity)
+                      )
+                    : item.quantity;
+
+            return {
+                ...item,
+                ...changes,
+                quantity: newQuantity,
+                touched: true,
+                showValidation: false,
+            };
+        });
 
             const lastItem = updated[updated.length - 1];
 
@@ -142,7 +176,7 @@ export default function ProductSelector({
             selectedPackage?.name,
             selectedProduct && sizeText,
             item.note &&
-            (item.note.length > 20 ? `${item.note.slice(0, 20)}...` : item.note),
+            (item.note.length > 30 ? `${item.note.slice(0, 30)}...` : item.note),
         ].filter(Boolean);
 
         return details.length === 0
@@ -175,6 +209,7 @@ export default function ProductSelector({
                             <div className="flex items-center gap-1">
                                 <button
                                     onClick={() => resetItem(index)}
+                                    type="button"
                                     className="rounded p-1 transition hover:bg-white/10"
                                     title="Tétel törlése"
                                 >
@@ -188,6 +223,7 @@ export default function ProductSelector({
                                             touched: item.touched,
                                         })
                                     }
+                                    type="button"
                                     className="rounded p-1 transition hover:bg-white/10"
                                 >
                                     {item.collapsed ? (
@@ -215,11 +251,12 @@ export default function ProductSelector({
                                                 onClick={() =>
                                                     updateItem(index, { selectedProductId: product.id })
                                                 }
+                                                type="button"
                                                 className={`
                           rounded-xl border p-4 text-left transition-all
                           ${selected
                                                         ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                        : "border border-[rgba(7,109,143,0.4)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                        : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
                                                     }
                         `}
                                             >
@@ -261,6 +298,7 @@ export default function ProductSelector({
                                                     quantity: Math.max(1, item.quantity - 1),
                                                 })
                                             }
+                                            type="button"
                                             className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 text-lg font-semibold text-gray-700 transition hover:bg-gray-100"
                                         >
                                             −
@@ -291,6 +329,7 @@ export default function ProductSelector({
                                                     quantity: Math.min(100, item.quantity + 1),
                                                 })
                                             }
+                                            type="button"
                                             className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 text-lg font-semibold text-gray-700 transition hover:bg-gray-100"
                                         >
                                             +
@@ -313,11 +352,12 @@ export default function ProductSelector({
                                                     onClick={() =>
                                                         updateItem(index, { selectedPackageId: pack.id })
                                                     }
+                                                    type="button"
                                                     className={`
                             rounded-xl border p-4 text-left transition-all
                             ${selected
                                                             ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                            : "border border-[rgba(7,109,143,0.4)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                            : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
                                                         }
                           `}
                                                 >
@@ -359,6 +399,7 @@ export default function ProductSelector({
 
                                                 return (
                                                     <button
+                                                        type="button"
                                                         key={option}
                                                         onClick={() =>
                                                             updateItem(index, { selectedNote: option })
@@ -367,7 +408,7 @@ export default function ProductSelector({
                               rounded-xl border p-4 text-left text-sm transition-all
                               ${selected
                                                                 ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                                : "border border-[rgba(7,109,143,0.4)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                                : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
                                                             }
                             `}
                                                     >
@@ -393,6 +434,7 @@ export default function ProductSelector({
                                     <div className="flex justify-center">
                                         <button
                                             onClick={() => finishItem(index)}
+                                            type="button"
                                             className="rounded-lg bg-[rgb(49,171,2)] px-6 py-3 font-semibold text-white transition hover:brightness-95"
                                         >
                                             ✓ Tétel befejezése

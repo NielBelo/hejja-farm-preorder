@@ -65,9 +65,9 @@ export default function CountdownCard({ startDate, endDate }: Props) {
     : getTimeLeft(endDate);
 
  return (
-  <div className="mt-10 rounded-xl bg-white border border-gray-200 shadow-sm p-4 text-gray-700">
+  <div className="mt-10 rounded-xl bg-white border border-gray-200 shadow-sm p-5 text-gray-700">
 
-    <div className="grid grid-cols-3 items-center text-sm text-gray-600 leading-5">
+    <div className="grid grid-cols-3 items-center text-base text-gray-600 leading-5">
       <div className="text-center">
         <span className="font-semibold">Előrendelés kezdete:</span>
         <br />

@@ -22,7 +22,7 @@ export default function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="bg-gray-50 rounded-md">
+    <nav className="bg-white rounded-md">
       <div className="flex gap-1">
         {menuItems.map((item) => {
           const isActive =

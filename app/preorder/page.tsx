@@ -1,7 +1,8 @@
 import Image from "next/image";
 import { supabase } from "@/lib/supabase";
-import CountdownCard from "@/components/CountdownCard";
-import ProductSelector from "@/components/ProductSelector";
+// page.tsx
+import PreorderManager from "@/components/PreorderManager";
+
 
 export default async function PreorderPage() {
   const { data } = await supabase
@@ -22,6 +23,13 @@ export default async function PreorderPage() {
   const { data: packages } = await supabase
     .from("packages")
     .select("id, name, description");
+
+  const { data: pickupDays } = await supabase
+    .from("pickup_days")
+    .select("*")
+    .eq("is_active", true)
+    .order("_group")
+    .order("serial_number");
 
   const orderInfo1 = data?.find((item) => item.key === "order_info1");
   const orderInfo2 = data?.find((item) => item.key === "order_info2");
@@ -56,14 +64,11 @@ export default async function PreorderPage() {
         </div>
       </div>
 
-      <CountdownCard
-        startDate={season?.time_window_start}
-        endDate={season?.time_window_end}
-      />
-
-      <ProductSelector
+      <PreorderManager
+        season={season}
         products={products ?? []}
         packages={packages ?? []}
+        pickupDays={pickupDays ?? []}
       />
     </main>
   );
