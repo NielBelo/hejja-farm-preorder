@@ -1,6 +1,6 @@
 "use client";
 
-import {  useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
     ChevronRightIcon,
@@ -37,6 +37,8 @@ type ProductSelectorProps = {
     packages: PackageOption[];
     maxAvailableQuantity: number | null;
     resetKey: number;
+    isPickupDaySelected: boolean;
+    onOrderChangesChange: (hasChanges: boolean) => void;
 };
 
 const DEFAULT_NOTE = "Átlagos méret megfelelő";
@@ -58,11 +60,20 @@ export default function ProductSelector({
     packages,
     maxAvailableQuantity,
     resetKey,
+    isPickupDaySelected,
+    onOrderChangesChange,
 }: ProductSelectorProps) {
-    const [items, setItems] = useState<OrderItem[]>([emptyItem(false)]);
+    const [items, setItems] = useState<OrderItem[]>([emptyItem(true)]);
+
     useEffect(() => {
-    setItems([emptyItem(false)]);
-}, [resetKey]);
+        const hasChanges = items.some(item => itemHasContent(item));
+        onOrderChangesChange(hasChanges);
+    }, [items, onOrderChangesChange]);
+    useEffect(() => {
+        setItems([
+            emptyItem(!isPickupDaySelected)
+        ]);
+    }, [resetKey, isPickupDaySelected]);
 
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -71,51 +82,42 @@ export default function ProductSelector({
         item.quantity !== 1 ||
         item.selectedNote !== DEFAULT_NOTE;
 
-const getRemainingQuantity = (items: OrderItem[], currentIndex: number) => {
-    const used = items.reduce((sum, item, index) => {
-        if (index === currentIndex) return sum;
-        return sum + item.quantity;
-    }, 0);
+    const getRemainingQuantity = (items: OrderItem[], currentIndex: number) => {
+        const used = items.reduce((sum, item, index) => {
+            if (index === currentIndex) return sum;
+            return sum + item.quantity;
+        }, 0);
 
-    return Math.max(
-        1,
-        (maxAvailableQuantity ?? 100) - used
-    );
-};
+        return Math.max(
+            1,
+            (maxAvailableQuantity ?? 100) - used
+        );
+    };
 
-const updateItem = (index: number, changes: Partial<OrderItem>) => {
-    setItems((prev) => {
+    const updateItem = (index: number, changes: Partial<OrderItem>) => {
+        setItems((prev) => {
 
-        const remaining = getRemainingQuantity(prev, index);
+            const remaining = getRemainingQuantity(prev, index);
 
-        const updated = prev.map((item, i) => {
-            if (i !== index) return item;
+            const updated = prev.map((item, i) => {
+                if (i !== index) return item;
 
-            const newQuantity =
-                changes.quantity !== undefined
-                    ? Math.min(
-                          remaining,
-                          Math.max(1, changes.quantity)
-                      )
-                    : item.quantity;
+                const newQuantity =
+                    changes.quantity !== undefined
+                        ? Math.min(
+                            remaining,
+                            Math.max(1, changes.quantity)
+                        )
+                        : item.quantity;
 
-            return {
-                ...item,
-                ...changes,
-                quantity: newQuantity,
-                touched: true,
-                showValidation: false,
-            };
-        });
-
-            const lastItem = updated[updated.length - 1];
-
-            const canAddNewItem =
-                lastItem.selectedProductId !== null && index === updated.length - 1;
-
-            if (canAddNewItem) {
-                updated.push(emptyItem(true));
-            }
+                return {
+                    ...item,
+                    ...changes,
+                    quantity: newQuantity,
+                    touched: true,
+                    showValidation: false,
+                };
+            });
 
             return updated;
         });
@@ -123,35 +125,85 @@ const updateItem = (index: number, changes: Partial<OrderItem>) => {
 
     const resetItem = (index: number) => {
         setItems((prev) => {
-            const updated = prev.map((item, i) =>
-                i === index ? emptyItem(index !== 0) : item
+            // A kiválasztott tétel tényleges eltávolítása
+            const remainingItems = prev.filter((_, i) => i !== index);
+
+            // Az összes üres helyőrző eltávolítása
+            const contentItems = remainingItems.filter((item) =>
+                itemHasContent(item)
             );
 
-            return updated.length === 1 ? updated : updated.filter((item, i) => {
-                const isLast = i === updated.length - 1;
-                return itemHasContent(item) || isLast || i === 0;
-            });
+            // Ha már egyetlen kitöltött tétel sincs,
+            // csak egy alapértelmezett első tétel maradjon
+            if (contentItems.length === 0) {
+                return [emptyItem(!isPickupDaySelected)];
+            }
+
+            const lastItem = contentItems[contentItems.length - 1];
+
+            const lastItemIsComplete =
+                lastItem.selectedProductId !== null &&
+                lastItem.selectedPackageId !== null;
+
+            // Csak befejezhető utolsó tétel után jelenjen meg
+            // pontosan egy új, összecsukott tétel
+            if (lastItemIsComplete) {
+                return [...contentItems, emptyItem(true)];
+            }
+
+            return contentItems;
         });
     };
 
     const finishItem = (index: number) => {
-        setItems((prev) =>
-            prev.map((item, i) => {
-                if (i !== index) return item;
+        setItems((prev) => {
+            const currentItem = prev[index];
 
-                if (!item.selectedProductId || !item.selectedPackageId) {
-                    return {
+            if (
+                currentItem.selectedProductId === null ||
+                currentItem.selectedPackageId === null
+            ) {
+                return prev.map((item, i) =>
+                    i === index
+                        ? {
+                            ...item,
+                            showValidation: true,
+                        }
+                        : item
+                );
+            }
+
+            const updated = prev.map((item, i) =>
+                i === index
+                    ? {
                         ...item,
-                        showValidation: true,
-                    };
-                }
+                        collapsed: true,
+                        showValidation: false,
+                    }
+                    : item
+            );
 
-                return {
-                    ...item,
-                    collapsed: true,
-                    showValidation: false,
-                };
-            })
+            const isLastItem = index === updated.length - 1;
+
+            if (isLastItem) {
+                updated.push(emptyItem(true));
+            }
+
+            return updated;
+        });
+    };
+
+    const toggleItem = (index: number, canOpen: boolean) => {
+        if (!canOpen) return;
+
+        setItems((prev) =>
+            prev.map((currentItem, currentIndex) => ({
+                ...currentItem,
+                collapsed:
+                    currentIndex === index
+                        ? !currentItem.collapsed
+                        : true,
+            }))
         );
     };
 
@@ -186,10 +238,26 @@ const updateItem = (index: number, changes: Partial<OrderItem>) => {
 
 
     return (
+
+
         <div>
+            {!isPickupDaySelected && (
+                <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-center text-sm font-medium text-yellow-800">
+                    A rendelési tételek megadásához először válasszon átvételi napot!
+                </p>
+            )}
+
             {items.map((item, index) => {
                 const previousItem = index > 0 ? items[index - 1] : null;
-
+                const canOpen =
+                    isPickupDaySelected &&
+                    (
+                        !previousItem ||
+                        (
+                            previousItem.selectedProductId !== null &&
+                            previousItem.selectedPackageId !== null
+                        )
+                    );
                 const marginClass = "mt-2"
 
 
@@ -201,38 +269,48 @@ const updateItem = (index: number, changes: Partial<OrderItem>) => {
                         overflow-hidden rounded-xl border border-gray-200 shadow-sm
                     `}
                     >
-                        <div className="flex items-center justify-between bg-[rgb(133,144,149)] px-6 py-2">
-                            <h2 className="text-sm font-semibold text-white">
-                                {getHeaderText(item, index)}
-                            </h2>
+                        <div
+                            role="button"
+                            tabIndex={canOpen ? 0 : -1}
+                            onClick={() => toggleItem(index, canOpen)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    toggleItem(index, canOpen);
+                                }
+                            }}
+                            className={`
+        flex items-center justify-between
+        bg-[rgb(133,144,149)] px-6 py-2
+        ${canOpen
+                                    ? "cursor-pointer hover:brightness-95"
+                                    : "cursor-not-allowed opacity-60"
+                                }
+    `}
+                        >
+                            <div className="flex min-w-0 items-center gap-2">
+                                {item.collapsed ? (
+                                    <ChevronRightIcon className="h-5 w-5 shrink-0 text-white" />
+                                ) : (
+                                    <ChevronDownIcon className="h-5 w-5 shrink-0 text-white" />
+                                )}
 
-                            <div className="flex items-center gap-1">
-                                <button
-                                    onClick={() => resetItem(index)}
-                                    type="button"
-                                    className="rounded p-1 transition hover:bg-white/10"
-                                    title="Tétel törlése"
-                                >
-                                    <TrashIcon className="h-5 w-5 text-white" />
-                                </button>
-
-                                <button
-                                    onClick={() =>
-                                        updateItem(index, {
-                                            collapsed: !item.collapsed,
-                                            touched: item.touched,
-                                        })
-                                    }
-                                    type="button"
-                                    className="rounded p-1 transition hover:bg-white/10"
-                                >
-                                    {item.collapsed ? (
-                                        <ChevronRightIcon className="h-5 w-5 text-white" />
-                                    ) : (
-                                        <ChevronDownIcon className="h-5 w-5 text-white" />
-                                    )}
-                                </button>
+                                <h2 className="truncate text-sm font-semibold text-white">
+                                    {getHeaderText(item, index)}
+                                </h2>
                             </div>
+
+                            <button
+                                type="button"
+                                onClick={(event) => {
+                                    event.stopPropagation();
+                                    resetItem(index);
+                                }}
+                                className="rounded p-1 transition hover:bg-white/10"
+                                title="Tétel törlése"
+                            >
+                                <TrashIcon className="h-5 w-5 text-white" />
+                            </button>
                         </div>
 
                         {!item.collapsed && (
