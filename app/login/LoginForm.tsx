@@ -1,11 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { login, type LoginState } from "./actions";
+
 
 const initialState: LoginState = {
   error: null,
+  emailError: null,
+  passwordError: null,
 };
+
 
 export default function LoginForm() {
   const [state, formAction, isPending] = useActionState(
@@ -14,7 +18,7 @@ export default function LoginForm() {
   );
 
   return (
-    <form action={formAction} className="space-y-5">
+    <form action={formAction} noValidate className="space-y-4">
       <div>
         <label className="mb-2 block text-sm font-medium text-gray-700">
           E-mail
@@ -27,15 +31,19 @@ export default function LoginForm() {
           className="
             w-full
             rounded-xl
-            border border-gray-200
+            border-2 border-[rgba(7,109,143,0.2)]
             bg-white
             px-4 py-2.5
             text-gray-700
-            shadow-sm
             outline-none
             transition
           "
         />
+        {state.emailError && (
+          <p className="mt-1 text-sm text-red-600">
+            {state.emailError}
+          </p>
+        )}
       </div>
 
       <div>
@@ -50,19 +58,23 @@ export default function LoginForm() {
           className="
             w-full
             rounded-xl
-            border border-gray-200
+            border-2 border-[rgba(7,109,143,0.2)]
             bg-white
             px-4 py-2.5
             text-gray-700
-            shadow-sm
             outline-none
             transition
           "
         />
+        {state.passwordError && (
+          <p className="mt-1 text-sm text-red-600">
+            {state.passwordError}
+          </p>
+        )}
       </div>
 
       {state.error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600 shadow-sm">
+        <p className="py-1 text-center text-sm text-red-600">
           {state.error}
         </p>
       )}
