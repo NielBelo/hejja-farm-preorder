@@ -1,7 +1,10 @@
 import Image from "next/image";
 import Navigation from "./Navigation";
+import LogoutButton from "./LogoutButton";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
-export default function Header() {
+export default async function Header() {
+  const currentUser = await getCurrentUser();
   return (
     <header className="sticky top-4 z-50 mx-auto w-full max-w-5xl rounded-xl bg-white shadow-sm">
       <div className="px-5 py-3">
@@ -23,17 +26,14 @@ export default function Header() {
 
           <Navigation />
 
-          <button className="flex items-center gap-3 rounded-xl border border-gray-500 px-5 py-3 
-          text-sm font-bold text-gray-700 transition hover:bg-gray-200">
-  Kiss Dániel
-
-  <Image
-    src="/images/logout.png"
-    alt="Kijelentkezés"
-    width={15}
-    height={15}
-  />
-</button>
+          <LogoutButton
+  userName={
+    currentUser
+      ? `${currentUser.lastName} ${currentUser.firstName}`
+      : "Kijelentkezés"
+  }
+  
+/>
         </div>
       </div>
     </header>

@@ -7,6 +7,7 @@ export type LoginState = {
   error: string | null;
   emailError: string | null;
   passwordError: string | null;
+  email: string;
 };
 
 export async function login(
@@ -29,6 +30,8 @@ if (emailError || passwordError) {
     error: null,
     emailError,
     passwordError,
+
+    email,
   };
 }
 
@@ -42,8 +45,9 @@ if (error) {
     error: "Hibás e-mail cím vagy jelszó.",
     emailError: null,
     passwordError: null,
+    email,
   };
 }
 
-  redirect("/auth-test");
+  redirect("/preorder");
 }

@@ -2,12 +2,14 @@
 
 import { useActionState, useState } from "react";
 import { login, type LoginState } from "./actions";
+import FormInput from "@/components/FormInput";
 
 
 const initialState: LoginState = {
   error: null,
   emailError: null,
   passwordError: null,
+  email: "",
 };
 
 
@@ -19,59 +21,20 @@ export default function LoginForm() {
 
   return (
     <form action={formAction} noValidate className="space-y-4">
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          E-mail
-        </label>
+      <FormInput
+        label="E-mail"
+        name="email"
+        type="email"
+        defaultValue={state.email}
+        error={state.emailError}
+      />
 
-        <input
-          type="email"
-          name="email"
-          required
-          className="
-            w-full
-            rounded-xl
-            border-2 border-[rgba(7,109,143,0.2)]
-            bg-white
-            px-4 py-2.5
-            text-gray-700
-            outline-none
-            transition
-          "
-        />
-        {state.emailError && (
-          <p className="mt-1 text-sm text-red-600">
-            {state.emailError}
-          </p>
-        )}
-      </div>
-
-      <div>
-        <label className="mb-2 block text-sm font-medium text-gray-700">
-          Jelszó
-        </label>
-
-        <input
-          type="password"
-          name="password"
-          required
-          className="
-            w-full
-            rounded-xl
-            border-2 border-[rgba(7,109,143,0.2)]
-            bg-white
-            px-4 py-2.5
-            text-gray-700
-            outline-none
-            transition
-          "
-        />
-        {state.passwordError && (
-          <p className="mt-1 text-sm text-red-600">
-            {state.passwordError}
-          </p>
-        )}
-      </div>
+      <FormInput
+        label="Jelszó"
+        name="password"
+        type="password"
+        error={state.passwordError}
+      />
 
       {state.error && (
         <p className="py-1 text-center text-sm text-red-600">
