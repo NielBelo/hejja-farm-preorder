@@ -56,7 +56,7 @@ export default function PickupDaySelector({
         }).format(new Date(date));
 
     return (
-        <section className="mt-8 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="text-center text-base font-semibold text-gray-700">
                 Válasszon átvételi napot!
             </h2>

@@ -39,6 +39,7 @@ type ProductSelectorProps = {
     resetKey: number;
     isPickupDaySelected: boolean;
     onOrderChangesChange: (hasChanges: boolean) => void;
+    onItemsChange: (items: OrderItem[]) => void;
 };
 
 const DEFAULT_NOTE = "Átlagos méret megfelelő";
@@ -62,13 +63,16 @@ export default function ProductSelector({
     resetKey,
     isPickupDaySelected,
     onOrderChangesChange,
+    onItemsChange,
 }: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>([emptyItem(true)]);
 
     useEffect(() => {
         const hasChanges = items.some(item => itemHasContent(item));
+
         onOrderChangesChange(hasChanges);
-    }, [items, onOrderChangesChange]);
+        onItemsChange(items);
+    }, [items, onOrderChangesChange, onItemsChange]);
     useEffect(() => {
         setItems([
             emptyItem(!isPickupDaySelected)
@@ -241,11 +245,6 @@ export default function ProductSelector({
 
 
         <div>
-            {!isPickupDaySelected && (
-                <p className="mt-4 rounded-lg border border-yellow-300 bg-yellow-50 px-4 py-3 text-center text-sm font-medium text-yellow-800">
-                    A rendelési tételek megadásához először válasszon átvételi napot!
-                </p>
-            )}
 
             {items.map((item, index) => {
                 const previousItem = index > 0 ? items[index - 1] : null;
@@ -258,7 +257,7 @@ export default function ProductSelector({
                             previousItem.selectedPackageId !== null
                         )
                     );
-                const marginClass = "mt-2"
+                const marginClass = "mt-4"
 
 
                 return (
@@ -280,37 +279,51 @@ export default function ProductSelector({
                                 }
                             }}
                             className={`
-        flex items-center justify-between
-        bg-[rgb(133,144,149)] px-6 py-2
-        ${canOpen
-                                    ? "cursor-pointer hover:brightness-95"
-                                    : "cursor-not-allowed opacity-60"
+    flex items-center justify-between
+    rounded-xl px-6 py-2
+    ${!item.touched && !itemHasContent(item)
+                                    ? "border sm border-gray-200 bg-white shadow-x1 text-[rgb(145,155,160)]"
+                                    : "border-[rgb(145,155,160)] bg-[rgb(145,155,160)] text-white"
                                 }
-    `}
+    ${canOpen
+                                    ? "cursor-pointer hover:brightness-95"
+                                    : "cursor-not-allowed opacity-60"   
+                                }
+`}
                         >
                             <div className="flex min-w-0 items-center gap-2">
                                 {item.collapsed ? (
-                                    <ChevronRightIcon className="h-5 w-5 shrink-0 text-white" />
+                                    <ChevronRightIcon className="h-5 w-5 shrink-0" />
                                 ) : (
-                                    <ChevronDownIcon className="h-5 w-5 shrink-0 text-white" />
+                                    <ChevronDownIcon className="h-5 w-5 shrink-0" />
                                 )}
 
-                                <h2 className="truncate text-sm font-semibold text-white">
-                                    {getHeaderText(item, index)}
-                                </h2>
+                                <div className="flex min-w-0 items-center gap-2">
+                                    <h2 className="shrink-0 text-sm font-semibold">
+                                        {getHeaderText(item, index)}
+                                    </h2>
+
+                                    {!isPickupDaySelected && index === 0 && (
+                                        <span className="truncate text-xs font-normal italic opacity-80">
+                                            - A rendelési tételek megadásához először válasszon átvételi napot!
+                                        </span>
+                                    )}
+                                </div>
                             </div>
 
-                            <button
-                                type="button"
-                                onClick={(event) => {
-                                    event.stopPropagation();
-                                    resetItem(index);
-                                }}
-                                className="rounded p-1 transition hover:bg-white/10"
-                                title="Tétel törlése"
-                            >
-                                <TrashIcon className="h-5 w-5 text-white" />
-                            </button>
+                            {isPickupDaySelected && (
+                                <button
+                                    type="button"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        resetItem(index);
+                                    }}
+                                    className="rounded p-1 transition hover:bg-white/10"
+                                    title="Tétel törlése"
+                                >
+                                    <TrashIcon className="h-5 w-5 text-white" />
+                                </button>
+                            )}
                         </div>
 
                         {!item.collapsed && (
@@ -513,9 +526,15 @@ export default function ProductSelector({
                                         <button
                                             onClick={() => finishItem(index)}
                                             type="button"
-                                            className="rounded-lg bg-[rgb(49,171,2)] px-6 py-3 font-semibold text-white transition hover:brightness-95"
+                                            className="
+            rounded-lg border border-gray-300
+            bg-[rgb(145,155,160)] px-5 py-2
+            text-sm font-medium text-white
+            transition
+            hover:bg-[rgb(133,144,149)] hover:text-white/90
+        "
                                         >
-                                            ✓ Tétel befejezése
+                                            ✓ Tétel kész, összecsukás
                                         </button>
                                     </div>
 

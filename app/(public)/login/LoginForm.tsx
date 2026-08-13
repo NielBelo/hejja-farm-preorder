@@ -37,10 +37,12 @@ export default function LoginForm() {
       />
 
       {state.error && (
-        <p className="py-1 text-center text-sm text-red-600">
+        <p className="mt-1 text-sm text-center text-red-600">
           {state.error}
         </p>
       )}
+      
+
 
       <button
         type="submit"

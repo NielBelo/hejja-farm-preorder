@@ -40,7 +40,7 @@ export default async function PreorderPage() {
     .replace("{price}", String(season?.price));
 
   return (
-    <main className="mx-auto mt-6 w-full max-w-5xl">
+    <main className="mx-auto mt-4 w-full max-w-5xl">
       <div className="flex gap-8 items-start">
         {orderInfo1?.image_url && (
           <Image

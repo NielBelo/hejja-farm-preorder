@@ -1,13 +1,5 @@
-import { supabase } from "@/lib/supabase"
+import { redirect } from "next/navigation";
 
-export default async function Home() {
-  const { data, error } = await supabase.from("products").select("*")
-
-  return (
-    <main>
-      <h1>Supabase teszt</h1>
-
-      <pre>{JSON.stringify({ data, error }, null, 2)}</pre>
-    </main>
-  )
+export default function Home() {
+  redirect("/preorder");
 }
