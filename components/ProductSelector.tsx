@@ -40,6 +40,7 @@ type ProductSelectorProps = {
     isPickupDaySelected: boolean;
     onOrderChangesChange: (hasChanges: boolean) => void;
     onItemsChange: (items: OrderItem[]) => void;
+    onItemEdited: () => void;
 };
 
 const DEFAULT_NOTE = "Átlagos méret megfelelő";
@@ -64,6 +65,7 @@ export default function ProductSelector({
     isPickupDaySelected,
     onOrderChangesChange,
     onItemsChange,
+    onItemEdited,
 }: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>([emptyItem(true)]);
 
@@ -99,7 +101,9 @@ export default function ProductSelector({
     };
 
     const updateItem = (index: number, changes: Partial<OrderItem>) => {
-        setItems((prev) => {
+    onItemEdited();
+
+    setItems((prev) => {
 
             const remaining = getRemainingQuantity(prev, index);
 

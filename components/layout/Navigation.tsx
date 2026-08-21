@@ -10,7 +10,7 @@ const menuItems = [
   },
   {
     label: "Előzmények",
-    href: "/products",
+    href: "/history",
   },
   {
     label: "Beállítások",

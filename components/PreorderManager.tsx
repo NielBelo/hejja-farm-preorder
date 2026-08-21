@@ -5,6 +5,7 @@ import CountdownCard from "@/components/CountdownCard";
 import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
+import { CheckCircleIcon } from "@heroicons/react/24/outline";
 
 type Product = {
     id: number;
@@ -42,6 +43,14 @@ type OrderItem = {
     showValidation: boolean;
 };
 
+type SubmittedOrder = {
+    orderNumber: string;
+    pickupDay: PickupDay;
+    items: OrderItem[];
+    submittedAt: Date;
+};
+
+
 export default function PreorderManager({
     season,
     products,
@@ -57,6 +66,9 @@ export default function PreorderManager({
         null
     );
 
+    const [currentPickupDays, setCurrentPickupDays] =
+        useState<PickupDay[]>(pickupDays);
+
     const handlePickupDayChange = (day: PickupDay) => {
         if (
             selectedPickupDay &&
@@ -69,6 +81,7 @@ export default function PreorderManager({
         }
 
         setSelectedPickupDay(day);
+        setLastSubmittedOrder(null);
     };
 
     const confirmPickupDayChange = () => {
@@ -77,8 +90,10 @@ export default function PreorderManager({
         setSelectedPickupDay(pendingPickupDay);
         setResetKey((prev) => prev + 1);
 
+        setLastSubmittedOrder(null);
         setPendingPickupDay(null);
         setShowDayChangeModal(false);
+
     };
 
     const cancelPickupDayChange = () => {
@@ -99,6 +114,8 @@ export default function PreorderManager({
 
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
+    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+
     const validOrderItems = orderItems.filter(
         (item) =>
             item.selectedProductId !== null ||
@@ -115,10 +132,40 @@ export default function PreorderManager({
                 item.collapsed
         );
 
+    const refreshPickupDays = async () => {
+        const supabase = createClient();
+
+        const { data, error } = await supabase
+            .from("pickup_days")
+            .select("*")
+            .order("serial_number");
+
+        if (error) {
+            console.error("Átvételi napok frissítési hiba:", error);
+            return;
+        }
+
+        setCurrentPickupDays(data);
+
+        if (selectedPickupDay) {
+            const updatedSelectedDay = data.find(
+                (day) => day.id === selectedPickupDay.id
+            );
+
+            if (updatedSelectedDay) {
+                setSelectedPickupDay(updatedSelectedDay);
+            }
+        }
+    };
+
+
     const handleFinalizeOrder = async () => {
         if (!canSubmitOrder || !selectedPickupDay) {
             return;
         }
+
+        setSubmitError(null);
+        setSubmitSuccess(null);
 
         const rpcItems = validOrderItems.map((item) => ({
             product_id: item.selectedProductId,
@@ -141,7 +188,34 @@ export default function PreorderManager({
 
         console.log("RPC data:", data);
         console.log("RPC error:", error);
+
+        await refreshPickupDays();
+
+        if (error) {
+            setSubmitError(error.message);
+            return;
+        }
+
+        setLastSubmittedOrder({
+            orderNumber: data,
+            pickupDay: selectedPickupDay,
+            items: validOrderItems.map((item) => ({ ...item })),
+            submittedAt: new Date(),
+        });
+        setResetKey((prev) => prev + 1);
+        setOrderItems([]);
+        setHasOrderChanges(false);
+        setSelectedPickupDay(null);
+        setSubmitSuccess(
+            `A rendelés sikeresen véglegesítve! Rendelésszám: ${data}`
+        );
     };
+
+
+    const [submitError, setSubmitError] = useState<string | null>(null);
+
+    const [lastSubmittedOrder, setLastSubmittedOrder] =
+        useState<SubmittedOrder | null>(null);
 
     return (
         <>
@@ -150,8 +224,119 @@ export default function PreorderManager({
                 endDate={season?.time_window_end}
             />
 
+            {lastSubmittedOrder && (
+                <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                    <div className="mb-2 flex justify-center">
+                        <CheckCircleIcon className="h-10 w-10 text-[rgb(49,171,2)]" />
+                    </div>
+                    <h3 className="text-center text-lg font-semibold text-[rgb(49,171,2)]">
+                        Előrendelés sikeresen leadva!
+                    </h3>
+
+                    <div className="mt-3 grid grid-cols-3 items-center border-b border-gray-200 pb-4 text-sm text-gray-600">
+                        <div className="text-left">
+                            Rendelésszám:{" "}
+                            <span className="font-semibold text-gray-700">
+                                #{lastSubmittedOrder.orderNumber}
+                            </span>
+                        </div>
+
+                        <div className="text-center">
+                            Rögzítés időpontja:{" "}
+                            <span className="font-semibold text-gray-700">
+                                {lastSubmittedOrder.submittedAt.toLocaleString("hu-HU")}
+                            </span>
+                        </div>
+
+                        <div className="text-right">
+                            Átvétel:{" "}
+                            <span className="font-semibold text-gray-700">
+                                {new Date(
+                                    lastSubmittedOrder.pickupDay.pickup_date
+                                ).toLocaleDateString("hu-HU")}
+                            </span>
+                        </div>
+                    </div>
+
+                    <div className="mt-6">
+                        {lastSubmittedOrder.items.map((item, index) => {
+                            const product = products.find(
+                                (product) => product.id === item.selectedProductId
+                            );
+
+                            const packageOption = packages.find(
+                                (packageOption) => packageOption.id === item.selectedPackageId
+                            );
+
+                            return (
+                                <div
+                                    key={index}
+                                    className={`
+                            py-4 text-sm text-gray-600
+                            ${index > 0
+                                            ? "border-t border-gray-200"
+                                            : ""
+                                        }
+                        `}
+                                >
+                                    <p className="font-semibold text-gray-700">
+                                        {index + 1}. tétel
+                                    </p>
+
+                                    <p>
+                                        {product?.name} – {item.quantity} db
+                                    </p>
+
+                                    <p>
+                                        Csomagolás: {packageOption?.name}
+                                    </p>
+
+                                    <p>
+                                        Méret: {item.selectedNote}
+                                    </p>
+
+                                    {item.note && (
+                                        <p>
+                                            Megjegyzés: {item.note}
+                                        </p>
+                                    )}
+                                </div>
+                            );
+                        })}
+                    </div>
+
+                    <div className="mt-5 border-t border-gray-200 pt-5 text-center text-sm leading-6 text-gray-600">
+                        <p>
+                            Korábban leadott rendeléseit az{" "}
+                            <span className="font-semibold text-gray-700">
+                                Előzmények
+                            </span>{" "}
+                            oldalon tekintheti meg.
+                        </p>
+
+                        <p>
+                            Rendelése az előrendelési időszak végéig,{" "}
+                            <span className="font-semibold text-gray-700">
+                                {new Date(season.time_window_end).toLocaleString("hu-HU")}
+                            </span>
+                            -ig módosítható vagy törölhető.
+                        </p>
+                    </div>
+                </div>
+            )}
+
+            <div className="mx-auto mt-6 mb-4 flex w-full max-w-4xl items-center gap-4">
+                <div className="h-px flex-1 bg-gray-400" />
+
+                <h2 className="text-md font-semibold tracking-wider text-gray-500">
+                    ÚJ ELŐRENDELÉS
+                </h2>
+
+                <div className="h-px flex-1 bg-gray-400" />
+            </div>
+
             <PickupDaySelector
-                pickupDays={pickupDays}
+                pickupDays={currentPickupDays}
                 selectedPickupDayId={selectedPickupDay?.id ?? null}
                 onSelectPickupDay={handlePickupDayChange}
             />
@@ -164,6 +349,10 @@ export default function PreorderManager({
                 isPickupDaySelected={selectedPickupDay !== null}
                 onOrderChangesChange={setHasOrderChanges}
                 onItemsChange={setOrderItems}
+                onItemEdited={() => {
+                    setSubmitError(null);
+                    setLastSubmittedOrder(null);
+                }}
             />
 
 
@@ -176,6 +365,16 @@ export default function PreorderManager({
                             A rendelés véglegesítéséhez először fejezze be az összes tételt!
                         </p>
                     )}
+
+                {submitError && (
+                    <p className="mb-4 text-center text-sm font-medium text-red-600">
+                        {submitError}
+                    </p>
+                )}
+
+
+
+                <div className="flex justify-center"></div>
 
                 <div className="flex justify-center">
                     <button
