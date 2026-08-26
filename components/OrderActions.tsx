@@ -73,6 +73,8 @@ export default function OrderActions({
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+    const [isCancelling, setIsCancelling] = useState(false);
+    const [showCancelModal, setShowCancelModal] = useState(false);
     const supabase = createClient();
 
     const initialItems = useMemo(
@@ -268,10 +270,95 @@ export default function OrderActions({
 
         router.refresh();
     };
+    const handleCancelOrder = async () => {
+        if (isCancelling || anotherOrderIsEditing) {
+            return;
+        }
+
+        setShowCancelModal(false);
+        setIsCancelling(true);
+        setSaveError(null);
+        setSaveSuccess(null);
+
+        const { error } = await supabase.rpc("cancel_order", {
+            p_order_id: orderId,
+        });
+
+        if (error) {
+            setSaveError(
+                error.message || "A rendelés törlése sikertelen."
+            );
+            setIsCancelling(false);
+            return;
+        }
+
+        setIsCancelling(false);
+
+        router.refresh();
+
+    };
 
     return (
         <div className="w-full">
 
+            {showCancelModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+
+                        <h2 className="text-lg font-semibold text-gray-800">
+                            Figyelem!
+                        </h2>
+
+                        <p className="mt-3 text-sm leading-6 text-gray-600">
+                            Biztosan törölni szeretné a(z){" "}
+                            <span className="font-semibold text-gray-800">
+                                {publicOrderNumber}
+                            </span>{" "}
+                            azonosítójú rendelést?
+                            A művelet nem vonható vissza.
+                        </p>
+
+                        <div className="mt-6 flex justify-end gap-3">
+
+                            <button
+                                type="button"
+                                onClick={() => setShowCancelModal(false)}
+                                disabled={isCancelling}
+                                className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                            >
+                                Mégse
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={handleCancelOrder}
+                                disabled={isCancelling}
+                                className="
+        rounded-lg
+        bg-red-600
+        px-4 py-2
+        font-semibold text-white
+        hover:bg-red-600
+        disabled:cursor-not-allowed
+        disabled:opacity-50
+    "
+                            >
+                                {isCancelling ? "Törlés..." : "Törlés"}
+                            </button>
+
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
+            {saveError && !isEditing && (
+                <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+                    <p className="text-center text-sm text-red-600">
+                        {saveError}
+                    </p>
+                </div>
+            )}
             {saveSuccess && !isEditing && (
                 <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
                     <p className="text-sm text-center text-[rgb(49,171,2)]">
@@ -302,14 +389,17 @@ export default function OrderActions({
 
                     <button
                         type="button"
-                        className="
-                            rounded-lg border border-red-200
-                            px-4 py-2 text-sm
-                            text-red-500
-                            transition-colors
-                            hover:bg-red-50
-                            hover:text-red-600
-                        "
+                        onClick={() => setShowCancelModal(true)}
+                        disabled={isCancelling || anotherOrderIsEditing}
+                        className={`
+        rounded-lg border border-red-200
+        px-4 py-2 text-sm
+        transition-colors
+        ${isCancelling || anotherOrderIsEditing
+                                ? "cursor-not-allowed bg-gray-50 text-gray-300"
+                                : "text-red-500 hover:bg-red-50 hover:text-red-600"
+                            }
+    `}
                     >
                         Rendelés törlése
                     </button>
@@ -322,12 +412,15 @@ export default function OrderActions({
                 <div className="mt-4 border-t border-gray-200 pt-4">
 
                     {/* Szerkesztő fejléc */}
-                    <div className="mb-4 w-full">
-
+                    <div
+                        id={`order-edit-${orderId}`}
+                        className="mb-4 w-full scroll-mt-24"
+                    >
                         {/* Cím */}
                         <h3 className="text-center font-semibold text-gray-800">
                             Rendelés módosítása
                         </h3>
+
 
                         {/* Készletinformáció */}
                         <div className="mt-2 flex items-center gap-2">
@@ -347,6 +440,7 @@ export default function OrderActions({
 
                     {/* Tételek szerkesztése */}
                     <ProductSelector
+                        orderId={orderId}
                         products={products}
                         packages={packages}
                         maxAvailableQuantity={maxAvailableQuantity}

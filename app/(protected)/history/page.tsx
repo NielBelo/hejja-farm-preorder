@@ -144,6 +144,8 @@ export default async function HistoryPage() {
     .eq("key", "history_pic")
     .single();
 
+  
+
   return (
     <main className="mx-auto mt-4 w-full max-w-5xl">
       {/* Tájékoztató rész */}
@@ -213,26 +215,26 @@ export default async function HistoryPage() {
 
         </div>
       </div>
-{/* Rendelési időszak */}
-{season && (
-                    <div className="mb-10">
-                      <CountdownCard
-                        startDate={season?.time_window_start}
-                        endDate={season?.time_window_end}
-                      /> 
-                    </div>
-                  )}
+      {/* Rendelési időszak */}
+      {season && (
+        <div className="mb-10">
+          <CountdownCard
+            startDate={season?.time_window_start}
+            endDate={season?.time_window_end}
+          />
+        </div>
+      )}
 
-{/* Rendelési előzmények elválasztó */}
-<div className="mx-auto mt-4 mb-4 flex w-full max-w-4xl items-center gap-4">
-    <div className="h-[1.5px] flex-1 bg-gray-400" />
+      {/* Rendelési előzmények elválasztó */}
+      <div className="mx-auto mt-4 mb-4 flex w-full max-w-4xl items-center gap-4">
+        <div className="h-[1.5px] flex-1 bg-gray-400" />
 
-    <h2 className="shrink-0 text-md font-semibold tracking-wider text-gray-500">
-        RENDELÉSI ELŐZMÉNYEK
-    </h2>
+        <h2 className="shrink-0 text-md font-semibold tracking-wider text-gray-500">
+          RENDELÉSI ELŐZMÉNYEK
+        </h2>
 
-    <div className="h-[1.5px] flex-1 bg-gray-400" />
-</div>
+        <div className="h-[1.5px] flex-1 bg-gray-400" />
+      </div>
 
 
       {orders.length === 0 ? (

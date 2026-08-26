@@ -1,5 +1,4 @@
 "use client";
-
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
@@ -35,6 +34,7 @@ type OrderItem = {
 };
 
 type ProductSelectorProps = {
+    orderId?: number;
     products: Product[];
     packages: PackageOption[];
     maxAvailableQuantity: number | null;
@@ -62,6 +62,7 @@ const emptyItem = (collapsed = false): OrderItem => ({
 
 
 export default function ProductSelector({
+    orderId,
     products,
     packages,
     maxAvailableQuantity,
@@ -77,6 +78,7 @@ export default function ProductSelector({
             ? initialItems
             : [emptyItem(true)]
     );
+
 
     useEffect(() => {
         const hasChanges = items.some(item => itemHasContent(item));
@@ -145,6 +147,16 @@ export default function ProductSelector({
 
             return updated;
         });
+        if (orderId !== undefined) {
+            requestAnimationFrame(() => {
+                document
+                    .getElementById(`order-edit-${orderId}`)
+                    ?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start",
+                    });
+            });
+        }
     };
 
     const resetItem = (index: number) => {
@@ -180,46 +192,59 @@ export default function ProductSelector({
     };
 
     const finishItem = (
-        index: number,
-        validationPosition: "top" | "bottom" = "bottom"
-    ) => {
-        setItems((prev) => {
-            const currentItem = prev[index];
+    index: number,
+    validationPosition: "top" | "bottom" = "bottom"
+) => {
+    const currentItem = items[index];
 
-            if (
-                currentItem.selectedProductId === null ||
-                currentItem.selectedPackageId === null
-            ) {
-                return prev.map((item, i) =>
-                    i === index
-                        ? {
-                            ...item,
-                            showValidation: true,
-                            validationPosition,
-                        }
-                        : item
-                );
-            }
-
-            const updated = prev.map((item, i) =>
+    if (
+        currentItem.selectedProductId === null ||
+        currentItem.selectedPackageId === null
+    ) {
+        setItems((prev) =>
+            prev.map((item, i) =>
                 i === index
                     ? {
                         ...item,
-                        collapsed: true,
-                        showValidation: false,
+                        showValidation: true,
+                        validationPosition,
                     }
                     : item
-            );
+            )
+        );
 
-            const isLastItem = index === updated.length - 1;
+        return;
+    }
 
-            if (isLastItem) {
-                updated.push(emptyItem(true));
-            }
+    setItems((prev) => {
+        const updated = prev.map((item, i) =>
+            i === index
+                ? {
+                    ...item,
+                    collapsed: true,
+                    showValidation: false,
+                }
+                : item
+        );
 
-            return updated;
-        });
-    };
+        const isLastItem = index === updated.length - 1;
+
+        if (isLastItem) {
+            updated.push(emptyItem(true));
+        }
+
+        return updated;
+    });
+
+    requestAnimationFrame(() => {
+        document
+            .getElementById(`order-edit-${orderId}`)
+            ?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+            });
+    });
+};
 
     const toggleItem = (index: number, canOpen: boolean) => {
         if (!canOpen) return;
@@ -325,9 +350,9 @@ export default function ProductSelector({
                     <div
                         key={index}
                         className={`
-                        ${marginClass}
-                        overflow-hidden rounded-xl border border-gray-200 shadow-sm
-                    `}
+            ${marginClass}
+            overflow-hidden rounded-xl border border-gray-200 shadow-sm
+        `}
                     >
                         <div
                             role="button"
