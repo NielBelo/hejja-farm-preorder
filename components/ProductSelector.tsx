@@ -8,6 +8,7 @@ import {
     TrashIcon,
 } from "@heroicons/react/24/outline";
 
+
 type Product = {
     id: number;
     name: string;
@@ -30,6 +31,7 @@ type OrderItem = {
     collapsed: boolean;
     touched: boolean;
     showValidation: boolean;
+    validationPosition: "top" | "bottom";
 };
 
 type ProductSelectorProps = {
@@ -41,6 +43,7 @@ type ProductSelectorProps = {
     onOrderChangesChange: (hasChanges: boolean) => void;
     onItemsChange: (items: OrderItem[]) => void;
     onItemEdited: () => void;
+    initialItems?: OrderItem[];
 };
 
 const DEFAULT_NOTE = "Átlagos méret megfelelő";
@@ -53,7 +56,8 @@ const emptyItem = (collapsed = false): OrderItem => ({
     selectedNote: DEFAULT_NOTE,
     collapsed,
     touched: false,
-    showValidation: false
+    showValidation: false,
+    validationPosition: "bottom",
 });
 
 
@@ -66,8 +70,13 @@ export default function ProductSelector({
     onOrderChangesChange,
     onItemsChange,
     onItemEdited,
+    initialItems,
 }: ProductSelectorProps) {
-    const [items, setItems] = useState<OrderItem[]>([emptyItem(true)]);
+    const [items, setItems] = useState<OrderItem[]>(() =>
+        initialItems && initialItems.length > 0
+            ? initialItems
+            : [emptyItem(true)]
+    );
 
     useEffect(() => {
         const hasChanges = items.some(item => itemHasContent(item));
@@ -76,10 +85,15 @@ export default function ProductSelector({
         onItemsChange(items);
     }, [items, onOrderChangesChange, onItemsChange]);
     useEffect(() => {
+        if (initialItems && initialItems.length > 0) {
+            setItems(initialItems);
+            return;
+        }
+
         setItems([
             emptyItem(!isPickupDaySelected)
         ]);
-    }, [resetKey, isPickupDaySelected]);
+    }, [resetKey, isPickupDaySelected, initialItems]);
 
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -100,10 +114,12 @@ export default function ProductSelector({
         );
     };
 
-    const updateItem = (index: number, changes: Partial<OrderItem>) => {
-    onItemEdited();
 
-    setItems((prev) => {
+
+    const updateItem = (index: number, changes: Partial<OrderItem>) => {
+        onItemEdited();
+
+        setItems((prev) => {
 
             const remaining = getRemainingQuantity(prev, index);
 
@@ -163,7 +179,10 @@ export default function ProductSelector({
         });
     };
 
-    const finishItem = (index: number) => {
+    const finishItem = (
+        index: number,
+        validationPosition: "top" | "bottom" = "bottom"
+    ) => {
         setItems((prev) => {
             const currentItem = prev[index];
 
@@ -176,6 +195,7 @@ export default function ProductSelector({
                         ? {
                             ...item,
                             showValidation: true,
+                            validationPosition,
                         }
                         : item
                 );
@@ -203,6 +223,36 @@ export default function ProductSelector({
 
     const toggleItem = (index: number, canOpen: boolean) => {
         if (!canOpen) return;
+
+        const openItemIndex = items.findIndex(
+            (item, i) => !item.collapsed && i !== index
+        );
+
+        // Van egy másik, jelenleg nyitott tétel
+        if (openItemIndex !== -1) {
+            const openItem = items[openItemIndex];
+
+            const isComplete =
+                openItem.selectedProductId !== null &&
+                openItem.selectedPackageId !== null;
+
+            // A nyitott tétel még nincs befejezve
+            if (!isComplete) {
+                setItems((prev) =>
+                    prev.map((item, i) =>
+                        i === openItemIndex
+                            ? {
+                                ...item,
+                                showValidation: true,
+                                validationPosition: "top",
+                            }
+                            : item
+                    )
+                );
+
+                return;
+            }
+        }
 
         setItems((prev) =>
             prev.map((currentItem, currentIndex) => ({
@@ -263,6 +313,13 @@ export default function ProductSelector({
                     );
                 const marginClass = "mt-4"
 
+                const validationMessage =
+                    !item.selectedProductId && !item.selectedPackageId
+                        ? "Fejezze be a tétel kitöltését! (Hiányzik a termék és a csomagolás.)"
+                        : !item.selectedProductId
+                            ? "Fejezze be a tétel kitöltését! (Hiányzik a termék.)"
+                            : "Fejezze be a tétel kitöltését! (Hiányzik a csomagolás.)";
+
 
                 return (
                     <div
@@ -275,11 +332,26 @@ export default function ProductSelector({
                         <div
                             role="button"
                             tabIndex={canOpen ? 0 : -1}
-                            onClick={() => toggleItem(index, canOpen)}
+                            onClick={() => {
+                                if (!canOpen) return;
+
+                                if (item.collapsed) {
+                                    toggleItem(index, canOpen);
+                                } else {
+                                    finishItem(index, "top");
+                                }
+                            }}
                             onKeyDown={(event) => {
                                 if (event.key === "Enter" || event.key === " ") {
                                     event.preventDefault();
-                                    toggleItem(index, canOpen);
+
+                                    if (!canOpen) return;
+
+                                    if (item.collapsed) {
+                                        toggleItem(index, canOpen);
+                                    } else {
+                                        finishItem(index, "top");
+                                    }
                                 }
                             }}
                             className={`
@@ -291,12 +363,16 @@ export default function ProductSelector({
                                 }
     ${canOpen
                                     ? "cursor-pointer hover:brightness-95"
-                                    : "cursor-not-allowed opacity-60"   
+                                    : "cursor-not-allowed opacity-60"
                                 }
 `}
                         >
                             <div className="flex min-w-0 items-center gap-2">
-                                {item.collapsed ? (
+                                {!itemHasContent(item) ? (
+                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xl font-medium">
+                                        +
+                                    </span>
+                                ) : item.collapsed ? (
                                     <ChevronRightIcon className="h-5 w-5 shrink-0" />
                                 ) : (
                                     <ChevronDownIcon className="h-5 w-5 shrink-0" />
@@ -331,7 +407,13 @@ export default function ProductSelector({
                         </div>
 
                         {!item.collapsed && (
+
                             <div className="bg-white p-4">
+                                {item.showValidation && item.validationPosition === "top" && (
+                                    <p className="mb-4 text-center text-sm font-medium text-red-600">
+                                        {validationMessage}
+                                    </p>
+                                )}
                                 <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
                                     Válasszon terméket!
                                 </h3>
@@ -351,7 +433,7 @@ export default function ProductSelector({
                           rounded-xl border p-4 text-left transition-all
                           ${selected
                                                         ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                        : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                        : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                     }
                         `}
                                             >
@@ -452,7 +534,7 @@ export default function ProductSelector({
                             rounded-xl border p-4 text-left transition-all
                             ${selected
                                                             ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                            : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                            : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                         }
                           `}
                                                 >
@@ -503,7 +585,7 @@ export default function ProductSelector({
                               rounded-xl border p-4 text-left text-sm transition-all
                               ${selected
                                                                 ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                                : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50 hover:scale-103"
+                                                                : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                             }
                             `}
                                                     >
@@ -516,19 +598,15 @@ export default function ProductSelector({
                                 </div>
                                 <div className="mt-8 border-t border-gray-200 pt-6">
 
-                                    {item.showValidation && (
+                                    {item.showValidation && item.validationPosition === "bottom" && (
                                         <p className="mb-4 text-center text-sm font-medium text-red-600">
-                                            {!item.selectedProductId && !item.selectedPackageId
-                                                ? "Fejezze be a tétel kitöltését! (Hiányzik a termék és a csomagolás.)"
-                                                : !item.selectedProductId
-                                                    ? "Fejezze be a tétel kitöltését! (Hiányzik a termék.)"
-                                                    : "Fejezze be a tétel kitöltését! (Hiányzik a csomagolás.)"}
+                                            {validationMessage}
                                         </p>
                                     )}
 
                                     <div className="flex justify-center">
                                         <button
-                                            onClick={() => finishItem(index)}
+                                            onClick={() => finishItem(index, "bottom")}
                                             type="button"
                                             className="
             rounded-lg border border-gray-300

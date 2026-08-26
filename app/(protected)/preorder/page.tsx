@@ -41,7 +41,7 @@ export default async function PreorderPage() {
 
   return (
     <main className="mx-auto mt-4 w-full max-w-5xl">
-      <div className="flex gap-8 items-start">
+      <div className="mb-6 flex gap-8 items-start">
         {orderInfo1?.image_url && (
           <Image
             src={orderInfo1.image_url}

@@ -219,10 +219,14 @@ export default function PreorderManager({
 
     return (
         <>
-            <CountdownCard
-                startDate={season?.time_window_start}
-                endDate={season?.time_window_end}
-            />
+            {season && (
+                    <div className="mb-10">
+                      <CountdownCard
+                        startDate={season?.time_window_start}
+                        endDate={season?.time_window_end}
+                      /> 
+                    </div>
+                  )}
 
             {lastSubmittedOrder && (
                 <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
