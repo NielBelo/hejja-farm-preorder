@@ -13,8 +13,8 @@ const menuItems = [
     href: "/history",
   },
   {
-    label: "Beállítások",
-    href: "/settings",
+    label: "Személyes adatok",
+    href: "/profile",
   },
 ];
 
