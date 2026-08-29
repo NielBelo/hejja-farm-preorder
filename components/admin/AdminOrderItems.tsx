@@ -3,12 +3,14 @@ type AdminOrderItem = {
     product_id: number;
     package_id: number;
     quantity: number;
-    size_preference: string;
+    size_preference: string | null;
     note: string | null;
+
     products: {
         id: number;
         name: string;
     } | null;
+
     packages: {
         id: number;
         name: string;
@@ -22,80 +24,49 @@ type AdminOrderItemsProps = {
 export default function AdminOrderItems({
     items,
 }: AdminOrderItemsProps) {
-    const getSizeText = (sizePreference: string) => {
-        if (
-            sizePreference ===
-            "Átlagostól inkább kisebbet kérek, ha lehet"
-        ) {
-            return "Átlagostól kisebb méret";
-        }
-
-        if (
-            sizePreference ===
-            "Átlagostól inkább nagyobbat kérek, ha lehet"
-        ) {
-            return "Átlagostól nagyobb méret";
-        }
-
-        return "Átlagos méret";
-    };
-
     return (
-        <div>
+        <div className="divide-y divide-gray-200">
             {items.map((item, index) => (
                 <div
                     key={item.id}
-                    className={`
-                        py-3
-                        ${index !== items.length - 1
-                            ? "border-b border-gray-200"
-                            : ""
-                        }
-                    `}
+                    className="py-3 first:pt-0 last:pb-0"
                 >
-                    <div className="flex items-start gap-3">
-                        {/* Tételszám */}
-                        <div className="shrink-0 font-semibold text-gray-500">
-                            {index + 1}.
-                        </div>
+                    {/* 1. sor: termék + mennyiség */}
+                    <p className="font-medium text-sm text-gray-800">
+                        <span className="mr-2 font-medium text-gray-800">
+                            {index + 1}. tétel:
+                        </span>
 
-                        {/* Tétel adatai */}
-                        <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-                                <span className="font-semibold text-gray-700">
-                                    {item.products?.name ?? "Ismeretlen termék"}
+                        {item.products?.name ?? "Ismeretlen termék"}{" "}
+                        {item.quantity} db
+                    </p>
+
+                    {/* 2. sor: részletek */}
+                    <p className="mt-1 text-sm text-gray-500">
+                        {item.packages?.name ?? "Nincs csomagolás"}
+
+                        {item.size_preference && (
+                            <>
+                                <span className="mx-2 text-gray-500">
+                                    ·
                                 </span>
 
-                                <span className="text-gray-300">•</span>
+                                {item.size_preference}
+                            </>
+                        )}
 
-                                <span className="font-medium text-gray-700">
-                                    {item.quantity} db
+                        {item.note && (
+                            <>
+                                <span className="mx-2 text-gray-500">
+                                    ·
                                 </span>
 
-                                <span className="text-gray-300">•</span>
-
-                                <span className="text-gray-600">
-                                    {item.packages?.name ??
-                                        "Ismeretlen csomagolás"}
+                                <span>
+                                    Megjegyzés: {item.note}
                                 </span>
-
-                                <span className="text-gray-300">•</span>
-
-                                <span className="text-gray-500">
-                                    {getSizeText(item.size_preference)}
-                                </span>
-                            </div>
-
-                            {item.note && (
-                                <div className="mt-1 text-sm text-gray-500">
-                                    <span className="font-medium">
-                                        Megjegyzés:
-                                    </span>{" "}
-                                    {item.note}
-                                </div>
-                            )}
-                        </div>
-                    </div>
+                            </>
+                        )}
+                    </p>
                 </div>
             ))}
         </div>
