@@ -1,6 +1,11 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useState,
+} from "react";
 import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 
@@ -39,12 +44,14 @@ type AdminOrderItem = {
     product_id: number;
     package_id: number;
     quantity: number;
-    size_preference: string;
+    size_preference: string | null;
     note: string | null;
+
     products: {
         id: number;
         name: string;
     } | null;
+
     packages: {
         id: number;
         name: string;
@@ -56,6 +63,15 @@ type AdminOrderVersion = {
     version_number: number;
     created_at: string;
     order_items: AdminOrderItem[];
+};
+
+type AdminOrderHistoryVersion = {
+    id: number;
+    version_number: number;
+    created_at: string;
+    created_by: string | null;
+    order_items: AdminOrderItem[];
+    modifiedByName: string;
 };
 
 type AdminPickupDay = {
@@ -106,6 +122,7 @@ export default function AdminOrderCard({
     const supabase = createClient();
 
     const [isEditing, setIsEditing] = useState(false);
+
     const {
         editingOrderId,
         startEditing,
@@ -115,15 +132,49 @@ export default function AdminOrderCard({
     const anotherOrderIsEditing =
         editingOrderId !== null &&
         editingOrderId !== order.id;
-    const [editedItems, setEditedItems] = useState<EditedOrderItem[]>([]);
+
+    const [editedItems, setEditedItems] =
+        useState<EditedOrderItem[]>([]);
+
     const [isSaving, setIsSaving] = useState(false);
-    const [saveError, setSaveError] = useState<string | null>(null);
-    const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+    const [saveError, setSaveError] =
+        useState<string | null>(null);
+    const [saveSuccess, setSaveSuccess] =
+        useState<string | null>(null);
+
+    // ------------------------------------------------------------
+    // Előzmények
+    // ------------------------------------------------------------
+    const [isHistoryOpen, setIsHistoryOpen] =
+        useState(false);
+
+    const [historyVersions, setHistoryVersions] =
+        useState<AdminOrderHistoryVersion[]>([]);
+
+    const [isHistoryLoading, setIsHistoryLoading] =
+        useState(false);
+
+    const [historyError, setHistoryError] =
+        useState<string | null>(null);
+
+    // ------------------------------------------------------------
+    // Ha a rendeléskártya bezáródik,
+    // az előzmény nézet is alaphelyzetbe kerül
+    // ------------------------------------------------------------
+    useEffect(() => {
+        if (!isOpen) {
+            setIsHistoryOpen(false);
+            setHistoryVersions([]);
+            setHistoryError(null);
+            setIsHistoryLoading(false);
+        }
+    }, [isOpen]);
 
     // ------------------------------------------------------------
     // Aktuális rendelési tételek
     // ------------------------------------------------------------
-    const items = order.order_versions?.order_items ?? [];
+    const items =
+        order.order_versions?.order_items ?? [];
 
     const totalQuantity = items.reduce(
         (sum, item) => sum + item.quantity,
@@ -141,7 +192,8 @@ export default function AdminOrderCard({
                 quantity: item.quantity,
                 note: item.note ?? "",
                 selectedNote:
-                    item.size_preference ?? "Átlagos méret megfelelő",
+                    item.size_preference ??
+                    "Átlagos méret megfelelő",
                 collapsed: true,
                 touched: true,
                 showValidation: false,
@@ -152,7 +204,8 @@ export default function AdminOrderCard({
                 selectedPackageId: null,
                 quantity: 1,
                 note: "",
-                selectedNote: "Átlagos méret megfelelő",
+                selectedNote:
+                    "Átlagos méret megfelelő",
                 collapsed: true,
                 touched: false,
                 showValidation: false,
@@ -171,7 +224,8 @@ export default function AdminOrderCard({
     );
 
     const maxAvailableQuantity =
-        order.pickup_days.available_stock + originalQuantity;
+        order.pickup_days.available_stock +
+        originalQuantity;
 
     const stockStatus =
         maxAvailableQuantity <= 0
@@ -186,18 +240,22 @@ export default function AdminOrderCard({
                 }
                 : {
                     text: "Még több, mint 30 db csirke elérhető!",
-                    iconClass: "text-[rgb(49,171,2)]",
+                    iconClass:
+                        "text-[rgb(49,171,2)]",
                 };
 
     // ------------------------------------------------------------
     // Érintetlen üres "Új tétel"
     // ------------------------------------------------------------
-    const isUntouchedEmptyItem = (item: EditedOrderItem) =>
+    const isUntouchedEmptyItem = (
+        item: EditedOrderItem
+    ) =>
         item.selectedProductId === null &&
         item.selectedPackageId === null &&
         item.quantity === 1 &&
         item.note === "" &&
-        item.selectedNote === "Átlagos méret megfelelő" &&
+        item.selectedNote ===
+        "Átlagos méret megfelelő" &&
         !item.touched;
 
     // ------------------------------------------------------------
@@ -220,10 +278,14 @@ export default function AdminOrderCard({
             }
 
             return (
-                originalItem.product_id !== editedItem.selectedProductId ||
-                originalItem.package_id !== editedItem.selectedPackageId ||
-                originalItem.quantity !== editedItem.quantity ||
-                (originalItem.note ?? "") !== editedItem.note ||
+                originalItem.product_id !==
+                editedItem.selectedProductId ||
+                originalItem.package_id !==
+                editedItem.selectedPackageId ||
+                originalItem.quantity !==
+                editedItem.quantity ||
+                (originalItem.note ?? "") !==
+                editedItem.note ||
                 (originalItem.size_preference ??
                     "Átlagos méret megfelelő") !==
                 editedItem.selectedNote
@@ -231,10 +293,7 @@ export default function AdminOrderCard({
         });
 
     // ------------------------------------------------------------
-    // Pont ugyanaz a mentési feltétel, mint a History oldalon:
-    // - legyen tényleges módosítás
-    // - legyen legalább egy tétel
-    // - minden tétel legyen teljes és összecsukva
+    // Mentési feltétel
     // ------------------------------------------------------------
     const canSave =
         hasChanges &&
@@ -262,7 +321,8 @@ export default function AdminOrderCard({
         []
     );
 
-    const handleItemEdited = useCallback(() => { }, []);
+    const handleItemEdited =
+        useCallback(() => { }, []);
 
     // ------------------------------------------------------------
     // Átvételi dátum
@@ -276,17 +336,23 @@ export default function AdminOrderCard({
     });
 
     // ------------------------------------------------------------
+    // Dátum + idő formázás
+    // ------------------------------------------------------------
+    const formatDateTime = (value: string) =>
+        new Date(value).toLocaleString("hu-HU", {
+            year: "numeric",
+            month: "2-digit",
+            day: "2-digit",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+
+    // ------------------------------------------------------------
     // Utolsó módosítás
     // ------------------------------------------------------------
-    const lastModified = new Date(
+    const lastModified = formatDateTime(
         order.order_versions.created_at
-    ).toLocaleString("hu-HU", {
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    );
 
     // ------------------------------------------------------------
     // Vásárló
@@ -295,7 +361,146 @@ export default function AdminOrderCard({
         ? `${order.profile.last_name} ${order.profile.first_name}`
         : "Ismeretlen vásárló";
 
-    const county = order.profile?.county ?? "Megye nincs megadva";
+    const county =
+        order.profile?.county ??
+        "Megye nincs megadva";
+
+    // ------------------------------------------------------------
+    // Előzmények megnyitása
+    //
+    // Minden megnyitáskor FRISSEN lekérjük:
+    // - az aktuális verzió kivételével minden korábbi verziót
+    // - legújabb verziótól a legrégebbi felé
+    // - az akkori rendelési tételekkel
+    // - a módosító nevével
+    // ------------------------------------------------------------
+    const handleOpenHistory = async () => {
+        setIsHistoryOpen(true);
+        setIsHistoryLoading(true);
+        setHistoryVersions([]);
+        setHistoryError(null);
+
+        const {
+            data: versionData,
+            error: versionError,
+        } = await supabase
+            .from("order_versions")
+            .select(`
+                id,
+                version_number,
+                created_at,
+                created_by,
+
+                order_items (
+                    id,
+                    product_id,
+                    package_id,
+                    quantity,
+                    size_preference,
+                    note,
+
+                    products (
+                        id,
+                        name
+                    ),
+
+                    packages (
+                        id,
+                        name
+                    )
+                )
+            `)
+            .eq("order_id", order.id)
+            .neq("id", order.current_version_id)
+            .order("version_number", {
+                ascending: false,
+            });
+
+        if (versionError) {
+            setHistoryError(
+                versionError.message ||
+                "Az előzmények lekérése sikertelen."
+            );
+            setIsHistoryLoading(false);
+            return;
+        }
+
+        type HistoryVersionRow = Omit<
+            AdminOrderHistoryVersion,
+            "modifiedByName"
+        >;
+
+        const rawVersions =
+            (versionData ??
+                []) as unknown as HistoryVersionRow[];
+
+        // --------------------------------------------------------
+        // A verziókat létrehozó / módosító felhasználók
+        // --------------------------------------------------------
+        const createdByIds = [
+            ...new Set(
+                rawVersions
+                    .map(
+                        (version) =>
+                            version.created_by
+                    )
+                    .filter(
+                        (
+                            id
+                        ): id is string =>
+                            id !== null
+                    )
+            ),
+        ];
+
+        const modifierNameMap =
+            new Map<string, string>();
+
+        if (createdByIds.length > 0) {
+            const {
+                data: profileData,
+            } = await supabase
+                .from("profiles")
+                .select(`
+                    id,
+                    first_name,
+                    last_name
+                `)
+                .in("id", createdByIds);
+
+            for (const profile of profileData ?? []) {
+                modifierNameMap.set(
+                    profile.id,
+                    `${profile.last_name} ${profile.first_name}`
+                );
+            }
+        }
+
+        const versionsWithNames =
+            rawVersions.map((version) => ({
+                ...version,
+                modifiedByName:
+                    version.created_by
+                        ? modifierNameMap.get(
+                            version.created_by
+                        ) ??
+                        "Ismeretlen felhasználó"
+                        : "Ismeretlen felhasználó",
+            }));
+
+        setHistoryVersions(versionsWithNames);
+        setIsHistoryLoading(false);
+    };
+
+    // ------------------------------------------------------------
+    // Előzmények bezárása
+    // ------------------------------------------------------------
+    const handleCloseHistory = () => {
+        setIsHistoryOpen(false);
+        setHistoryVersions([]);
+        setHistoryError(null);
+        setIsHistoryLoading(false);
+    };
 
     // ------------------------------------------------------------
     // Szerkesztés indítása
@@ -304,6 +509,10 @@ export default function AdminOrderCard({
         if (anotherOrderIsEditing) {
             return;
         }
+
+        // Ha nyitva van az előzmény,
+        // automatikusan bezárjuk.
+        handleCloseHistory();
 
         setSaveError(null);
         setSaveSuccess(null);
@@ -350,18 +559,26 @@ export default function AdminOrderCard({
             0
         );
 
-        const rpcItems = itemsToSave.map((item) => ({
-            product_id: item.selectedProductId,
-            package_id: item.selectedPackageId,
-            quantity: item.quantity,
-            size_preference: item.selectedNote,
-            note: item.note,
-        }));
+        const rpcItems = itemsToSave.map(
+            (item) => ({
+                product_id:
+                    item.selectedProductId,
+                package_id:
+                    item.selectedPackageId,
+                quantity: item.quantity,
+                size_preference:
+                    item.selectedNote,
+                note: item.note,
+            })
+        );
 
-        const { error } = await supabase.rpc("update_order", {
-            p_order_id: order.id,
-            p_items: rpcItems,
-        });
+        const { error } = await supabase.rpc(
+            "update_order",
+            {
+                p_order_id: order.id,
+                p_items: rpcItems,
+            }
+        );
 
         if (error) {
             setSaveError(
@@ -392,7 +609,9 @@ export default function AdminOrderCard({
 
         requestAnimationFrame(() => {
             document
-                .getElementById(`admin-order-${order.id}`)
+                .getElementById(
+                    `admin-order-${order.id}`
+                )
                 ?.scrollIntoView({
                     behavior: "smooth",
                     block: "start",
@@ -418,16 +637,18 @@ export default function AdminOrderCard({
                 id={`admin-order-${order.id}`}
                 type="button"
                 onClick={() => {
-                    if (editingOrderId !== null) {
+                    if (
+                        editingOrderId !== null
+                    ) {
                         return;
                     }
 
                     onToggle();
                 }}
                 className="
-        w-full scroll-mt-24 px-5 py-4 text-left
-        transition-colors hover:bg-gray-50/70
-    "
+                    w-full scroll-mt-24 px-5 py-4 text-left
+                    transition-colors hover:bg-gray-50/70
+                "
                 aria-expanded={isOpen}
             >
                 <div className="flex items-center justify-between gap-6">
@@ -436,7 +657,9 @@ export default function AdminOrderCard({
                         {/* Első sor */}
                         <div className="flex items-center gap-4">
                             <span className="shrink-0 font-semibold text-gray-800">
-                                {order.public_order_number}
+                                {
+                                    order.public_order_number
+                                }
                             </span>
 
                             <span
@@ -448,7 +671,8 @@ export default function AdminOrderCard({
                                     text-gray-700
                                 "
                             >
-                                Átvétel: {pickupDate}
+                                Átvétel:{" "}
+                                {pickupDate}
                             </span>
                         </div>
 
@@ -471,7 +695,8 @@ export default function AdminOrderCard({
                             </span>
 
                             <span className="shrink-0 text-gray-400">
-                                Utolsó módosítás: {lastModified}
+                                Utolsó módosítás:{" "}
+                                {lastModified}
                             </span>
                         </div>
                     </div>
@@ -480,7 +705,8 @@ export default function AdminOrderCard({
                     <div className="flex shrink-0 items-center gap-6">
                         <div className="text-right">
                             <div className="font-medium text-gray-700">
-                                {totalQuantity} db csirke
+                                {totalQuantity} db
+                                csirke
                             </div>
 
                             <div className="text-sm text-gray-400">
@@ -494,7 +720,10 @@ export default function AdminOrderCard({
                             className={`
                                 h-5 w-5 text-gray-400
                                 transition-transform duration-200
-                                ${isOpen ? "rotate-180" : ""}
+                                ${isOpen
+                                    ? "rotate-180"
+                                    : ""
+                                }
                             `}
                             aria-hidden="true"
                         >
@@ -513,17 +742,21 @@ export default function AdminOrderCard({
             {/* -------------------------------------------------- */}
             {isOpen && (
                 <div className="border-t border-gray-100 px-5 pb-5 pt-1">
-                    {/* A mentett rendelés összefoglalója
-                        szerkesztés közben is látható marad. */}
-                    <AdminOrderItems items={items} />
+                    {/* Aktuális rendelés összefoglalója */}
+                    <AdminOrderItems
+                        items={items}
+                    />
 
-                    {saveSuccess && !isEditing && (
-                        <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                            <p className="text-center text-sm text-[rgb(49,171,2)]">
-                                {saveSuccess}
-                            </p>
-                        </div>
-                    )}
+                    {saveSuccess &&
+                        !isEditing && (
+                            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                                <p className="text-center text-sm text-[rgb(49,171,2)]">
+                                    {
+                                        saveSuccess
+                                    }
+                                </p>
+                            </div>
+                        )}
 
                     {/* Normál admin műveletek */}
                     {!isEditing && (
@@ -531,36 +764,62 @@ export default function AdminOrderCard({
                             <button
                                 type="button"
                                 onClick={handleEdit}
-                                disabled={anotherOrderIsEditing}
+                                disabled={
+                                    anotherOrderIsEditing
+                                }
                                 className={`
-        rounded-lg border border-gray-300
-        bg-white px-4 py-2
-        text-sm font-medium
-        transition
-        ${anotherOrderIsEditing
+                                    rounded-lg border border-gray-300
+                                    bg-white px-4 py-2
+                                    text-sm font-medium
+                                    transition
+                                    ${anotherOrderIsEditing
                                         ? "cursor-not-allowed bg-gray-100 text-gray-300"
                                         : "text-gray-700 hover:bg-gray-50"
                                     }
-    `}
+                                `}
                             >
                                 Módosítás
                             </button>
 
-                            <button
-                                type="button"
-                                className="
-                                    rounded-lg border border-gray-300
-                                    bg-white px-4 py-2
-                                    text-sm font-medium text-gray-700
-                                    transition
-                                    hover:bg-gray-50
-                                "
-                            >
-                                Előzmények
-                            </button>
+                            {!isHistoryOpen ? (
+                                <button
+                                    type="button"
+                                    onClick={
+                                        handleOpenHistory
+                                    }
+                                    className="
+                                        rounded-lg border border-gray-300
+                                        bg-white px-4 py-2
+                                        text-sm font-medium text-gray-700
+                                        transition
+                                        hover:bg-gray-50
+                                    "
+                                >
+                                    Előzmények
+                                </button>
+                            ) : (
+                                <button
+                                    type="button"
+                                    onClick={
+                                        handleCloseHistory
+                                    }
+                                    className="
+                                        rounded-lg border border-gray-300
+                                        bg-white px-4 py-2
+                                        text-sm font-medium text-gray-700
+                                        transition
+                                        hover:bg-gray-50
+                                    "
+                                >
+                                    Előzmények bezárása
+                                </button>
+                            )}
 
                             <button
                                 type="button"
+                                onClick={
+                                    handleCloseHistory
+                                }
                                 className="
                                     rounded-lg border border-gray-300
                                     bg-white px-4 py-2
@@ -574,6 +833,9 @@ export default function AdminOrderCard({
 
                             <button
                                 type="button"
+                                onClick={
+                                    handleCloseHistory
+                                }
                                 className="
                                     ml-auto rounded-lg border border-red-300
                                     bg-white px-4 py-2
@@ -587,7 +849,109 @@ export default function AdminOrderCard({
                         </div>
                     )}
 
-                    {/* Szerkesztő */}
+                    {/* -------------------------------------------------- */}
+                    {/* Rendelés előzményei                               */}
+                    {/* -------------------------------------------------- */}
+                    {isHistoryOpen &&
+                        !isEditing && (
+                            <div className="mt-4 border-t border-gray-200 pt-4">
+                                <h3 className="text-center font-semibold text-gray-800">
+                                    Rendelés
+                                    előzményei
+                                </h3>
+
+                                {historyError && (
+                                    <p className="mt-4 text-center text-sm text-red-600">
+                                        {
+                                            historyError
+                                        }
+                                    </p>
+                                )}
+
+                                {!isHistoryLoading &&
+                                    !historyError &&
+                                    historyVersions.length ===
+                                    0 && (
+                                        <p className="mt-4 text-center text-sm text-gray-500">
+                                            Nincs korábbi
+                                            verzió.
+                                        </p>
+                                    )}
+
+                                {!isHistoryLoading &&
+                                    !historyError &&
+                                    historyVersions.length >
+                                    0 && (
+                                        <div className="mt-4">
+                                            {historyVersions.map(
+                                                (
+                                                    version,
+                                                    index
+                                                ) => (
+                                                    <div
+                                                        key={
+                                                            version.id
+                                                        }
+                                                        className={`
+                                                            py-4
+                                                            ${index >
+                                                                0
+                                                                ? "border-t border-gray-200"
+                                                                : ""
+                                                            }
+                                                        `}
+                                                    >
+                                                        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                                                            <span
+                                                                className="
+        shrink-0 rounded-md
+        bg-gray-200
+        px-2.5 py-1
+        text-sm font-semibold
+        text-gray-700
+    "
+                                                            >
+                                                                {version.version_number}. verzió
+                                                            </span>
+
+                                                            <span>
+                                                                ·
+                                                            </span>
+
+                                                            <span>
+                                                                {formatDateTime(
+                                                                    version.created_at
+                                                                )}
+                                                            </span>
+
+                                                            <span>
+                                                                ·
+                                                            </span>
+
+                                                            <span>
+                                                                {
+                                                                    version.modifiedByName
+                                                                }
+                                                            </span>
+                                                        </div>
+
+                                                        <AdminOrderItems
+                                                            items={
+                                                                version.order_items ??
+                                                                []
+                                                            }
+                                                        />
+                                                    </div>
+                                                )
+                                            )}
+                                        </div>
+                                    )}
+                            </div>
+                        )}
+
+                    {/* -------------------------------------------------- */}
+                    {/* Szerkesztő                                        */}
+                    {/* -------------------------------------------------- */}
                     {isEditing && (
                         <div className="mt-4 border-t border-gray-200 pt-4">
                             <div
@@ -595,7 +959,8 @@ export default function AdminOrderCard({
                                 className="mb-4 w-full scroll-mt-24"
                             >
                                 <h3 className="text-center font-semibold text-gray-800">
-                                    Rendelés módosítása
+                                    Rendelés
+                                    módosítása
                                 </h3>
 
                                 <div className="mt-2 flex items-center gap-2">
@@ -604,24 +969,42 @@ export default function AdminOrderCard({
                                     />
 
                                     <p className="text-sm font-medium text-gray-700">
-                                        {stockStatus.text}
+                                        {
+                                            stockStatus.text
+                                        }
                                     </p>
                                 </div>
                             </div>
 
                             <ProductSelector
-                                orderId={order.id}
-                                products={products}
-                                packages={packages}
-                                maxAvailableQuantity={maxAvailableQuantity}
+                                orderId={
+                                    order.id
+                                }
+                                products={
+                                    products
+                                }
+                                packages={
+                                    packages
+                                }
+                                maxAvailableQuantity={
+                                    maxAvailableQuantity
+                                }
                                 resetKey={0}
-                                isPickupDaySelected={true}
-                                initialItems={initialItems}
+                                isPickupDaySelected={
+                                    true
+                                }
+                                initialItems={
+                                    initialItems
+                                }
                                 onOrderChangesChange={
                                     handleOrderChangesChange
                                 }
-                                onItemsChange={handleItemsChange}
-                                onItemEdited={handleItemEdited}
+                                onItemsChange={
+                                    handleItemsChange
+                                }
+                                onItemEdited={
+                                    handleItemEdited
+                                }
                             />
 
                             {saveError && (
@@ -630,13 +1013,15 @@ export default function AdminOrderCard({
                                 </p>
                             )}
 
-                            {/* Pont ugyanaz a Mentés / Mégse logika
-                                és gombállapot, mint a History oldalon. */}
                             <div className="mt-5 flex justify-end gap-3">
                                 <button
                                     type="button"
-                                    onClick={handleCancelEdit}
-                                    disabled={isSaving}
+                                    onClick={
+                                        handleCancelEdit
+                                    }
+                                    disabled={
+                                        isSaving
+                                    }
                                     className="
                                         rounded-lg border border-gray-300
                                         px-5 py-2
@@ -653,13 +1038,19 @@ export default function AdminOrderCard({
 
                                 <button
                                     type="button"
-                                    onClick={handleSave}
-                                    disabled={!canSave || isSaving}
+                                    onClick={
+                                        handleSave
+                                    }
+                                    disabled={
+                                        !canSave ||
+                                        isSaving
+                                    }
                                     className={`
                                         rounded-lg px-5 py-2
                                         text-sm font-medium
                                         transition-colors
-                                        ${canSave && !isSaving
+                                        ${canSave &&
+                                            !isSaving
                                             ? `
                                                     bg-[rgb(49,171,2)]
                                                     text-white
