@@ -147,16 +147,6 @@ export default function ProductSelector({
 
             return updated;
         });
-        if (orderId !== undefined) {
-            requestAnimationFrame(() => {
-                document
-                    .getElementById(`order-edit-${orderId}`)
-                    ?.scrollIntoView({
-                        behavior: "smooth",
-                        block: "start",
-                    });
-            });
-        }
     };
 
     const resetItem = (index: number) => {
@@ -291,33 +281,43 @@ export default function ProductSelector({
     };
 
     const getHeaderText = (item: OrderItem, index: number) => {
-        const selectedProduct = products.find((p) => p.id === item.selectedProductId);
-        const selectedPackage = packages.find((p) => p.id === item.selectedPackageId);
 
-        const sizeText =
-            item.selectedNote === "Átlagostól inkább kisebbet kérek, ha lehet"
-                ? "Átlagostól kisebb méret"
-                : item.selectedNote === "Átlagostól inkább nagyobbat kérek, ha lehet"
-                    ? "Átlagostól nagyobb méret"
-                    : "Átlagos méret";
+    const selectedProduct = products.find(
+        (p) => p.id === item.selectedProductId
+    );
 
-        if (!item.touched && !itemHasContent(item)) {
-            return "Új tétel";
-        }
+    const selectedPackage = packages.find(
+        (p) => p.id === item.selectedPackageId
+    );
 
-        const details = [
-            selectedProduct?.name,
-            selectedProduct && `${item.quantity} db`,
-            selectedPackage?.name,
-            selectedProduct && sizeText,
-            item.note &&
-            (item.note.length > 30 ? `${item.note.slice(0, 30)}...` : item.note),
-        ].filter(Boolean);
+    const sizeText =
+        item.selectedNote ===
+        "Átlagostól inkább kisebbet kérek, ha lehet"
+            ? "Átlagostól kisebb méret"
+            : item.selectedNote ===
+                "Átlagostól inkább nagyobbat kérek, ha lehet"
+              ? "Átlagostól nagyobb méret"
+              : "Átlagos méret";
 
-        return details.length === 0
-            ? `${index + 1}. tétel`
-            : `${index + 1}. tétel # ${details.join(" / ")}`;
-    };
+    if (!item.touched && !itemHasContent(item)) {
+        return "Új tétel";
+    }
+
+    const details = [
+        selectedProduct?.name,
+        selectedProduct && `${item.quantity} db`,
+        selectedPackage?.name,
+        selectedProduct && sizeText,
+        item.note &&
+            (item.note.length > 30
+                ? `${item.note.slice(0, 30)}...`
+                : item.note),
+    ].filter(Boolean);
+
+    return details.length === 0
+        ? `${index + 1}. tétel`
+        : `${index + 1}. tétel # ${details.join(" / ")}`;
+};
 
 
     return (

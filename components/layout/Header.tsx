@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
 export default async function Header() {
   const currentUser = await getCurrentUser();
+
   return (
     <header className="sticky top-4 z-50 mx-auto w-full max-w-5xl rounded-xl bg-white shadow-sm">
       <div className="px-5 py-3">
@@ -13,16 +14,15 @@ export default async function Header() {
             <Logo />
           </div>
 
-          <Navigation />
+          <Navigation isAdmin={currentUser?.isAdmin ?? false} />
 
           <LogoutButton
-  userName={
-    currentUser
-      ? `${currentUser.lastName} ${currentUser.firstName}`
-      : "Kijelentkezés"
-  }
-  
-/>
+            userName={
+              currentUser
+                ? `${currentUser.lastName} ${currentUser.firstName}`
+                : "Kijelentkezés"
+            }
+          />
         </div>
       </div>
     </header>

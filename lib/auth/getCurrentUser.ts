@@ -21,6 +21,12 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     return null;
   }
 
+  const { data: userRole } = await supabase
+  .from("user_roles")
+  .select("role")
+  .eq("user_id", user.id)
+  .single();
+
   const { data: profile, error } = await supabase
     .from("profiles")
     .select("first_name, last_name, phone, city")
@@ -38,6 +44,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     lastName: profile.last_name,
     phone: profile.phone,
     city: profile.city,
-    isAdmin: false, // később adatbázisból érkezik
+    isAdmin: userRole?.role === "admin",
   };
 }
