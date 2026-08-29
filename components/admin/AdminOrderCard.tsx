@@ -7,6 +7,7 @@ import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import AdminOrderItems from "@/components/admin/AdminOrderItems";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
+import { useOrderActionsManager } from "@/components/OrderActionsManager";
 
 type Product = {
     id: number;
@@ -105,6 +106,15 @@ export default function AdminOrderCard({
     const supabase = createClient();
 
     const [isEditing, setIsEditing] = useState(false);
+    const {
+        editingOrderId,
+        startEditing,
+        stopEditing,
+    } = useOrderActionsManager();
+
+    const anotherOrderIsEditing =
+        editingOrderId !== null &&
+        editingOrderId !== order.id;
     const [editedItems, setEditedItems] = useState<EditedOrderItem[]>([]);
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
@@ -166,15 +176,15 @@ export default function AdminOrderCard({
     const stockStatus =
         maxAvailableQuantity <= 0
             ? {
-                  text: "Előrendelés betelt!",
-                  iconClass: "text-red-500",
-              }
+                text: "Előrendelés betelt!",
+                iconClass: "text-red-500",
+            }
             : maxAvailableQuantity <= 30
-              ? {
+                ? {
                     text: `Már csak ${maxAvailableQuantity} db csirke elérhető!`,
                     iconClass: "text-yellow-500",
                 }
-              : {
+                : {
                     text: "Még több, mint 30 db csirke elérhető!",
                     iconClass: "text-[rgb(49,171,2)]",
                 };
@@ -216,7 +226,7 @@ export default function AdminOrderCard({
                 (originalItem.note ?? "") !== editedItem.note ||
                 (originalItem.size_preference ??
                     "Átlagos méret megfelelő") !==
-                    editedItem.selectedNote
+                editedItem.selectedNote
             );
         });
 
@@ -241,7 +251,7 @@ export default function AdminOrderCard({
     // ProductSelector callbackek
     // ------------------------------------------------------------
     const handleOrderChangesChange = useCallback(
-        (_hasChanges: boolean) => {},
+        (_hasChanges: boolean) => { },
         []
     );
 
@@ -252,7 +262,7 @@ export default function AdminOrderCard({
         []
     );
 
-    const handleItemEdited = useCallback(() => {}, []);
+    const handleItemEdited = useCallback(() => { }, []);
 
     // ------------------------------------------------------------
     // Átvételi dátum
@@ -291,9 +301,15 @@ export default function AdminOrderCard({
     // Szerkesztés indítása
     // ------------------------------------------------------------
     const handleEdit = () => {
+        if (anotherOrderIsEditing) {
+            return;
+        }
+
         setSaveError(null);
         setSaveSuccess(null);
         setEditedItems(initialItems);
+
+        startEditing(order.id);
         setIsEditing(true);
     };
 
@@ -308,6 +324,8 @@ export default function AdminOrderCard({
         setSaveError(null);
         setEditedItems([]);
         setIsEditing(false);
+
+        stopEditing();
     };
 
     // ------------------------------------------------------------
@@ -348,7 +366,7 @@ export default function AdminOrderCard({
         if (error) {
             setSaveError(
                 error.message ||
-                    "A rendelés módosítása sikertelen."
+                "A rendelés módosítása sikertelen."
             );
             setIsSaving(false);
             return;
@@ -368,7 +386,18 @@ export default function AdminOrderCard({
         setIsEditing(false);
         setEditedItems([]);
 
+        stopEditing();
+
         router.refresh();
+
+        requestAnimationFrame(() => {
+            document
+                .getElementById(`admin-order-${order.id}`)
+                ?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+        });
     };
 
     return (
@@ -376,10 +405,9 @@ export default function AdminOrderCard({
             className={`
                 overflow-hidden rounded-xl bg-white shadow-sm
                 transition-all duration-200
-                ${
-                    isOpen
-                        ? "border-2 border-blue-400 ring-2 ring-blue-100"
-                        : "border border-gray-200"
+                ${isOpen
+                    ? "border-2 border-blue-400 ring-2 ring-blue-100"
+                    : "border border-gray-200"
                 }
             `}
         >
@@ -387,12 +415,19 @@ export default function AdminOrderCard({
             {/* Rendelés fejléce                                   */}
             {/* -------------------------------------------------- */}
             <button
+                id={`admin-order-${order.id}`}
                 type="button"
-                onClick={onToggle}
+                onClick={() => {
+                    if (editingOrderId !== null) {
+                        return;
+                    }
+
+                    onToggle();
+                }}
                 className="
-                    w-full px-5 py-4 text-left
-                    transition-colors hover:bg-gray-50/70
-                "
+        w-full scroll-mt-24 px-5 py-4 text-left
+        transition-colors hover:bg-gray-50/70
+    "
                 aria-expanded={isOpen}
             >
                 <div className="flex items-center justify-between gap-6">
@@ -496,13 +531,17 @@ export default function AdminOrderCard({
                             <button
                                 type="button"
                                 onClick={handleEdit}
-                                className="
-                                    rounded-lg border border-gray-300
-                                    bg-white px-4 py-2
-                                    text-sm font-medium text-gray-700
-                                    transition
-                                    hover:bg-gray-50
-                                "
+                                disabled={anotherOrderIsEditing}
+                                className={`
+        rounded-lg border border-gray-300
+        bg-white px-4 py-2
+        text-sm font-medium
+        transition
+        ${anotherOrderIsEditing
+                                        ? "cursor-not-allowed bg-gray-100 text-gray-300"
+                                        : "text-gray-700 hover:bg-gray-50"
+                                    }
+    `}
                             >
                                 Módosítás
                             </button>
@@ -620,14 +659,13 @@ export default function AdminOrderCard({
                                         rounded-lg px-5 py-2
                                         text-sm font-medium
                                         transition-colors
-                                        ${
-                                            canSave && !isSaving
-                                                ? `
+                                        ${canSave && !isSaving
+                                            ? `
                                                     bg-[rgb(49,171,2)]
                                                     text-white
                                                     hover:bg-[rgb(42,150,2)]
                                                 `
-                                                : `
+                                            : `
                                                     cursor-not-allowed
                                                     bg-gray-200
                                                     text-gray-400

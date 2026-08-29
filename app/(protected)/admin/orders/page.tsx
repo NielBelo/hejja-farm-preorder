@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import AdminOrderList from "@/components/admin/AdminOrderList";
 import type { AdminOrder } from "@/components/admin/AdminOrderCard";
+import { OrderActionsManager } from "@/components/OrderActionsManager";
+
 
 export default async function AdminOrdersPage() {
     const supabase = await createClient();
@@ -184,11 +186,13 @@ export default async function AdminOrdersPage() {
                 </div>
             ) : (
                 <div className="mt-6">
-                    <AdminOrderList
-                        orders={ordersWithProfiles}
-                        products={products ?? []}
-                        packages={packages ?? []}
-                    />
+                    <OrderActionsManager>
+                        <AdminOrderList
+                            orders={ordersWithProfiles}
+                            products={products ?? []}
+                            packages={packages ?? []}
+                        />
+                    </OrderActionsManager>
                 </div>
             )}
         </div>
