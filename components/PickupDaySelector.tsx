@@ -1,6 +1,7 @@
 "use client";
 
-import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import { isWithinOrderWindow, useOrderWindow } from "@/lib/useOrderWindow";
 
 type PickupDay = {
     id: number;
@@ -18,11 +19,17 @@ export default function PickupDaySelector({
     pickupDays,
     selectedPickupDayId,
     onSelectPickupDay,
+    startDate,
+    endDate,
 }: {
     pickupDays: PickupDay[];
     selectedPickupDayId: number | null;
     onSelectPickupDay: (day: PickupDay) => void;
+    startDate?: string | null;
+    endDate?: string | null;
 }) {
+    const isOrderingOpen = useOrderWindow(startDate, endDate);
+
     const getStatus = (availableStock: number) => {
         if (availableStock <= 0) {
             return {
@@ -58,11 +65,37 @@ export default function PickupDaySelector({
     return (
         <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
             <h2 className="text-center text-base font-semibold text-gray-700">
-                Válasszon átvételi napot!
+                {isOrderingOpen
+                    ? "Válasszon átvételi napot!"
+                    : "Jelenleg nincs lehetőség előrendelésre!"}
             </h2>
+            {!isOrderingOpen && (
+                <p className="text-center text-base font-semibold text-gray-700">
+                    A következő előrendelési lehetőségről e-mailben értesítjük.
+                </p>
+            )}
 
             <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {pickupDays.map((day) => {
+                {!isOrderingOpen ? [1, 2, 3, 4].map((number) => (
+                    <button
+                        key={number}
+                        type="button"
+                        disabled
+                        aria-label={`${number}. nap – jelenleg nem elérhető`}
+                        className="relative h-[160px] cursor-not-allowed rounded-xl border-2 border-gray-300 bg-gray-100 p-4 text-left"
+                    >
+                        <div className="h-[76px] pr-12">
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                                {number}. nap
+                            </p>
+                        </div>
+                        <NoSymbolIcon
+                            aria-hidden="true"
+                            className="absolute right-4 top-4 h-8 w-8 text-gray-400"
+                        />
+                        <div className="h-[44px]" aria-hidden="true" />
+                    </button>
+                )) : pickupDays.map((day) => {
                     const selected = selectedPickupDayId === day.id;
                     const status = getStatus(day.available_stock);
                     const isFull = day.available_stock <= 0;
@@ -72,7 +105,11 @@ export default function PickupDaySelector({
                             key={day.id}
                             disabled={isFull}
                             type="button"
-                            onClick={() => onSelectPickupDay(day)}
+                            onClick={() => {
+                                if (isWithinOrderWindow(startDate, endDate)) {
+                                    onSelectPickupDay(day);
+                                }
+                            }}
                             className={`
                                 relative h-[160px] rounded-xl p-4 text-left transition-all
                                 ${

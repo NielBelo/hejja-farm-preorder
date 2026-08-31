@@ -340,6 +340,8 @@ export default function PreorderManager({
             </div>
 
             <PickupDaySelector
+                startDate={season?.time_window_start}
+                endDate={season?.time_window_end}
                 pickupDays={currentPickupDays}
                 selectedPickupDayId={selectedPickupDay?.id ?? null}
                 onSelectPickupDay={handlePickupDayChange}

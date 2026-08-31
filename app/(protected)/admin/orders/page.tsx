@@ -8,12 +8,7 @@ export default async function AdminOrdersPage() {
     const supabase = await createClient();
 
     // ------------------------------------------------------------
-    // Mai dátum
-    // ------------------------------------------------------------
-    const today = new Date().toISOString().split("T")[0];
-
-    // ------------------------------------------------------------
-    // Aktuális rendelések
+    // Leadott és lemondott rendelések, átvételi dátumtól függetlenül
     // ------------------------------------------------------------
     const { data: orders, error } = await supabase
         .from("orders")
@@ -59,8 +54,7 @@ export default async function AdminOrdersPage() {
                 )
             )
         `)
-        .eq("status", "submitted")
-        .gte("pickup_days.pickup_date", today)
+        .in("status", ["submitted", "cancelled"])
         .order("created_at", { ascending: false });
 
     if (error) {

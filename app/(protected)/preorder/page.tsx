@@ -1,7 +1,8 @@
-import Image from "next/image";
 import { supabase } from "@/lib/supabase";
 // page.tsx
 import PreorderManager from "@/components/PreorderManager";
+import SeasonOrderInfo from "@/components/SeasonOrderInfo";
+import PreorderIntro from "@/components/PreorderIntro";
 
 
 export default async function PreorderPage() {
@@ -41,28 +42,19 @@ export default async function PreorderPage() {
 
   return (
     <main className="mx-auto mt-4 w-full max-w-5xl">
-      <div className="mb-6 flex gap-8 items-start">
-        {orderInfo1?.image_url && (
-          <Image
-            src={orderInfo1.image_url}
-            alt="Csirkék a Héjja-farmon"
-            width={400}
-            height={400}
-            className="w-full h-auto rounded-xl"
-            priority
-          />
-        )}
-
-        <div>
+      <PreorderIntro imageUrl={orderInfo1?.image_url}>
           <div className="text-base text-gray-600 leading-7 whitespace-pre-line">
             {orderInfo1?.content}
           </div>
 
-          <div className="mt-8 font-bold text-base text-gray-600 leading-7 whitespace-pre-line">
-            {orderInfo2Text}
+          <div className="mt-4 font-bold text-base text-gray-600 leading-7 whitespace-pre-line">
+            <SeasonOrderInfo
+              startDate={season?.time_window_start}
+              endDate={season?.time_window_end}
+              seasonText={orderInfo2Text}
+            />
           </div>
-        </div>
-      </div>
+      </PreorderIntro>
 
       <PreorderManager
         season={season}

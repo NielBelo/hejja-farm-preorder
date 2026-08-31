@@ -10,6 +10,9 @@ import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 
 import AdminOrderItems from "@/components/admin/AdminOrderItems";
+import AdminCustomerDetails from "@/components/admin/AdminCustomerDetails";
+import AdminCancelOrder from "@/components/admin/AdminCancelOrder";
+import PickupDateStatus from "@/components/admin/PickupDateStatus";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
@@ -132,6 +135,8 @@ export default function AdminOrderCard({
     const anotherOrderIsEditing =
         editingOrderId !== null &&
         editingOrderId !== order.id;
+    const isCancelled = order.status === "cancelled";
+    const cannotModifyOrder = anotherOrderIsEditing || isCancelled;
 
     const [editedItems, setEditedItems] =
         useState<EditedOrderItem[]>([]);
@@ -147,6 +152,7 @@ export default function AdminOrderCard({
     // ------------------------------------------------------------
     const [isHistoryOpen, setIsHistoryOpen] =
         useState(false);
+    const [isUserDetailsOpen, setIsUserDetailsOpen] = useState(false);
 
     const [historyVersions, setHistoryVersions] =
         useState<AdminOrderHistoryVersion[]>([]);
@@ -163,6 +169,7 @@ export default function AdminOrderCard({
     // ------------------------------------------------------------
     useEffect(() => {
         if (!isOpen) {
+            setIsUserDetailsOpen(false);
             setIsHistoryOpen(false);
             setHistoryVersions([]);
             setHistoryError(null);
@@ -296,6 +303,7 @@ export default function AdminOrderCard({
     // Mentési feltétel
     // ------------------------------------------------------------
     const canSave =
+        !isCancelled &&
         hasChanges &&
         itemsToSave.length > 0 &&
         itemsToSave.every(
@@ -375,6 +383,7 @@ export default function AdminOrderCard({
     // - a módosító nevével
     // ------------------------------------------------------------
     const handleOpenHistory = async () => {
+        setIsUserDetailsOpen(false);
         setIsHistoryOpen(true);
         setIsHistoryLoading(true);
         setHistoryVersions([]);
@@ -506,7 +515,7 @@ export default function AdminOrderCard({
     // Szerkesztés indítása
     // ------------------------------------------------------------
     const handleEdit = () => {
-        if (anotherOrderIsEditing) {
+        if (cannotModifyOrder) {
             return;
         }
 
@@ -514,6 +523,7 @@ export default function AdminOrderCard({
         // automatikusan bezárjuk.
         handleCloseHistory();
 
+        setIsUserDetailsOpen(false);
         setSaveError(null);
         setSaveSuccess(null);
         setEditedItems(initialItems);
@@ -655,7 +665,7 @@ export default function AdminOrderCard({
                     {/* Bal oldal */}
                     <div className="min-w-0 flex-1">
                         {/* Első sor */}
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
                             <span className="shrink-0 font-semibold text-gray-800">
                                 {
                                     order.public_order_number
@@ -674,6 +684,10 @@ export default function AdminOrderCard({
                                 Átvétel:{" "}
                                 {pickupDate}
                             </span>
+                            <PickupDateStatus
+                                pickupDate={order.pickup_days.pickup_date}
+                                orderStatus={order.status}
+                            />
                         </div>
 
                         {/* Második sor */}
@@ -765,14 +779,14 @@ export default function AdminOrderCard({
                                 type="button"
                                 onClick={handleEdit}
                                 disabled={
-                                    anotherOrderIsEditing
+                                    cannotModifyOrder
                                 }
                                 className={`
                                     rounded-lg border border-gray-300
                                     bg-white px-4 py-2
                                     text-sm font-medium
                                     transition
-                                    ${anotherOrderIsEditing
+                                    ${cannotModifyOrder
                                         ? "cursor-not-allowed bg-gray-100 text-gray-300"
                                         : "text-gray-700 hover:bg-gray-50"
                                     }
@@ -817,9 +831,12 @@ export default function AdminOrderCard({
 
                             <button
                                 type="button"
-                                onClick={
-                                    handleCloseHistory
-                                }
+                                onClick={() => {
+                                    handleCloseHistory();
+                                    setIsUserDetailsOpen((open) => !open);
+                                }}
+                                aria-expanded={isUserDetailsOpen}
+                                aria-controls={`customer-details-${order.id}`}
                                 className="
                                     rounded-lg border border-gray-300
                                     bg-white px-4 py-2
@@ -828,30 +845,29 @@ export default function AdminOrderCard({
                                     hover:bg-gray-50
                                 "
                             >
-                                Felhasználó adatai
+                                {isUserDetailsOpen ? "Felhasználói adatok bezárása" : "Felhasználó adatai"}
                             </button>
 
-                            <button
-                                type="button"
-                                onClick={
-                                    handleCloseHistory
-                                }
-                                className="
-                                    ml-auto rounded-lg border border-red-300
-                                    bg-white px-4 py-2
-                                    text-sm font-medium text-red-600
-                                    transition
-                                    hover:bg-red-50
-                                "
-                            >
-                                Törlés
-                            </button>
+                            <AdminCancelOrder
+                                orderId={order.id}
+                                publicOrderNumber={order.public_order_number}
+                                pickupDate={order.pickup_days.pickup_date}
+                                disabled={cannotModifyOrder}
+                                onOpen={() => {
+                                    handleCloseHistory();
+                                    setIsUserDetailsOpen(false);
+                                }}
+                            />
                         </div>
                     )}
 
                     {/* -------------------------------------------------- */}
                     {/* Rendelés előzményei                               */}
                     {/* -------------------------------------------------- */}
+                    {isUserDetailsOpen && !isEditing && (
+                        <AdminCustomerDetails order={order} id={`customer-details-${order.id}`} />
+                    )}
+
                     {isHistoryOpen &&
                         !isEditing && (
                             <div className="mt-4 border-t border-gray-200 pt-4">
