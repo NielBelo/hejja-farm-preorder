@@ -7,11 +7,12 @@ import {
     useState,
 } from "react";
 import { useRouter } from "next/navigation";
-import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 import AdminOrderItems from "@/components/admin/AdminOrderItems";
 import AdminCustomerDetails from "@/components/admin/AdminCustomerDetails";
 import AdminCancelOrder from "@/components/admin/AdminCancelOrder";
+import AdminRestoreOrder from "@/components/admin/AdminRestoreOrder";
 import PickupDateStatus from "@/components/admin/PickupDateStatus";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
@@ -99,6 +100,8 @@ export type AdminOrder = {
     id: number;
     public_order_number: string;
     status: string;
+    cancelled_by: string | null;
+    cancelledByName?: string | null;
     created_at: string;
     current_version_id: number;
     user_id: string;
@@ -774,8 +777,22 @@ export default function AdminOrderCard({
 
                     {/* Normál admin műveletek */}
                     {!isEditing && (
-                        <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 pt-4">
-                            <button
+                        <div className={`mt-4 flex flex-wrap items-center gap-2 border-t border-gray-200 ${isCancelled ? "pt-2.5" : "pt-4"}`}>
+                            {isCancelled && (
+                                <p className="mb-3 flex w-full min-w-0 items-start gap-1.5 text-sm text-gray-600">
+                                    <TrashIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
+                                    <span className="min-w-0 break-words">
+                                        Lemondta: {order.cancelledByName || "Ismeretlen felhasználó"}
+                                    </span>
+                                </p>
+                            )}
+                            {isCancelled ? (
+                                <AdminRestoreOrder
+                                    orderId={order.id}
+                                    pickupDate={order.pickup_days.pickup_date}
+                                    disabled={anotherOrderIsEditing}
+                                />
+                            ) : <button
                                 type="button"
                                 onClick={handleEdit}
                                 disabled={
@@ -793,7 +810,7 @@ export default function AdminOrderCard({
                                 `}
                             >
                                 Módosítás
-                            </button>
+                            </button>}
 
                             {!isHistoryOpen ? (
                                 <button
@@ -849,6 +866,7 @@ export default function AdminOrderCard({
                             </button>
 
                             <AdminCancelOrder
+                                key={`${order.id}-${order.status}`}
                                 orderId={order.id}
                                 publicOrderNumber={order.public_order_number}
                                 pickupDate={order.pickup_days.pickup_date}
@@ -898,53 +916,46 @@ export default function AdminOrderCard({
                                     !historyError &&
                                     historyVersions.length >
                                     0 && (
-                                        <div className="mt-4">
+                                        <ol aria-label="Rendelés verzióelőzményei, a legújabbtól a legrégebbiig" className="mt-3">
                                             {historyVersions.map(
                                                 (
                                                     version,
                                                     index
                                                 ) => (
-                                                    <div
+                                                    <li
                                                         key={
                                                             version.id
                                                         }
-                                                        className={`
-                                                            py-4
-                                                            ${index >
-                                                                0
-                                                                ? "border-t border-gray-200"
-                                                                : ""
-                                                            }
-                                                        `}
+                                                        className="relative pl-5 pb-3 last:pb-0"
                                                     >
-                                                        <div className="mb-3 flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                                                        {index < historyVersions.length - 1 && (
                                                             <span
-                                                                className="
-        shrink-0 rounded-md
-        bg-gray-200
-        px-2.5 py-1
-        text-sm font-semibold
-        text-gray-700
-    "
+                                                                aria-hidden="true"
+                                                                className="absolute left-1 top-4 -bottom-4 w-0.5 bg-violet-600"
+                                                            />
+                                                        )}
+                                                        <span
+                                                            aria-hidden="true"
+                                                            className="absolute left-0 top-[11px] z-10 h-2.5 w-2.5 rounded-full border-2 border-violet-600 bg-white"
+                                                        />
+                                                        <span
+                                                            aria-hidden="true"
+                                                            className="absolute left-2.5 top-[15px] h-0.5 w-2.5 bg-violet-600"
+                                                        />
+                                                        <div className="mb-1.5 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
+                                                            <span
+                                                                className="shrink-0 rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800"
                                                             >
                                                                 {version.version_number}. verzió
                                                             </span>
 
-                                                            <span>
-                                                                ·
-                                                            </span>
-
-                                                            <span>
+                                                            <time dateTime={version.created_at}>
                                                                 {formatDateTime(
                                                                     version.created_at
                                                                 )}
-                                                            </span>
+                                                            </time>
 
-                                                            <span>
-                                                                ·
-                                                            </span>
-
-                                                            <span>
+                                                            <span className="min-w-0 break-words text-gray-600 sm:ml-auto">
                                                                 {
                                                                     version.modifiedByName
                                                                 }
@@ -952,15 +963,16 @@ export default function AdminOrderCard({
                                                         </div>
 
                                                         <AdminOrderItems
+                                                            compact
                                                             items={
                                                                 version.order_items ??
                                                                 []
                                                             }
                                                         />
-                                                    </div>
+                                                    </li>
                                                 )
                                             )}
-                                        </div>
+                                        </ol>
                                     )}
                             </div>
                         )}

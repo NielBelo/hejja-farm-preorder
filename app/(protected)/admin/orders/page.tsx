@@ -16,6 +16,7 @@ export default async function AdminOrdersPage() {
             id,
             public_order_number,
             status,
+            cancelled_by,
             created_at,
             current_version_id,
             user_id,
@@ -68,7 +69,11 @@ export default async function AdminOrdersPage() {
     // ------------------------------------------------------------
     const userIds = [
         ...new Set(
-            typedOrders.map((order) => order.user_id)
+            typedOrders.flatMap((order) =>
+                order.status === "cancelled" && order.cancelled_by
+                    ? [order.user_id, order.cancelled_by]
+                    : [order.user_id]
+            )
         ),
     ];
 
@@ -120,11 +125,20 @@ export default async function AdminOrdersPage() {
     // Profil hozzárendelése a rendelésekhez
     // ------------------------------------------------------------
     const ordersWithProfiles: AdminOrder[] =
-        typedOrders.map((order) => ({
-            ...order,
-            profile:
-                profileMap.get(order.user_id) ?? null,
-        }));
+        typedOrders.map((order) => {
+            const cancelledByProfile = order.cancelled_by
+                ? profileMap.get(order.cancelled_by)
+                : null;
+
+            return {
+                ...order,
+                profile: profileMap.get(order.user_id) ?? null,
+                cancelledByName: cancelledByProfile
+                    ? [cancelledByProfile.last_name, cancelledByProfile.first_name]
+                        .filter(Boolean).join(" ").trim() || null
+                    : null,
+            };
+        });
 
     // ------------------------------------------------------------
     // Teljes terméklista a későbbi admin szerkesztéshez
