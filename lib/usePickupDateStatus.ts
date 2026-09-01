@@ -26,6 +26,13 @@ function subscribeToDate(onChange: () => void) {
 
 const getServerSnapshot = () => null;
 
+const getCurrentDate = () => dateFormatter.format(new Date());
+const getServerDate = () => "";
+
+export function useCurrentBudapestDate() {
+    return useSyncExternalStore(subscribeToDate, getCurrentDate, getServerDate);
+}
+
 export function usePickupDateStatus(pickupDate: string) {
     return useSyncExternalStore(
         subscribeToDate,

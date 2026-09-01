@@ -184,9 +184,11 @@ export default async function AdminOrdersPage() {
     // ------------------------------------------------------------
     return (
         <div className="mx-auto w-full max-w-5xl">
-            <h1 className="text-2xl font-semibold text-gray-800">
-                Rendelések
-            </h1>
+            <div className="px-4 text-center sm:px-6">
+                <p className="mx-auto mt-2.5 max-w-3xl text-base leading-7 text-gray-600">
+                    Tekintse át és szűrje a leadott előrendeléseket, majd nyissa le a részleteket a vásárlói adatokhoz, előzményekhez és kezelési lehetőségekhez.
+                </p>
+            </div>
 
             {ordersWithProfiles.length === 0 ? (
                 <div className="mt-6 rounded-xl border border-gray-200 bg-white p-6 text-center text-gray-500 shadow-sm">
