@@ -47,15 +47,15 @@ export default function OrderFilterDropdown({ label, options, selected, disabled
             <button ref={trigger} type="button" disabled={disabled} aria-expanded={expanded}
                 aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`}
                 onClick={() => { setOpen(!open); setSearch(""); }}
-                className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium shadow-sm transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50 ${selected.length ? "border-blue-400 bg-blue-50 text-blue-700 ring-1 ring-blue-100" : "border-zinc-200 bg-white text-zinc-600 hover:border-blue-400 hover:bg-zinc-50"}`}>
+                className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium shadow-none transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50 ${selected.length ? "border-blue-400 bg-blue-50 text-blue-700" : "border-zinc-200 bg-white text-zinc-600 hover:border-blue-400 hover:bg-zinc-50"}`}>
                 <span id={`${id}-value`} className="min-w-0 break-words">{summary}</span>
                 <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
             </button>
             {expanded && (
                 <div id={`${id}-panel`} role="group" aria-labelledby={`${id}-label`}
-                    className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-lg">
+                    className="absolute left-0 right-0 top-full z-30 mt-2 overflow-hidden rounded-xl border border-zinc-200 bg-white shadow-none">
                     <div className="border-b border-zinc-100 p-2">
-                        <label className="flex items-center gap-2 rounded-md bg-zinc-50 px-2 py-2 focus-within:ring-1 focus-within:ring-blue-400">
+                        <label className="flex items-center gap-2 rounded-md border border-transparent bg-zinc-50 px-2 py-2 focus-within:border-blue-400">
                             <MagnifyingGlassIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-zinc-400" />
                             <input type="search" aria-label={`${label} keresése`} value={search} onChange={(event) => setSearch(event.target.value)}
                                 placeholder="Keresés…" className="min-w-0 w-full bg-transparent text-sm text-zinc-700 outline-none placeholder:text-zinc-400" />

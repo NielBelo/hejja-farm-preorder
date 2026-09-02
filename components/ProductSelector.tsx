@@ -381,7 +381,8 @@ export default function ProductSelector({
                             }}
                             className={`
     flex items-center justify-between
-    rounded-xl px-6 py-2
+    px-6 py-2
+    ${item.collapsed ? "rounded-xl" : "rounded-t-xl rounded-b-none"}
     ${!item.touched && !itemHasContent(item)
                                     ? "border sm border-gray-200 bg-white shadow-x1 text-[rgb(145,155,160)]"
                                     : "border-[rgb(145,155,160)] bg-[rgb(145,155,160)] text-white"

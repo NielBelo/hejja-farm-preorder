@@ -48,7 +48,7 @@ export default function AdminOrderList({
 
     return (
         <div className="space-y-3">
-            <section aria-label="Rendelések szűrése" className="relative mb-5 rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-100 to-zinc-50 p-4 shadow-sm sm:p-5">
+            <section aria-label="Rendelések szűrése" className="relative mb-5 rounded-xl border border-zinc-200 bg-gradient-to-br from-zinc-100 to-zinc-50 p-4 sm:p-5">
                 <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                     <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                         <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />
@@ -56,7 +56,7 @@ export default function AdminOrderList({
                         {selectionCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectionCount}</span>}
                     </h2>
                     <button type="button" disabled={selectionCount === 0 || editingOrderId !== null} onClick={() => setFilters(emptyFilters)}
-                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60">
+                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60">
                         <XMarkIcon aria-hidden="true" className="h-4 w-4" />
                         Szűrők törlése
                     </button>

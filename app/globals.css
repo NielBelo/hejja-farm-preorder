@@ -73,3 +73,67 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 13mm 8mm 10mm;
+
+    @top-left {
+      content: "Rendelésátvételi lista · " var(--pickup-print-date, "");
+      color: #374151;
+      font-size: 10pt;
+      font-weight: 600;
+    }
+
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      color: #4b5563;
+      font-size: 9pt;
+      font-variant-numeric: tabular-nums;
+    }
+
+    @top-right {
+      content: var(--pickup-print-summary, "");
+      color: #374151;
+      font-size: 10pt;
+      font-weight: 600;
+      text-align: right;
+    }
+  }
+
+  html,
+  body {
+    min-height: auto;
+    background: white !important;
+  }
+
+  body {
+    color: black;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body > header,
+  .site-background,
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .pickup-print-page {
+    width: 100%;
+  }
+}

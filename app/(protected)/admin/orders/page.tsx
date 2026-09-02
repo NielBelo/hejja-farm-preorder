@@ -185,7 +185,7 @@ export default async function AdminOrdersPage() {
     return (
         <div className="mx-auto w-full max-w-5xl">
             <div className="px-4 text-center sm:px-6">
-                <p className="mx-auto mt-2.5 max-w-3xl text-base leading-7 text-gray-600">
+                <p className="mx-auto mt-2.5 max-w-3xl text-base leading-7 text-gray-600 italic">
                     Tekintse át és szűrje a leadott előrendeléseket, majd nyissa le a részleteket a vásárlói adatokhoz, előzményekhez és kezelési lehetőségekhez.
                 </p>
             </div>
