@@ -1,12 +1,14 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
 
 export type SubmitOrderItem = {
-  productId: number;
-  packageId: number;
+  product_id: number;
+  package_id: number;
   quantity: number;
-  note: string;
+  size_preference: string;
+  note: string | null;
 };
 
 export type SubmitOrderData = {
@@ -18,7 +20,6 @@ export type SubmitOrderData = {
 export async function submitOrder(data: SubmitOrderData) {
   const supabase = await createClient();
 
-  // Bejelentkezett felhasználó
   const {
     data: { user },
     error: userError,
@@ -31,45 +32,40 @@ export async function submitOrder(data: SubmitOrderData) {
     };
   }
 
-  // Rendelés létrehozása
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert({
-      user_id: user.id,
-      season_parameter_id: data.seasonParameterId,
-      pickup_day_id: data.pickupDayId,
-    })
-    .select("id")
-    .single();
+  const { data: orderNumber, error } = await supabase.rpc("finalize_order", {
+    p_season_parameter_id: data.seasonParameterId,
+    p_pickup_day_id: data.pickupDayId,
+    p_items: data.items,
+  });
 
-  if (orderError) {
+  if (error) {
     return {
       success: false,
-      error: orderError.message,
+      error: error.message,
     };
   }
 
-  // Tételek létrehozása
-  const items = data.items.map((item) => ({
-    order_id: order.id,
-    product_id: item.productId,
-    package_id: item.packageId,
-    quantity: item.quantity,
-    note: item.note,
-  }));
+  const publicOrderNumber = String(orderNumber);
+  let emailWarning: string | undefined;
 
-  const { error: itemsError } = await supabase
-    .from("order_items")
-    .insert(items);
-
-  if (itemsError) {
-    return {
-      success: false,
-      error: itemsError.message,
-    };
+  try {
+    await sendOrderNotification({
+      supabase,
+      lookup: { orderNumber: publicOrderNumber },
+      kind: "created",
+    });
+  } catch (notificationError) {
+    console.error(
+      `Order confirmation email failed for ${publicOrderNumber}:`,
+      notificationError,
+    );
+    emailWarning =
+      "A rendelés sikeresen létrejött, de a visszaigazoló e-mailt nem sikerült elküldeni.";
   }
 
   return {
     success: true,
+    orderNumber: publicOrderNumber,
+    emailWarning,
   };
 }

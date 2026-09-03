@@ -6,6 +6,10 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
+import {
+    updateOrder,
+    type UpdateOrderItem,
+} from "@/app/(protected)/history/actions";
 
 type Product = {
     id: number;
@@ -73,6 +77,7 @@ export default function OrderActions({
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+    const [emailWarning, setEmailWarning] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const supabase = createClient();
@@ -183,6 +188,7 @@ export default function OrderActions({
 
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
 
         startEditing(orderId);
         setIsEditing(true);
@@ -219,6 +225,7 @@ export default function OrderActions({
         setIsSaving(true);
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
         stopEditing();
 
         // Eredeti és módosított összmennyiség
@@ -232,22 +239,22 @@ export default function OrderActions({
             0
         );
 
-        const rpcItems = itemsToSave.map((item) => ({
-            product_id: item.selectedProductId,
-            package_id: item.selectedPackageId,
+        const rpcItems = itemsToSave.map<UpdateOrderItem>((item) => ({
+            product_id: item.selectedProductId!,
+            package_id: item.selectedPackageId!,
             quantity: item.quantity,
             size_preference: item.selectedNote,
             note: item.note,
         }));
 
-        const { error } = await supabase.rpc("update_order", {
-            p_order_id: orderId,
-            p_items: rpcItems,
+        const result = await updateOrder({
+            orderId,
+            items: rpcItems,
         });
 
-        if (error) {
+        if (!result.success) {
             setSaveError(
-                error.message || "A rendelés módosítása sikertelen."
+                result.error || "A rendelés módosítása sikertelen."
             );
 
             setIsSaving(false);
@@ -264,6 +271,8 @@ export default function OrderActions({
                 "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak."
             );
         }
+
+        setEmailWarning(result.emailWarning ?? null);
 
         setIsSaving(false);
         setIsEditing(false);
@@ -363,6 +372,13 @@ export default function OrderActions({
                 <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
                     <p className="text-sm text-center text-[rgb(49,171,2)]">
                         {saveSuccess}
+                    </p>
+                </div>
+            )}
+            {emailWarning && !isEditing && (
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-center text-sm text-amber-700">
+                        {emailWarning}
                     </p>
                 </div>
             )}

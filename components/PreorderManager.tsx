@@ -6,6 +6,10 @@ import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
+import {
+    submitOrder,
+    type SubmitOrderItem,
+} from "@/app/(protected)/preorder/actions";
 
 type Product = {
     id: number;
@@ -115,6 +119,7 @@ export default function PreorderManager({
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
     const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
+    const [emailWarning, setEmailWarning] = useState<string | null>(null);
 
     const validOrderItems = orderItems.filter(
         (item) =>
@@ -166,10 +171,11 @@ export default function PreorderManager({
 
         setSubmitError(null);
         setSubmitSuccess(null);
+        setEmailWarning(null);
 
-        const rpcItems = validOrderItems.map((item) => ({
-            product_id: item.selectedProductId,
-            package_id: item.selectedPackageId,
+        const rpcItems = validOrderItems.map<SubmitOrderItem>((item) => ({
+            product_id: item.selectedProductId!,
+            package_id: item.selectedPackageId!,
             quantity: item.quantity,
             size_preference: item.selectedNote,
             note: item.note || null,
@@ -178,26 +184,23 @@ export default function PreorderManager({
         console.log("RPC items:", rpcItems);
         console.log("Selected pickup day:", selectedPickupDay);
 
-        const supabase = createClient();
-
-        const { data, error } = await supabase.rpc("finalize_order", {
-            p_season_parameter_id: season.id,
-            p_pickup_day_id: selectedPickupDay.id,
-            p_items: rpcItems,
+        const result = await submitOrder({
+            seasonParameterId: season.id,
+            pickupDayId: selectedPickupDay.id,
+            items: rpcItems,
         });
 
-        console.log("RPC data:", data);
-        console.log("RPC error:", error);
+        console.log("Order submission result:", result);
 
         await refreshPickupDays();
 
-        if (error) {
-            setSubmitError(error.message);
+        if (!result.success || !result.orderNumber) {
+            setSubmitError(result.error ?? "A rendelés véglegesítése sikertelen.");
             return;
         }
 
         setLastSubmittedOrder({
-            orderNumber: data,
+            orderNumber: result.orderNumber,
             pickupDay: selectedPickupDay,
             items: validOrderItems.map((item) => ({ ...item })),
             submittedAt: new Date(),
@@ -207,8 +210,9 @@ export default function PreorderManager({
         setHasOrderChanges(false);
         setSelectedPickupDay(null);
         setSubmitSuccess(
-            `A rendelés sikeresen véglegesítve! Rendelésszám: ${data}`
+            `A rendelés sikeresen véglegesítve! Rendelésszám: ${result.orderNumber}`
         );
+        setEmailWarning(result.emailWarning ?? null);
     };
 
 
@@ -249,6 +253,12 @@ export default function PreorderManager({
                     <h3 className="text-center text-lg font-semibold text-[rgb(49,171,2)]">
                         Előrendelés sikeresen leadva!
                     </h3>
+
+                    {emailWarning && (
+                        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-700">
+                            {emailWarning}
+                        </p>
+                    )}
 
                     <div className="mt-3 grid grid-cols-3 items-center border-b border-gray-200 pb-4 text-sm text-gray-600">
                         <div className="text-left">
