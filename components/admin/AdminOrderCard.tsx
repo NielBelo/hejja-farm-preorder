@@ -80,6 +80,8 @@ type AdminOrderHistoryVersion = {
 
 type AdminPickupDay = {
     id: number;
+    year: number;
+    season: string | null;
     pickup_date: string;
     serial_number: number;
     available_stock: number;

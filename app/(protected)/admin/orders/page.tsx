@@ -24,6 +24,8 @@ export default async function AdminOrdersPage() {
 
             pickup_days!orders_pickup_day_id_fkey!inner (
                 id,
+                year,
+                season,
                 pickup_date,
                 serial_number,
                 available_stock,

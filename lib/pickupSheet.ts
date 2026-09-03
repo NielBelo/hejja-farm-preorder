@@ -81,6 +81,14 @@ export function summarizePackage(name: string | null | undefined) {
     return name.replace(/\s*csomagolás\s*/iu, "").trim() || name;
 }
 
+export function summarizeProduct(name: string | null | undefined) {
+    if (!name) return "—";
+    const normalized = name.toLocaleLowerCase("hu");
+    if (normalized.includes("darab")) return "Darab";
+    if (normalized.includes("egész")) return "Egész";
+    return name;
+}
+
 export function summarizeSize(preference: string | null | undefined) {
     if (!preference) return "Átlagos";
     const normalized = preference.toLocaleLowerCase("hu");
@@ -126,7 +134,7 @@ export function getPickupDistributions(orders: PickupSheetOrder[]) {
     return {
         products: buildPickupDistribution(
             orders,
-            (item) => item.products?.name ?? "Ismeretlen"
+            (item) => summarizeProduct(item.products?.name)
         ),
         packages: buildPickupDistribution(
             orders,

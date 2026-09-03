@@ -9,12 +9,12 @@ const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../lib
 }).outputText;
 const filterModule = { exports: {} };
 new Function('exports', compiled)(filterModule.exports);
-const { emptyFilters, matchesOrderFilters, getOrderFilterOptions } = filterModule.exports;
+const { emptyFilters, getDefaultOrderFilters, getPickupSeason, matchesOrderFilters, getOrderFilterOptions } = filterModule.exports;
 const today = '2026-08-31';
-const order = (id, county, pickup, products, status = 'submitted') => ({
+const order = (id, county, pickup, products, status = 'submitted', year = 2026, season = pickup.includes('-09-') ? 'Ősz' : 'Nyár') => ({
     id, user_id: `user-${id}`, status,
     profile: { last_name: 'Kiss', first_name: `Vásárló ${id}`, county },
-    pickup_days: { pickup_date: pickup },
+    pickup_days: { pickup_date: pickup, year, season },
     order_versions: { order_items: products.map((product_id) => ({ product_id, products: { name: `Termék ${product_id}` } })) },
 });
 const orders = [
@@ -26,10 +26,21 @@ const orders = [
 const match = (filters) => orders.filter((entry) => matchesOrderFilters(entry, { ...emptyFilters, ...filters }, today)).map((entry) => entry.id);
 
 test('no selection returns all orders', () => assert.deepEqual(match({}), [1, 2, 3, 4]));
+test('defaults to the latest available season and current orders', () => {
+    const defaults = getDefaultOrderFilters(orders);
+    assert.deepEqual(defaults, {
+        season: ['2026-3-ősz'],
+        pickup: [],
+        county: [],
+        name: [],
+        status: ['current'],
+    });
+    assert.deepEqual(match(defaults), [2]);
+});
 test('multiple choices within a filter use OR', () => assert.deepEqual(match({ county: ['Pest', 'Somogy'] }), [1, 2, 3]));
-test('different filters use AND and product matches any current item', () => {
-    assert.deepEqual(match({ county: ['Pest'], product: ['2'], status: ['current'] }), [1]);
-    assert.deepEqual(match({ county: ['Somogy'], product: ['1'] }), []);
+test('different filters use AND', () => {
+    assert.deepEqual(match({ county: ['Pest'], season: ['2026-2-nyár'], status: ['current'] }), [1]);
+    assert.deepEqual(match({ county: ['Somogy'], season: ['2026-1-tavasz'] }), []);
 });
 test('name and pickup filters combine', () => assert.deepEqual(match({ name: ['user-1', 'user-2'], pickup: ['2026-09-01'] }), [2]));
 test('pickup today is current; cancellation overrides past date', () => {
@@ -40,9 +51,18 @@ test('pickup today is current; cancellation overrides past date', () => {
 test('missing county can be selected', () => assert.deepEqual(match({ county: ['Nincs megadva'] }), [4]));
 test('options are deduplicated and dates are chronological', () => {
     const options = getOrderFilterOptions(orders, today);
-    assert.equal(options.product.length, 3);
+    assert.deepEqual(options.season, [
+        { value: '2026-2-nyár', label: '2026 Nyár' },
+        { value: '2026-3-ősz', label: '2026 Ősz' },
+    ]);
     assert.equal(options.county.length, 3);
     assert.deepEqual(options.pickup.map((entry) => entry.value), ['2026-08-30', today, '2026-09-01']);
+});
+test('formats the season stored on the pickup day', () => {
+    assert.deepEqual(getPickupSeason(2026, 'tél'), { value: '2026-0-tél', label: '2026 Tél' });
+    assert.deepEqual(getPickupSeason(2026, 'Tavasz'), { value: '2026-1-tavasz', label: '2026 Tavasz' });
+    assert.deepEqual(getPickupSeason(2026, 'NYÁR'), { value: '2026-2-nyár', label: '2026 Nyár' });
+    assert.deepEqual(getPickupSeason(2026, 'Ősz'), { value: '2026-3-ősz', label: '2026 Ősz' });
 });
 test('different customers with the same name remain distinct', () => {
     const duplicate = { ...orders[1], profile: { ...orders[0].profile } };
@@ -64,6 +84,5 @@ test('past timestamp and same-day timestamp have correct status', () => {
 test('missing profile and order version do not crash filtering', () => {
     const missing = { ...orders[0], profile: null, order_versions: null };
     assert.equal(matchesOrderFilters(missing, emptyFilters, today), true);
-    assert.equal(matchesOrderFilters(missing, { ...emptyFilters, product: ['1'] }, today), false);
     assert.equal(getOrderFilterOptions([missing], today).name[0].label, 'Ismeretlen felhasználó');
 });

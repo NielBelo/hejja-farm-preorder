@@ -81,7 +81,7 @@ input[type="number"] {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 13mm 8mm 10mm;
+    margin: 15mm 12mm 14mm;
 
     @top-left {
       content: "Rendelésátvételi lista · " var(--pickup-print-date, "");

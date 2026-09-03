@@ -48,7 +48,16 @@ export default function OrderFilterDropdown({ label, options, selected, disabled
                 aria-controls={`${id}-panel`} aria-labelledby={`${id}-label ${id}-value`}
                 onClick={() => { setOpen(!open); setSearch(""); }}
                 className={`flex w-full items-center justify-between gap-2 rounded-lg border px-3 py-2.5 text-left text-sm font-medium shadow-none transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-400 disabled:cursor-not-allowed disabled:opacity-50 ${selected.length ? "border-blue-400 bg-blue-50 text-blue-700" : "border-zinc-200 bg-white text-zinc-600 hover:border-blue-400 hover:bg-zinc-50"}`}>
-                <span id={`${id}-value`} className="min-w-0 break-words">{summary}</span>
+                <span
+                    id={`${id}-value`}
+                    className="min-w-0 flex-1 overflow-hidden whitespace-nowrap"
+                    style={{
+                        maskImage: "linear-gradient(to right, black calc(100% - 1.25rem), transparent)",
+                        WebkitMaskImage: "linear-gradient(to right, black calc(100% - 1.25rem), transparent)",
+                    }}
+                >
+                    {summary}
+                </span>
                 <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
             </button>
             {expanded && (

@@ -19,6 +19,7 @@ const {
     sortPickupOrders,
     summarizePackage,
     summarizePickupOrders,
+    summarizeProduct,
     summarizeSize,
 } = sheetModule.exports;
 
@@ -68,6 +69,8 @@ test('formats stored Hungarian phone numbers', () => {
 });
 
 test('shortens package and size descriptions for the compact table', () => {
+    assert.equal(summarizeProduct('Darabolt csirke'), 'Darab');
+    assert.equal(summarizeProduct('Egész csirke'), 'Egész');
     assert.equal(summarizePackage('Gyűjtőcsomagolás'), 'Gyűjtő');
     assert.equal(summarizePackage('Egyedi csomagolás'), 'Egyedi');
     assert.equal(summarizeSize('Átlagostól inkább kisebbet kérek, ha lehet'), 'Kisebb');
@@ -121,8 +124,8 @@ test('builds quantity and percentage distributions for the charts', () => {
 
     const distributions = getPickupDistributions(orders);
     assert.deepEqual(distributions.products, [
-        { label: 'Egész csirke', quantity: 6, percentage: 60 },
-        { label: 'Darabolt csirke', quantity: 4, percentage: 40 },
+        { label: 'Egész', quantity: 6, percentage: 60 },
+        { label: 'Darab', quantity: 4, percentage: 40 },
     ]);
     assert.deepEqual(distributions.packages, [
         { label: 'Gyűjtő', quantity: 6, percentage: 60 },

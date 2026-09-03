@@ -5,7 +5,7 @@ import { FunnelIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { useCurrentBudapestDate } from "@/lib/usePickupDateStatus";
-import { emptyFilters, filterLabels, getOrderFilterOptions, matchesOrderFilters, type FilterKey, type OrderFilters } from "@/lib/adminOrderFilters";
+import { emptyFilters, filterLabels, getDefaultOrderFilters, getOrderFilterOptions, matchesOrderFilters, type FilterKey, type OrderFilters } from "@/lib/adminOrderFilters";
 import AdminOrderCard, {
     type AdminOrder,
 } from "@/components/admin/AdminOrderCard";
@@ -33,7 +33,7 @@ export default function AdminOrderList({
     packages: PackageOption[];
 }) {
     const [openOrderId, setOpenOrderId] = useState<number | null>(null);
-    const [filters, setFilters] = useState<OrderFilters>(emptyFilters);
+    const [filters, setFilters] = useState<OrderFilters>(() => getDefaultOrderFilters(orders));
     const { editingOrderId } = useOrderActionsManager();
     const today = useCurrentBudapestDate();
     const options = useMemo(() => getOrderFilterOptions(orders, today), [orders, today]);

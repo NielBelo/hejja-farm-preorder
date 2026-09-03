@@ -8,6 +8,7 @@ import {
     getPickupDistributions,
     summarizePackage,
     summarizePickupOrders,
+    summarizeProduct,
     summarizeSize,
     type PickupDistributionEntry,
     type PickupSheetOrder,
@@ -266,7 +267,7 @@ export default function PickupSheet({
                 </div>
             ) : (
                 <div className="overflow-hidden rounded-xl border border-black bg-white shadow-sm print:rounded-none print:shadow-none">
-                    <table className="w-full table-fixed border-collapse text-center text-[clamp(9px,1.4vw,15px)] leading-snug text-gray-800 print:text-[11pt] [&_td]:align-middle [&_th]:align-middle">
+                    <table className="w-full table-fixed border-collapse text-center text-[clamp(9px,1.4vw,15px)] leading-none text-gray-800 print:text-[11pt] [&_td]:align-middle [&_th]:align-middle">
                         <colgroup>
                             <col className="w-[22.5%]" />
                             <col className="w-[6%]" />
@@ -279,14 +280,14 @@ export default function PickupSheet({
                         </colgroup>
                         <thead className="bg-gray-300 font-semibold text-gray-800 print:table-header-group">
                             <tr>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-2 py-2">Rendelési adatok</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2 text-center">Tétel</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2">Termék</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2 text-center">Menny.</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2">Csom.</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2">Méret</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-2">Megjegyzés</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1 py-2 text-center">Státusz</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-2 py-0.5">Rendelési adatok</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5 text-center">Tétel</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Termék</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5 text-center">Menny.</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Csom.</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Méret</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Megjegyzés</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1 py-0.5 text-center">Státusz</th>
                             </tr>
                         </thead>
                         {visibleOrders.map((order, orderIndex) => {
@@ -297,10 +298,10 @@ export default function PickupSheet({
                                     {rows.map((item, itemIndex) => (
                                         <tr key={item?.id ?? `${order.id}-empty`} className={rowBackground}>
                                                 {itemIndex === 0 && (
-                                                    <td rowSpan={rows.length} className="break-words border border-black px-2 py-2 text-left text-gray-900">
-                                                        <div className="space-y-1">
+                                                    <td rowSpan={rows.length} className="break-words border border-black px-2 py-0.5 text-left text-gray-900">
+                                                        <div>
                                                             <p className="flex flex-wrap items-center gap-1.5">
-                                                                <span className="inline-flex min-w-6 items-center justify-center rounded bg-gray-700 px-1.5 font-semibold leading-tight text-white">{orderIndex + 1}.</span>
+                                                                <span className="inline-flex min-w-6 items-center justify-center rounded bg-gray-700 px-1.5 font-semibold leading-none text-white">{orderIndex + 1}.</span>
                                                                 <span>{order.public_order_number}</span>
                                                             </p>
                                                             <p><span className="font-semibold">Név:</span> {order.customerName}</p>
@@ -308,14 +309,14 @@ export default function PickupSheet({
                                                         </div>
                                                     </td>
                                                 )}
-                                                <td className="border border-black px-1.5 py-1.5 text-center">{itemIndex + 1}.</td>
-                                                <td className="break-words border border-black px-1.5 py-1.5 font-medium">{item?.products?.name ?? "—"}</td>
-                                                <td className="border border-black px-1.5 py-1.5 text-center font-semibold">{item ? `${item.quantity} db` : "—"}</td>
-                                                <td className="break-words border border-black px-1.5 py-1.5">{summarizePackage(item?.packages?.name)}</td>
-                                                <td className="break-words border border-black px-1.5 py-1.5">{summarizeSize(item?.size_preference)}</td>
-                                                <td className="max-w-52 break-words border border-black px-1.5 py-1.5">{item?.note || "—"}</td>
-                                                <td className="border border-black px-1 py-1.5 text-center align-middle">
-                                                    <span aria-label="Teljesítési státusz jelölőnégyzet" className="inline-block h-4 w-4 rounded-[2px] border border-black bg-white print:h-3.5 print:w-3.5" />
+                                                <td className="border border-black px-1.5 py-0.5 text-center">{itemIndex + 1}.</td>
+                                                <td className="break-words border border-black px-1.5 py-0.5 font-medium">{summarizeProduct(item?.products?.name)}</td>
+                                                <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{item ? `${item.quantity} db` : "—"}</td>
+                                                <td className="break-words border border-black px-1.5 py-0.5">{summarizePackage(item?.packages?.name)}</td>
+                                                <td className="break-words border border-black px-1.5 py-0.5">{summarizeSize(item?.size_preference)}</td>
+                                                <td className="max-w-52 break-words border border-black px-1.5 py-0.5">{item?.note || "—"}</td>
+                                                <td className="border border-black px-1 py-0.5 text-center align-middle">
+                                                    <span aria-label="Teljesítési státusz jelölőnégyzet" className="inline-block h-3.5 w-3.5 rounded-[2px] border border-black bg-white print:h-3 print:w-3" />
                                                 </td>
                                         </tr>
                                     ))}

@@ -1,16 +1,16 @@
 import type { AdminOrder } from "@/components/admin/AdminOrderCard";
 
 export const filterLabels = {
-    name: "Név",
-    county: "Megye",
+    season: "Szezon",
     pickup: "Átvételi nap",
-    product: "Termék",
-    status: "Rendelés státusz",
+    county: "Megye",
+    name: "Vásárló",
+    status: "Rendelési státusz",
 };
 export type FilterKey = keyof typeof filterLabels;
 export type OrderFilters = Record<FilterKey, string[]>;
 export type FilterOption = { value: string; label: string };
-export const emptyFilters: OrderFilters = { name: [], county: [], pickup: [], product: [], status: [] };
+export const emptyFilters: OrderFilters = { season: [], pickup: [], county: [], name: [], status: [] };
 
 const weekdayFormatter = new Intl.DateTimeFormat("hu-HU", { weekday: "long", timeZone: "UTC" });
 
@@ -26,14 +26,40 @@ function formatPickupOption(date: string) {
     return `${date.replaceAll("-", ". ")}. – ${weekdayFormatter.format(parsed)}`;
 }
 
+const seasonOrder: Record<string, number> = { tél: 0, tavasz: 1, nyár: 2, ősz: 3 };
+
+export function getPickupSeason(year: number | null | undefined, season: string | null | undefined) {
+    const normalized = season?.trim().toLocaleLowerCase("hu") ?? "";
+    if (!Number.isInteger(year) || !normalized) {
+        return { value: "", label: "Nincs megadva" };
+    }
+    const label = normalized.charAt(0).toLocaleUpperCase("hu") + normalized.slice(1);
+    const order = seasonOrder[normalized] ?? 9;
+    return { value: `${year}-${order}-${normalized}`, label: `${year} ${label}` };
+}
+
 export function getOrderFilterValues(order: AdminOrder, today: string): Record<FilterKey, string[]> {
     const pickup = pickupCalendarDate(order.pickup_days?.pickup_date ?? "");
     return {
-        name: [order.user_id],
-        county: [order.profile?.county?.trim() || "Nincs megadva"],
+        season: [getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value],
         pickup: [pickup],
-        product: (order.order_versions?.order_items ?? []).map((item) => String(item.product_id)),
+        county: [order.profile?.county?.trim() || "Nincs megadva"],
+        name: [order.user_id],
         status: [order.status === "cancelled" ? "cancelled" : !today || !pickup ? "unknown" : pickup < today ? "past" : "current"],
+    };
+}
+
+export function getDefaultOrderFilters(orders: AdminOrder[]): OrderFilters {
+    const latestSeason = orders
+        .map((order) => getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value)
+        .filter(Boolean)
+        .sort((left, right) => left.localeCompare(right))
+        .at(-1);
+
+    return {
+        ...emptyFilters,
+        season: latestSeason ? [latestSeason] : [],
+        status: ["current"],
     };
 }
 
@@ -46,7 +72,7 @@ export function matchesOrderFilters(order: AdminOrder, filters: OrderFilters, to
 
 export function getOrderFilterOptions(orders: AdminOrder[], today: string): Record<FilterKey, FilterOption[]> {
     const options: Record<FilterKey, Map<string, string>> = {
-        name: new Map(), county: new Map(), pickup: new Map(), product: new Map(), status: new Map(),
+        season: new Map(), pickup: new Map(), county: new Map(), name: new Map(), status: new Map(),
     };
     const statusLabels: Record<string, string> = { current: "Aktuális", past: "Teljesített", cancelled: "Lemondva", unknown: "Ismeretlen" };
     for (const order of orders) {
@@ -55,16 +81,15 @@ export function getOrderFilterOptions(orders: AdminOrder[], today: string): Reco
         options.name.set(order.user_id, name || "Ismeretlen felhasználó");
         options.county.set(values.county[0], values.county[0]);
         const date = values.pickup[0];
+        const season = getPickupSeason(order.pickup_days?.year, order.pickup_days?.season);
+        options.season.set(season.value, season.label);
         options.pickup.set(date, formatPickupOption(date));
-        for (const item of order.order_versions?.order_items ?? []) {
-            options.product.set(String(item.product_id), item.products?.name || "Ismeretlen termék");
-        }
         options.status.set(values.status[0], statusLabels[values.status[0]]);
     }
     return Object.fromEntries((Object.keys(options) as FilterKey[]).map((key) => [
         key,
         [...options[key]].map(([value, label]) => ({ value, label })).sort((a, b) =>
-            key === "pickup" ? a.value.localeCompare(b.value) : a.label.localeCompare(b.label, "hu")
+            key === "pickup" || key === "season" ? a.value.localeCompare(b.value) : a.label.localeCompare(b.label, "hu")
         ),
     ])) as Record<FilterKey, FilterOption[]>;
 }
