@@ -17,6 +17,19 @@ export type PickupSheetOrder = {
     items: PickupSheetItem[];
 };
 
+export type PickupSheetPickupDay = {
+    pickup_date: string;
+    planned_stock: number | null;
+    available_stock: number | null;
+};
+
+export type PickupDateOption = {
+    value: string;
+    label: string;
+    plannedStock: number;
+    availableStock: number;
+};
+
 export function normalizePickupDate(value: string) {
     return /^\d{4}-\d{2}-\d{2}(?:T|$)/.test(value) ? value.slice(0, 10) : "";
 }
@@ -48,10 +61,26 @@ export function sortPickupOrders(orders: PickupSheetOrder[]) {
     });
 }
 
-export function getPickupDateOptions(orders: PickupSheetOrder[]) {
-    return [...new Set(orders.map((order) => order.pickupDate).filter(Boolean))]
-        .sort()
-        .map((value) => ({ value, label: formatPickupDate(value) }));
+export function getPickupDateOptions(pickupDays: PickupSheetPickupDay[]) {
+    const dates = new Map<string, Pick<PickupDateOption, "plannedStock" | "availableStock">>();
+
+    for (const pickupDay of pickupDays) {
+        const value = normalizePickupDate(pickupDay.pickup_date);
+        if (value && !dates.has(value)) {
+            dates.set(value, {
+                plannedStock: pickupDay.planned_stock ?? 0,
+                availableStock: pickupDay.available_stock ?? 0,
+            });
+        }
+    }
+
+    return [...dates.entries()]
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([value, stock]) => ({
+            value,
+            label: formatPickupDate(value),
+            ...stock,
+        }));
 }
 
 export function getInitialPickupDate(dates: string[], today: string) {
@@ -61,11 +90,26 @@ export function getInitialPickupDate(dates: string[], today: string) {
 export function summarizePickupOrders(orders: PickupSheetOrder[]) {
     return {
         customerCount: new Set(orders.map((order) => order.user_id)).size,
+        orderCount: new Set(orders.map((order) => order.id)).size,
         itemCount: orders.reduce((total, order) => total + order.items.length, 0),
         chickenCount: orders.reduce(
             (total, order) => total + order.items.reduce((orderTotal, item) => orderTotal + item.quantity, 0),
             0
         ),
+    };
+}
+
+export function summarizePickupStock(plannedStock: number, availableStock: number) {
+    const capacity = Math.max(0, plannedStock);
+    const availableCount = Math.min(capacity, Math.max(0, availableStock));
+    const usedCount = capacity - availableCount;
+
+    return {
+        capacity,
+        usedCount,
+        availableCount,
+        usedPercentage: capacity > 0 ? (usedCount / capacity) * 100 : 0,
+        availablePercentage: capacity > 0 ? (availableCount / capacity) * 100 : 0,
     };
 }
 

@@ -17,14 +17,12 @@ body {
 }
 
 /* A háttér fél képernyőnyi út után megáll, miközben a tartalom tovább gördül. */
-.site-background {
+.site-background,
+.site-header-scroll-mask-background {
   --background-offset: 0px;
-  position: fixed;
   inset: 0 0 auto;
   height: 140vh;
-  z-index: -1;
   pointer-events: none;
-  overflow: hidden;
   transform: translate3d(0, var(--background-offset), 0);
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
   will-change: transform;
@@ -53,8 +51,45 @@ body {
     no-repeat;
 }
 
+.site-background {
+  position: fixed;
+  z-index: -1;
+  overflow: hidden;
+}
+
+/* A sticky fejléc felett eltakarja, alatta pedig a háttérbe halványítja
+   az elgördülő oldaltartalmat. */
+.site-header-scroll-mask {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 40;
+  height: 7.25rem;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(4.75rem + 10px),
+    transparent calc(7.25rem - 5px),
+    transparent 7.25rem
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(4.75rem + 10px),
+    transparent calc(7.25rem - 5px),
+    transparent 7.25rem
+  );
+}
+
+.site-header-scroll-mask-background {
+  position: absolute;
+  width: 100%;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .site-background {
+  .site-background,
+  .site-header-scroll-mask-background {
     transform: none;
     transition: none;
     will-change: auto;
@@ -120,6 +155,7 @@ input[type="number"] {
 
   body > header,
   .site-background,
+  .site-header-scroll-mask,
   .print-hidden {
     display: none !important;
   }

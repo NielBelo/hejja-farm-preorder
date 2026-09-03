@@ -1,16 +1,15 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getPickupDateStatus, usePickupDateStatus } from "@/lib/usePickupDateStatus";
 
-export default function AdminRestoreOrder({ orderId, pickupDate, disabled }: {
+export default function AdminRestoreOrder({ orderId, pickupDate, disabled, onOrderChanged }: {
     orderId: number;
     pickupDate: string;
     disabled: boolean;
+    onOrderChanged: () => Promise<void>;
 }) {
-    const router = useRouter();
     const requestInFlight = useRef(false);
     const [isRestoring, setIsRestoring] = useState(false);
     const [isRestored, setIsRestored] = useState(false);
@@ -37,7 +36,7 @@ export default function AdminRestoreOrder({ orderId, pickupDate, disabled }: {
                 return;
             }
             setIsRestored(true);
-            router.refresh();
+            await onOrderChanged();
         } catch {
             setError("A rendelés visszaállítása sikertelen. Ellenőrizze a kapcsolatot, majd próbálja újra.");
         } finally {

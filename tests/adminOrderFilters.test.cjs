@@ -9,7 +9,15 @@ const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../lib
 }).outputText;
 const filterModule = { exports: {} };
 new Function('exports', compiled)(filterModule.exports);
-const { emptyFilters, getDefaultOrderFilters, getPickupSeason, matchesOrderFilters, getOrderFilterOptions } = filterModule.exports;
+const {
+    buildAdminSeasonOptions,
+    emptyFilters,
+    getDefaultAdminSeason,
+    getDefaultOrderFilters,
+    getPickupSeason,
+    matchesOrderFilters,
+    getOrderFilterOptions,
+} = filterModule.exports;
 const today = '2026-08-31';
 const order = (id, county, pickup, products, status = 'submitted', year = 2026, season = pickup.includes('-09-') ? 'Ősz' : 'Nyár') => ({
     id, user_id: `user-${id}`, status,
@@ -27,7 +35,7 @@ const match = (filters) => orders.filter((entry) => matchesOrderFilters(entry, {
 
 test('no selection returns all orders', () => assert.deepEqual(match({}), [1, 2, 3, 4]));
 test('defaults to the latest available season and current orders', () => {
-    const defaults = getDefaultOrderFilters(orders);
+    const defaults = getDefaultOrderFilters('2026-3-ősz');
     assert.deepEqual(defaults, {
         season: ['2026-3-ősz'],
         pickup: [],
@@ -36,6 +44,22 @@ test('defaults to the latest available season and current orders', () => {
         status: ['current'],
     });
     assert.deepEqual(match(defaults), [2]);
+});
+test('groups pickup days into seasons and prefers the latest active season', () => {
+    const seasons = buildAdminSeasonOptions([
+        { id: 1, year: 2025, season: 'Ősz', pickup_date: '2025-10-10', is_active: false },
+        { id: 2, year: 2026, season: 'Tavasz', pickup_date: '2026-04-10', is_active: true },
+        { id: 3, year: 2026, season: 'Tavasz', pickup_date: '2026-05-10', is_active: false },
+        { id: 4, year: 2026, season: 'Ősz', pickup_date: '2026-10-10', is_active: false },
+    ]);
+
+    assert.deepEqual(seasons, [
+        { value: '2025-3-ősz', label: '2025 Ősz', pickupDayIds: [1], latestPickupDate: '2025-10-10', isActive: false },
+        { value: '2026-1-tavasz', label: '2026 Tavasz', pickupDayIds: [2, 3], latestPickupDate: '2026-05-10', isActive: true },
+        { value: '2026-3-ősz', label: '2026 Ősz', pickupDayIds: [4], latestPickupDate: '2026-10-10', isActive: false },
+    ]);
+    assert.equal(getDefaultAdminSeason(seasons).value, '2026-1-tavasz');
+    assert.equal(getDefaultAdminSeason(seasons.map((season) => ({ ...season, isActive: false }))).value, '2026-3-ősz');
 });
 test('multiple choices within a filter use OR', () => assert.deepEqual(match({ county: ['Pest', 'Somogy'] }), [1, 2, 3]));
 test('different filters use AND', () => {
@@ -57,6 +81,13 @@ test('options are deduplicated and dates are chronological', () => {
     ]);
     assert.equal(options.county.length, 3);
     assert.deepEqual(options.pickup.map((entry) => entry.value), ['2026-08-30', today, '2026-09-01']);
+});
+test('standard status choices remain available for an empty loaded season', () => {
+    assert.deepEqual(getOrderFilterOptions([], today).status.map((entry) => entry.value), [
+        'current',
+        'cancelled',
+        'past',
+    ]);
 });
 test('formats the season stored on the pickup day', () => {
     assert.deepEqual(getPickupSeason(2026, 'tél'), { value: '2026-0-tél', label: '2026 Tél' });

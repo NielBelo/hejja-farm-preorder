@@ -1,7 +1,6 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { getPickupDateStatus, usePickupDateStatus } from "@/lib/usePickupDateStatus";
 
@@ -11,14 +10,15 @@ export default function AdminCancelOrder({
     pickupDate,
     disabled,
     onOpen,
+    onOrderChanged,
 }: {
     orderId: number;
     publicOrderNumber: string;
     pickupDate: string;
     disabled: boolean;
     onOpen: () => void;
+    onOrderChanged: () => Promise<void>;
 }) {
-    const router = useRouter();
     const dialogRef = useRef<HTMLDialogElement>(null);
     const requestInFlight = useRef(false);
     const [isCancelling, setIsCancelling] = useState(false);
@@ -51,7 +51,7 @@ export default function AdminCancelOrder({
 
             setIsCancelled(true);
             dialogRef.current?.close();
-            router.refresh();
+            await onOrderChanged();
         } catch {
             setError("A rendelés lemondása sikertelen. Ellenőrizze a kapcsolatot, majd próbálja újra.");
         } finally {

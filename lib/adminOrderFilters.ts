@@ -10,6 +10,18 @@ export const filterLabels = {
 export type FilterKey = keyof typeof filterLabels;
 export type OrderFilters = Record<FilterKey, string[]>;
 export type FilterOption = { value: string; label: string };
+export type AdminSeasonOption = FilterOption & {
+    pickupDayIds: number[];
+    latestPickupDate: string;
+    isActive: boolean;
+};
+export type PickupDaySeasonRow = {
+    id: number;
+    year: number;
+    season: string | null;
+    pickup_date: string | null;
+    is_active: boolean | null;
+};
 export const emptyFilters: OrderFilters = { season: [], pickup: [], county: [], name: [], status: [] };
 
 const weekdayFormatter = new Intl.DateTimeFormat("hu-HU", { weekday: "long", timeZone: "UTC" });
@@ -38,6 +50,43 @@ export function getPickupSeason(year: number | null | undefined, season: string 
     return { value: `${year}-${order}-${normalized}`, label: `${year} ${label}` };
 }
 
+export function buildAdminSeasonOptions(rows: PickupDaySeasonRow[]): AdminSeasonOption[] {
+    const grouped = new Map<string, AdminSeasonOption>();
+
+    for (const row of rows) {
+        const season = getPickupSeason(row.year, row.season);
+        if (!season.value) continue;
+
+        const current = grouped.get(season.value);
+        if (current) {
+            current.pickupDayIds.push(row.id);
+            current.isActive ||= row.is_active === true;
+            if ((row.pickup_date ?? "") > current.latestPickupDate) {
+                current.latestPickupDate = row.pickup_date ?? "";
+            }
+            continue;
+        }
+
+        grouped.set(season.value, {
+            ...season,
+            pickupDayIds: [row.id],
+            latestPickupDate: row.pickup_date ?? "",
+            isActive: row.is_active === true,
+        });
+    }
+
+    return [...grouped.values()].sort((left, right) => (
+        left.latestPickupDate.localeCompare(right.latestPickupDate)
+        || left.value.localeCompare(right.value, "hu")
+    ));
+}
+
+export function getDefaultAdminSeason(options: AdminSeasonOption[]) {
+    return options.filter((option) => option.isActive).at(-1)
+        ?? options.at(-1)
+        ?? null;
+}
+
 export function getOrderFilterValues(order: AdminOrder, today: string): Record<FilterKey, string[]> {
     const pickup = pickupCalendarDate(order.pickup_days?.pickup_date ?? "");
     return {
@@ -49,16 +98,10 @@ export function getOrderFilterValues(order: AdminOrder, today: string): Record<F
     };
 }
 
-export function getDefaultOrderFilters(orders: AdminOrder[]): OrderFilters {
-    const latestSeason = orders
-        .map((order) => getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value)
-        .filter(Boolean)
-        .sort((left, right) => left.localeCompare(right))
-        .at(-1);
-
+export function getDefaultOrderFilters(defaultSeason?: string): OrderFilters {
     return {
         ...emptyFilters,
-        season: latestSeason ? [latestSeason] : [],
+        season: defaultSeason ? [defaultSeason] : [],
         status: ["current"],
     };
 }
@@ -75,6 +118,9 @@ export function getOrderFilterOptions(orders: AdminOrder[], today: string): Reco
         season: new Map(), pickup: new Map(), county: new Map(), name: new Map(), status: new Map(),
     };
     const statusLabels: Record<string, string> = { current: "Aktuális", past: "Teljesített", cancelled: "Lemondva", unknown: "Ismeretlen" };
+    for (const value of ["current", "past", "cancelled"]) {
+        options.status.set(value, statusLabels[value]);
+    }
     for (const order of orders) {
         const values = getOrderFilterValues(order, today);
         const name = [order.profile?.last_name, order.profile?.first_name].filter(Boolean).join(" ").trim();

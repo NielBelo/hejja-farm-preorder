@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import CountdownCard from "@/components/CountdownCard";
 import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
@@ -216,6 +216,16 @@ export default function PreorderManager({
 
     const [lastSubmittedOrder, setLastSubmittedOrder] =
         useState<SubmittedOrder | null>(null);
+    const confirmationRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!lastSubmittedOrder) return;
+
+        confirmationRef.current?.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+        });
+    }, [lastSubmittedOrder]);
 
     return (
         <>
@@ -229,7 +239,10 @@ export default function PreorderManager({
                   )}
 
             {lastSubmittedOrder && (
-                <div className="mt-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <div
+                    ref={confirmationRef}
+                    className="mt-4 scroll-mt-24 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+                >
                     <div className="mb-2 flex justify-center">
                         <CheckCircleIcon className="h-10 w-10 text-[rgb(49,171,2)]" />
                     </div>

@@ -8,8 +8,10 @@ import {
     getPickupDistributions,
     summarizePackage,
     summarizePickupOrders,
+    summarizePickupStock,
     summarizeProduct,
     summarizeSize,
+    type PickupDateOption,
     type PickupDistributionEntry,
     type PickupSheetOrder,
 } from "@/lib/pickupSheet";
@@ -27,7 +29,7 @@ function PickupDateDropdown({
     disabled,
     onChange,
 }: {
-    dates: { value: string; label: string }[];
+    dates: PickupDateOption[];
     value: string;
     disabled: boolean;
     onChange: (value: string) => void;
@@ -172,7 +174,7 @@ export default function PickupSheet({
     pickupDates,
 }: {
     orders: PickupSheetOrder[];
-    pickupDates: { value: string; label: string }[];
+    pickupDates: PickupDateOption[];
 }) {
     const today = useCurrentBudapestDate();
     const [selectedDate, setSelectedDate] = useState("");
@@ -181,11 +183,16 @@ export default function PickupSheet({
         today
     );
     const activeDateLabel = pickupDates.find((date) => date.value === activeDate)?.label ?? "";
+    const activePickupDate = pickupDates.find((date) => date.value === activeDate);
     const visibleOrders = useMemo(
         () => orders.filter((order) => order.pickupDate === activeDate),
         [orders, activeDate]
     );
     const summary = useMemo(() => summarizePickupOrders(visibleOrders), [visibleOrders]);
+    const stock = summarizePickupStock(
+        activePickupDate?.plannedStock ?? 0,
+        activePickupDate?.availableStock ?? 0
+    );
     const distributions = useMemo(() => getPickupDistributions(visibleOrders), [visibleOrders]);
     const printSummaryLabel = `${summary.chickenCount} csirke · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
 
@@ -228,21 +235,65 @@ export default function PickupSheet({
                     </button>
                 </div>
 
-                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-5">
                     <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
                         <h2 className="text-center text-xs font-semibold text-gray-700">Napi összesítés</h2>
                         <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
                             <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.chickenCount}</strong>
-                                <span className="text-[11px]">csirke</span>
+                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.customerCount}</strong>
+                                <span className="text-[11px]">vevő</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.orderCount}</strong>
+                                <span className="text-[11px]">rendelés</span>
                             </div>
                             <div className="px-1">
                                 <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
                                 <span className="text-[11px]">tétel</span>
                             </div>
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.customerCount}</strong>
-                                <span className="text-[11px]">vevő</span>
+                        </div>
+                    </section>
+
+                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
+                        <h2 className="text-center text-xs font-semibold text-gray-700">Napi készlet</h2>
+                        <div className="mt-3">
+                            <div
+                                className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200"
+                                aria-label={`Napi készlet: ${stock.usedCount} csirke lefoglalva, ${stock.availableCount} csirke elérhető, napi limit ${stock.capacity} csirke`}
+                                title={`${stock.usedCount} lefoglalt · ${stock.availableCount} elérhető · ${stock.capacity} napi limit`}
+                            >
+                                {stock.usedCount > 0 && (
+                                    <div
+                                        className="h-full border-r border-white bg-slate-500"
+                                        style={{ width: `${stock.usedPercentage}%` }}
+                                    />
+                                )}
+                                {stock.availableCount > 0 && (
+                                    <div
+                                        className="h-full bg-slate-200"
+                                        style={{ width: `${stock.availablePercentage}%` }}
+                                    />
+                                )}
+                            </div>
+                            <div className="mt-3 space-y-1.5 text-[11px] leading-tight text-gray-600">
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
+                                        Lefoglalt
+                                    </span>
+                                    <span className="tabular-nums text-gray-500">{stock.usedCount} db</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2">
+                                    <span className="flex items-center gap-1.5 font-medium">
+                                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-200 ring-1 ring-gray-300" />
+                                        Elérhető
+                                    </span>
+                                    <span className="tabular-nums text-gray-500">{stock.availableCount} db</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-1.5">
+                                    <span className="font-medium">Napi limit</span>
+                                    <span className="tabular-nums text-gray-500">{stock.capacity} db</span>
+                                </div>
                             </div>
                         </div>
                     </section>

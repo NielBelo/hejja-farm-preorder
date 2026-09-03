@@ -19,6 +19,7 @@ const {
     sortPickupOrders,
     summarizePackage,
     summarizePickupOrders,
+    summarizePickupStock,
     summarizeProduct,
     summarizeSize,
 } = sheetModule.exports;
@@ -26,6 +27,12 @@ const {
 const order = (id, name, pickupDate, publicOrderNumber) => ({
     id, customerName: name, pickupDate, public_order_number: publicOrderNumber,
     user_id: `user-${id}`, phone: '+36301234567', items: [],
+});
+
+const pickupDay = (pickupDate, plannedStock = 150, availableStock = 120) => ({
+    pickup_date: pickupDate,
+    planned_stock: plannedStock,
+    available_stock: availableStock,
 });
 
 test('normalizes database timestamps without changing the calendar day', () => {
@@ -39,12 +46,25 @@ test('formats pickup date with its Hungarian weekday', () => {
 });
 
 test('deduplicates and sorts pickup dates', () => {
-    const orders = [
-        order(1, 'Kiss Anna', '2026-10-04', 'B-2'),
-        order(2, 'Nagy Béla', '2026-09-27', 'A-1'),
-        order(3, 'Tóth Éva', '2026-09-27', 'A-2'),
+    const pickupDays = [
+        pickupDay('2026-10-04', 200, 180),
+        pickupDay('2026-09-27T00:00:00', 150, 120),
+        pickupDay('2026-09-27T00:00:00', 150, 120),
     ];
-    assert.deepEqual(getPickupDateOptions(orders).map((date) => date.value), ['2026-09-27', '2026-10-04']);
+    assert.deepEqual(getPickupDateOptions(pickupDays), [
+        {
+            value: '2026-09-27',
+            label: '2026. szeptember 27., vasárnap',
+            plannedStock: 150,
+            availableStock: 120,
+        },
+        {
+            value: '2026-10-04',
+            label: '2026. október 4., vasárnap',
+            plannedStock: 200,
+            availableStock: 180,
+        },
+    ]);
 });
 
 test('selects the nearest upcoming date, or the latest past date', () => {
@@ -79,7 +99,7 @@ test('shortens package and size descriptions for the compact table', () => {
     assert.equal(summarizeSize(null), 'Átlagos');
 });
 
-test('summarizes distinct customers, items, and ordered chickens', () => {
+test('summarizes distinct customers, orders, items, and ordered chickens', () => {
     const orders = [
         {
             ...order(1, 'Kiss Anna', '2026-09-27', 'R-1'),
@@ -98,8 +118,27 @@ test('summarizes distinct customers, items, and ordered chickens', () => {
 
     assert.deepEqual(summarizePickupOrders(orders), {
         customerCount: 2,
+        orderCount: 3,
         itemCount: 4,
         chickenCount: 10,
+    });
+});
+
+test('summarizes used and available pickup stock as a 100 percent split', () => {
+    assert.deepEqual(summarizePickupStock(150, 40), {
+        capacity: 150,
+        usedCount: 110,
+        availableCount: 40,
+        usedPercentage: 110 / 150 * 100,
+        availablePercentage: 40 / 150 * 100,
+    });
+
+    assert.deepEqual(summarizePickupStock(100, 130), {
+        capacity: 100,
+        usedCount: 0,
+        availableCount: 100,
+        usedPercentage: 0,
+        availablePercentage: 100,
     });
 });
 

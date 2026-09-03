@@ -5,9 +5,11 @@ import { getBackgroundMotion } from "@/lib/backgroundMotion";
 
 export default function BackgroundScene() {
     const backgroundRef = useRef<HTMLDivElement>(null);
+    const headerMaskBackgroundRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const background = backgroundRef.current;
+        const headerMaskBackground = headerMaskBackgroundRef.current;
         if (!background) return;
 
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -21,7 +23,9 @@ export default function BackgroundScene() {
                 reducedMotion.matches
             );
 
-            background.style.setProperty("--background-offset", `${-offset}px`);
+            const backgroundOffset = `${-offset}px`;
+            background.style.setProperty("--background-offset", backgroundOffset);
+            headerMaskBackground?.style.setProperty("--background-offset", backgroundOffset);
         };
 
         const requestUpdate = () => {
@@ -41,5 +45,15 @@ export default function BackgroundScene() {
         };
     }, []);
 
-    return <div ref={backgroundRef} aria-hidden="true" className="site-background" />;
+    return (
+        <>
+            <div ref={backgroundRef} aria-hidden="true" className="site-background" />
+            <div aria-hidden="true" className="site-header-scroll-mask">
+                <div
+                    ref={headerMaskBackgroundRef}
+                    className="site-header-scroll-mask-background"
+                />
+            </div>
+        </>
+    );
 }

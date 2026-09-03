@@ -6,7 +6,6 @@ import {
     useMemo,
     useState,
 } from "react";
-import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon, TrashIcon } from "@heroicons/react/24/outline";
 
 import AdminOrderItems from "@/components/admin/AdminOrderItems";
@@ -119,14 +118,15 @@ export default function AdminOrderCard({
     packages,
     isOpen,
     onToggle,
+    onOrderChanged,
 }: {
     order: AdminOrder;
     products: Product[];
     packages: PackageOption[];
     isOpen: boolean;
     onToggle: () => void;
+    onOrderChanged: () => Promise<void>;
 }) {
-    const router = useRouter();
     const supabase = createClient();
 
     const [isEditing, setIsEditing] = useState(false);
@@ -620,7 +620,7 @@ export default function AdminOrderCard({
 
         stopEditing();
 
-        router.refresh();
+        await onOrderChanged();
 
         requestAnimationFrame(() => {
             document
@@ -793,6 +793,7 @@ export default function AdminOrderCard({
                                     orderId={order.id}
                                     pickupDate={order.pickup_days.pickup_date}
                                     disabled={anotherOrderIsEditing}
+                                    onOrderChanged={onOrderChanged}
                                 />
                             ) : <button
                                 type="button"
@@ -873,6 +874,7 @@ export default function AdminOrderCard({
                                 publicOrderNumber={order.public_order_number}
                                 pickupDate={order.pickup_days.pickup_date}
                                 disabled={cannotModifyOrder}
+                                onOrderChanged={onOrderChanged}
                                 onOpen={() => {
                                     handleCloseHistory();
                                     setIsUserDetailsOpen(false);

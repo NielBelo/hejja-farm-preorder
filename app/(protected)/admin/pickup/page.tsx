@@ -6,6 +6,7 @@ import {
     sortPickupOrders,
     type PickupSheetItem,
     type PickupSheetOrder,
+    type PickupSheetPickupDay,
 } from "@/lib/pickupSheet";
 
 type RawOrder = {
@@ -18,29 +19,37 @@ type RawOrder = {
 
 export default async function AdminPickupPage() {
     const supabase = await createClient();
-    const { data, error } = await supabase
-        .from("orders")
-        .select(`
-            id,
-            public_order_number,
-            user_id,
-            pickup_days!orders_pickup_day_id_fkey!inner (pickup_date),
-            current_version:order_versions!orders_current_version_id_fkey (
-                order_items (
-                    id,
-                    quantity,
-                    size_preference,
-                    note,
-                    products (name),
-                    packages (name)
+    const [ordersResult, pickupDaysResult] = await Promise.all([
+        supabase
+            .from("orders")
+            .select(`
+                id,
+                public_order_number,
+                user_id,
+                pickup_days!orders_pickup_day_id_fkey!inner (pickup_date),
+                current_version:order_versions!orders_current_version_id_fkey (
+                    order_items (
+                        id,
+                        quantity,
+                        size_preference,
+                        note,
+                        products (name),
+                        packages (name)
+                    )
                 )
-            )
-        `)
-        .eq("status", "submitted");
+            `)
+            .eq("status", "submitted"),
+        supabase
+            .from("pickup_days")
+            .select("pickup_date, planned_stock, available_stock")
+            .eq("is_active", true)
+            .order("pickup_date", { ascending: true }),
+    ]);
 
-    if (error) throw new Error(error.message);
+    if (ordersResult.error) throw new Error(ordersResult.error.message);
+    if (pickupDaysResult.error) throw new Error(pickupDaysResult.error.message);
 
-    const rawOrders = (data ?? []) as unknown as RawOrder[];
+    const rawOrders = (ordersResult.data ?? []) as unknown as RawOrder[];
     const userIds = [...new Set(rawOrders.map((order) => order.user_id))];
     const { data: profiles, error: profileError } = userIds.length > 0
         ? await supabase
@@ -65,7 +74,9 @@ export default async function AdminPickupPage() {
             items: order.current_version?.order_items ?? [],
         };
     }));
-    const pickupDates = getPickupDateOptions(orders);
+    const pickupDates = getPickupDateOptions(
+        (pickupDaysResult.data ?? []) as PickupSheetPickupDay[]
+    );
 
     return (
         <div className="mx-auto w-full max-w-5xl">
