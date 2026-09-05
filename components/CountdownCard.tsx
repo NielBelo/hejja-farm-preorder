@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getOrderWindowEnd } from "@/lib/orderWindow";
 
 type Props = {
   startDate?: string | null;
@@ -19,7 +20,7 @@ function formatDate(dateString: string) {
   });
 }
 
-function getTimeLeft(targetDate: string) {
+function getTimeLeft(targetDate: string | Date) {
   const now = new Date();
   const target = new Date(targetDate);
 
@@ -54,7 +55,11 @@ export default function CountdownCard({ startDate, endDate }: Props) {
   }
 
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  const end = getOrderWindowEnd(endDate);
+
+  if (!end) {
+    return null;
+  }
 
   const isBeforeStart = now < start;
   const isActive = now >= start && now <= end;
@@ -62,7 +67,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
 
   const timeLeft = isBeforeStart
     ? getTimeLeft(startDate)
-    : getTimeLeft(endDate);
+    : getTimeLeft(end);
 
  return (
   <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5 text-gray-700">
@@ -77,7 +82,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
       <div className="text-center border-x border-gray-300">
         <span className="font-semibold">Előrendelés vége:</span>
         <br />
-        {formatDate(endDate)}
+        {formatDate(end.toISOString())}
       </div>
 
       <div className="text-center font-semibold text-gray-700">

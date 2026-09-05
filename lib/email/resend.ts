@@ -1,12 +1,19 @@
 import "server-only";
 
 const RESEND_EMAILS_URL = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Héjja-Farm <onboarding@resend.dev>";
+const DEFAULT_FROM = "Héjja-Farm <rendeles@hejja-farm.hu>";
 
 type SendEmailInput = {
     to: string;
     subject: string;
     text: string;
+    html?: string;
+    attachments?: Array<{
+        path?: string;
+        content?: string;
+        filename: string;
+        content_id: string;
+    }>;
 };
 
 type ResendResponse = {
@@ -28,7 +35,13 @@ export class EmailDeliveryError extends Error {
     }
 }
 
-export async function sendEmail({ to, subject, text }: SendEmailInput) {
+export async function sendEmail({
+    to,
+    subject,
+    text,
+    html,
+    attachments,
+}: SendEmailInput) {
     const apiKey = process.env.RESEND_API_KEY;
 
     if (!apiKey) {
@@ -47,6 +60,8 @@ export async function sendEmail({ to, subject, text }: SendEmailInput) {
                 to: [to],
                 subject,
                 text,
+                html,
+                attachments,
             }),
         });
 

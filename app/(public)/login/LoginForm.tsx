@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { login, type LoginState } from "./actions";
 import FormInput from "@/components/FormInput";
 
@@ -13,7 +13,7 @@ const initialState: LoginState = {
 };
 
 
-export default function LoginForm() {
+export default function LoginForm({ returnTo }: { returnTo?: string }) {
   const [state, formAction, isPending] = useActionState(
     login,
     initialState
@@ -21,6 +21,7 @@ export default function LoginForm() {
 
   return (
     <form action={formAction} noValidate className="space-y-4">
+      {returnTo && <input type="hidden" name="returnTo" value={returnTo} />}
       <FormInput
         label="E-mail"
         name="email"

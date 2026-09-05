@@ -16,6 +16,7 @@ import PickupDateStatus from "@/components/admin/PickupDateStatus";
 import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
+import { updateAdminOrder } from "@/app/(protected)/admin/orders/actions";
 
 type Product = {
     id: number;
@@ -150,6 +151,8 @@ export default function AdminOrderCard({
     const [saveError, setSaveError] =
         useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] =
+        useState<string | null>(null);
+    const [emailWarning, setEmailWarning] =
         useState<string | null>(null);
 
     // ------------------------------------------------------------
@@ -531,6 +534,7 @@ export default function AdminOrderCard({
         setIsUserDetailsOpen(false);
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
         setEditedItems(initialItems);
 
         startEditing(order.id);
@@ -546,6 +550,7 @@ export default function AdminOrderCard({
         }
 
         setSaveError(null);
+        setEmailWarning(null);
         setEditedItems([]);
         setIsEditing(false);
 
@@ -563,6 +568,7 @@ export default function AdminOrderCard({
         setIsSaving(true);
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
 
         const oldTotal = items.reduce(
             (sum, item) => sum + item.quantity,
@@ -577,9 +583,9 @@ export default function AdminOrderCard({
         const rpcItems = itemsToSave.map(
             (item) => ({
                 product_id:
-                    item.selectedProductId,
+                    item.selectedProductId!,
                 package_id:
-                    item.selectedPackageId,
+                    item.selectedPackageId!,
                 quantity: item.quantity,
                 size_preference:
                     item.selectedNote,
@@ -587,32 +593,30 @@ export default function AdminOrderCard({
             })
         );
 
-        const { error } = await supabase.rpc(
-            "update_order",
-            {
-                p_order_id: order.id,
-                p_items: rpcItems,
-            }
-        );
+        const result = await updateAdminOrder({
+            orderId: order.id,
+            items: rpcItems,
+        });
 
-        if (error) {
+        if (!result.success) {
             setSaveError(
-                error.message ||
+                result.error ||
                 "A rendelés módosítása sikertelen."
             );
             setIsSaving(false);
             return;
         }
 
-        if (oldTotal !== newTotal) {
-            setSaveSuccess(
-                `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
-            );
-        } else {
-            setSaveSuccess(
-                "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak."
-            );
-        }
+        setEmailWarning(result.emailWarning ?? null);
+
+        const changeMessage = oldTotal !== newTotal
+            ? `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
+            : "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
+        const emailMessage = result.emailRecipient
+            ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
+            : "";
+
+        setSaveSuccess(`${changeMessage}${emailMessage}`);
 
         setIsSaving(false);
         setIsEditing(false);
@@ -773,6 +777,15 @@ export default function AdminOrderCard({
                                     {
                                         saveSuccess
                                     }
+                                </p>
+                            </div>
+                        )}
+
+                    {emailWarning &&
+                        !isEditing && (
+                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                                <p className="text-center text-sm text-amber-800">
+                                    {emailWarning}
                                 </p>
                             </div>
                         )}

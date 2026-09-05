@@ -1,6 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
+import { getOrderWindowEnd } from "@/lib/orderWindow";
 
 function subscribeToClock(onChange: () => void) {
     const interval = setInterval(onChange, 1000);
@@ -11,7 +12,11 @@ export function isWithinOrderWindow(startDate?: string | null, endDate?: string 
     if (!startDate || !endDate) return false;
 
     const now = Date.now();
-    return now >= Date.parse(startDate) && now <= Date.parse(endDate);
+    const end = getOrderWindowEnd(endDate);
+
+    return end !== null
+        && now >= Date.parse(startDate)
+        && now <= end.getTime();
 }
 
 // Keep server rendering and hydration consistent; check the window on the client.

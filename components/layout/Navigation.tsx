@@ -25,6 +25,10 @@ const adminMenuItems = [
     href: "/admin/orders",
   },
   {
+    label: "E-mail előnézet",
+    href: "/admin/email-preview",
+  },
+  {
     label: "Rendelésátvétel",
     href: "/admin/pickup",
   },

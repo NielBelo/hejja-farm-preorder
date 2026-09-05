@@ -39,7 +39,13 @@ export async function proxy(request: NextRequest) {
 
   // Nincs bejelentkezve → csak publikus oldalak érhetők el
   if (!user && !isPublicRoute) {
-    return NextResponse.redirect(new URL("/login", request.url));
+    const loginUrl = new URL("/login", request.url);
+    loginUrl.searchParams.set(
+      "returnTo",
+      `${request.nextUrl.pathname}${request.nextUrl.search}`
+    );
+
+    return NextResponse.redirect(loginUrl);
   }
 
   // Már be van jelentkezve → ne tudjon visszamenni a loginra

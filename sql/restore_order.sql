@@ -57,7 +57,12 @@ BEGIN
     IF v_pickup.pickup_date < (clock_timestamp() AT TIME ZONE 'Europe/Budapest')::date THEN
         RAISE EXCEPTION 'Elmúlt átvételi dátumú rendelés nem állítható vissza.';
     END IF;
-    IF clock_timestamp() < v_time_window_start OR clock_timestamp() > v_time_window_end THEN
+    IF clock_timestamp() < v_time_window_start OR clock_timestamp() > (
+        (
+            (v_time_window_end AT TIME ZONE 'Europe/Budapest')::date
+            + time '23:59:59.999999'
+        ) AT TIME ZONE 'Europe/Budapest'
+    ) THEN
         RAISE EXCEPTION 'A rendelési időszakon kívül a rendelés nem állítható vissza.';
     END IF;
     IF v_pickup.available_stock IS NULL OR v_pickup.available_stock < v_quantity THEN

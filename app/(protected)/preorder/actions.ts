@@ -47,13 +47,15 @@ export async function submitOrder(data: SubmitOrderData) {
 
   const publicOrderNumber = String(orderNumber);
   let emailWarning: string | undefined;
+  let emailRecipient: string | undefined;
 
   try {
-    await sendOrderNotification({
+    const notification = await sendOrderNotification({
       supabase,
       lookup: { orderNumber: publicOrderNumber },
       kind: "created",
     });
+    emailRecipient = notification.recipient;
   } catch (notificationError) {
     console.error(
       `Order confirmation email failed for ${publicOrderNumber}:`,
@@ -67,5 +69,6 @@ export async function submitOrder(data: SubmitOrderData) {
     success: true,
     orderNumber: publicOrderNumber,
     emailWarning,
+    emailRecipient,
   };
 }

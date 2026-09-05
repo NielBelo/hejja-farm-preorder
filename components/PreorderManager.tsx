@@ -10,6 +10,7 @@ import {
     submitOrder,
     type SubmitOrderItem,
 } from "@/app/(protected)/preorder/actions";
+import { formatOrderWindowEnd } from "@/lib/orderWindow";
 
 type Product = {
     id: number;
@@ -52,6 +53,13 @@ type SubmittedOrder = {
     pickupDay: PickupDay;
     items: OrderItem[];
     submittedAt: Date;
+    emailRecipient?: string;
+};
+
+type Season = {
+    id: number;
+    time_window_start: string;
+    time_window_end: string;
 };
 
 
@@ -61,7 +69,7 @@ export default function PreorderManager({
     packages,
     pickupDays,
 }: {
-    season: any;
+    season: Season;
     products: Product[];
     packages: PackageOption[];
     pickupDays: PickupDay[];
@@ -118,7 +126,6 @@ export default function PreorderManager({
 
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
-    const [submitSuccess, setSubmitSuccess] = useState<string | null>(null);
     const [emailWarning, setEmailWarning] = useState<string | null>(null);
 
     const validOrderItems = orderItems.filter(
@@ -170,7 +177,6 @@ export default function PreorderManager({
         }
 
         setSubmitError(null);
-        setSubmitSuccess(null);
         setEmailWarning(null);
 
         const rpcItems = validOrderItems.map<SubmitOrderItem>((item) => ({
@@ -204,14 +210,12 @@ export default function PreorderManager({
             pickupDay: selectedPickupDay,
             items: validOrderItems.map((item) => ({ ...item })),
             submittedAt: new Date(),
+            emailRecipient: result.emailRecipient,
         });
         setResetKey((prev) => prev + 1);
         setOrderItems([]);
         setHasOrderChanges(false);
         setSelectedPickupDay(null);
-        setSubmitSuccess(
-            `A rendelés sikeresen véglegesítve! Rendelésszám: ${result.orderNumber}`
-        );
         setEmailWarning(result.emailWarning ?? null);
     };
 
@@ -344,10 +348,22 @@ export default function PreorderManager({
                         <p>
                             Rendelése az előrendelési időszak végéig,{" "}
                             <span className="font-semibold text-gray-700">
-                                {new Date(season.time_window_end).toLocaleString("hu-HU")}
+                                {formatOrderWindowEnd(season.time_window_end)}
                             </span>
                             -ig módosítható vagy törölhető.
                         </p>
+
+                        {lastSubmittedOrder.emailRecipient && (
+                            <p className="mt-2">
+                                A(z){" "}
+                                <span className="font-semibold text-gray-700">
+                                    {lastSubmittedOrder.emailRecipient}
+                                </span>{" "}
+                                e-mail-címre visszaigazolást küldtünk, és a
+                                rendelés átvétele előtt egy nappal újabb
+                                automatikus emlékeztetőt fog kapni.
+                            </p>
+                        )}
                     </div>
                 </div>
             )}

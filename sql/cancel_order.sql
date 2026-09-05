@@ -91,7 +91,12 @@ BEGIN
         RAISE EXCEPTION 'A rendelési időszak még nem kezdődött el.';
     END IF;
 
-    IF now() > v_time_window_end THEN
+    IF now() > (
+        (
+            (v_time_window_end AT TIME ZONE 'Europe/Budapest')::date
+            + time '23:59:59.999999'
+        ) AT TIME ZONE 'Europe/Budapest'
+    ) THEN
         RAISE EXCEPTION 'A rendelési időszak már lezárult, a rendelés nem mondható le.';
     END IF;
 

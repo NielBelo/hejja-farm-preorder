@@ -53,8 +53,19 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focusOrder?: string | string[] }>;
+}) {
   const supabase = await createClient();
+  const rawFocusOrder = (await searchParams).focusOrder;
+  const focusOrderValue = Array.isArray(rawFocusOrder)
+    ? rawFocusOrder[0]
+    : rawFocusOrder;
+  const focusedOrderId = focusOrderValue && /^\d+$/.test(focusOrderValue)
+    ? Number(focusOrderValue)
+    : null;
 
   const {
     data: { user },
@@ -265,6 +276,7 @@ export default async function HistoryPage() {
                 <EditableOrderCard
                   key={order.id}
                   orderId={order.id}
+                  focusOnMount={order.id === focusedOrderId}
                 >
                   {/* Fejléc */}
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-2">

@@ -1,9 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
+import { createClient } from "@/lib/supabase/server";
 
-export type UpdateOrderItem = {
+export type AdminUpdateOrderItem = {
     product_id: number;
     package_id: number;
     quantity: number;
@@ -11,14 +11,13 @@ export type UpdateOrderItem = {
     note: string;
 };
 
-type UpdateOrderData = {
+type AdminUpdateOrderData = {
     orderId: number;
-    items: UpdateOrderItem[];
+    items: AdminUpdateOrderItem[];
 };
 
-export async function updateOrder(data: UpdateOrderData) {
+export async function updateAdminOrder(data: AdminUpdateOrderData) {
     const supabase = await createClient();
-
     const {
         data: { user },
         error: userError,
@@ -28,6 +27,20 @@ export async function updateOrder(data: UpdateOrderData) {
         return {
             success: false,
             error: "Nincs bejelentkezett felhasználó.",
+        };
+    }
+
+    const { data: adminRole, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+    if (roleError || !adminRole) {
+        return {
+            success: false,
+            error: "A művelethez adminisztrátori jogosultság szükséges.",
         };
     }
 
@@ -51,11 +64,12 @@ export async function updateOrder(data: UpdateOrderData) {
             supabase,
             lookup: { orderId: data.orderId },
             kind: "updated",
+            asAdmin: true,
         });
         emailRecipient = notification.recipient;
     } catch (notificationError) {
         console.error(
-            `Order update email failed for order ${data.orderId}:`,
+            `Admin order update email failed for order ${data.orderId}:`,
             notificationError,
         );
         emailWarning =

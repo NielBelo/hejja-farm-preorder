@@ -199,24 +199,6 @@ export default function OrderActions({
         stopEditing();
     };
     const router = useRouter();
-    const getChangeSummary = () => {
-        const oldTotal = items.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-        );
-
-        const newTotal = itemsToSave.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-        );
-
-        if (oldTotal !== newTotal) {
-            return `Sikeres módosítás! A rendelés összmennyisége ${oldTotal}-ről ${newTotal} db-ra változott.`;
-        }
-
-        return "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
-    };
-
     const handleSave = async () => {
         if (!canSave || isSaving) {
             return;
@@ -261,16 +243,14 @@ export default function OrderActions({
             return;
         }
 
-        // Sikeres módosítás visszajelzése
-        if (oldTotal !== newTotal) {
-            setSaveSuccess(
-                `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
-            );
-        } else {
-            setSaveSuccess(
-                "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak."
-            );
-        }
+        const changeMessage = oldTotal !== newTotal
+            ? `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
+            : "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
+        const emailMessage = result.emailRecipient
+            ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
+            : "";
+
+        setSaveSuccess(`${changeMessage}${emailMessage}`);
 
         setEmailWarning(result.emailWarning ?? null);
 
