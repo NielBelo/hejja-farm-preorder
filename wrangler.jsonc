@@ -5,6 +5,16 @@
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "hejja-farm.hu",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.hejja-farm.hu",
+      "custom_domain": true
+    }
+  ],
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
