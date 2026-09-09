@@ -6,6 +6,10 @@ import {
     ChevronDownIcon,
     TrashIcon,
 } from "@heroicons/react/24/outline";
+import {
+    canChoosePackaging,
+    normalizePackageId,
+} from "@/lib/orderPackaging";
 
 
 type Product = {
@@ -136,12 +140,26 @@ export default function ProductSelector({
                         )
                         : item.quantity;
 
-                return {
+                const nextItem = {
                     ...item,
                     ...changes,
                     quantity: newQuantity,
                     touched: true,
                     showValidation: false,
+                };
+
+                const selectedProduct = products.find(
+                    (product) => product.id === nextItem.selectedProductId,
+                );
+
+                return {
+                    ...nextItem,
+                    selectedPackageId: normalizePackageId({
+                        product: selectedProduct,
+                        quantity: nextItem.quantity,
+                        selectedPackageId: nextItem.selectedPackageId,
+                        packages,
+                    }),
                 };
             });
 
@@ -540,7 +558,10 @@ export default function ProductSelector({
                                     </div>
                                 </div>
 
-                                <div className="mt-6">
+                                {canChoosePackaging(
+                                    products.find((product) => product.id === item.selectedProductId),
+                                    item.quantity,
+                                ) && <div className="mt-6">
                                     <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
                                         Válasszon csomagolási módot!
                                     </h3>
@@ -575,7 +596,7 @@ export default function ProductSelector({
                                             );
                                         })}
                                     </div>
-                                </div>
+                                </div>}
 
                                 <div className="mt-6">
                                     <h3 className="mb-4 text-center text-base font-semibold text-gray-700">

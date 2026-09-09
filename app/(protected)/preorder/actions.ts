@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
+import { normalizePackageId } from "@/lib/orderPackaging";
 
 export type SubmitOrderItem = {
   product_id: number;
@@ -32,10 +33,43 @@ export async function submitOrder(data: SubmitOrderData) {
     };
   }
 
+  const productIds = [...new Set(data.items.map((item) => item.product_id))];
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select("id, name")
+    .in("id", productIds);
+  const { data: packages, error: packagesError } = await supabase
+    .from("packages")
+    .select("id, name");
+
+  if (productsError || packagesError) {
+    return {
+      success: false,
+      error: "A csomagolási beállítások ellenőrzése sikertelen.",
+    };
+  }
+
+  const normalizedItems = data.items.map((item) => ({
+    ...item,
+    package_id: normalizePackageId({
+      product: products?.find((product) => product.id === item.product_id),
+      quantity: item.quantity,
+      selectedPackageId: item.package_id,
+      packages: packages ?? [],
+    }),
+  }));
+
+  if (normalizedItems.some((item) => item.package_id === null)) {
+    return {
+      success: false,
+      error: "Az egyedi csomagolás nem található a beállítások között.",
+    };
+  }
+
   const { data: orderNumber, error } = await supabase.rpc("finalize_order", {
     p_season_parameter_id: data.seasonParameterId,
     p_pickup_day_id: data.pickupDayId,
-    p_items: data.items,
+    p_items: normalizedItems,
   });
 
   if (error) {
