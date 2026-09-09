@@ -116,13 +116,14 @@ input[type="number"] {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 15mm 12mm 14mm;
+    margin: 24mm 12mm;
 
     @top-left {
       content: "Rendelésátvételi lista · " var(--pickup-print-date, "");
       color: #374151;
       font-size: 10pt;
       font-weight: 600;
+      padding-top: 7mm;
     }
 
     @bottom-center {
@@ -130,6 +131,7 @@ input[type="number"] {
       color: #4b5563;
       font-size: 9pt;
       font-variant-numeric: tabular-nums;
+      padding-bottom: 7mm;
     }
 
     @top-right {
@@ -138,6 +140,7 @@ input[type="number"] {
       font-size: 10pt;
       font-weight: 600;
       text-align: right;
+      padding-top: 7mm;
     }
   }
 

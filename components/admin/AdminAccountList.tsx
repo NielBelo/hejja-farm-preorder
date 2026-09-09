@@ -3,7 +3,7 @@
 import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
 import type { AccountProfileInput } from "@/lib/adminAccountEdit";
-import { ChevronDownIcon, FunnelIcon, UserCircleIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
 import { accountName, accountStatusLabels, filterAccounts, type AdminAccount } from "@/lib/adminAccountData";
 
@@ -16,6 +16,21 @@ function roleLabel(role: string) {
 }
 function Field({ label, value }: { label: string; value: string | null }) {
     return <div className="min-w-0"><dt className="text-xs text-gray-500">{label}</dt><dd className="break-words text-sm font-medium text-gray-800">{value || "Nincs megadva"}</dd></div>;
+}
+function ProfileField({ label, value, icon: Icon }: {
+    label: string;
+    value: string | null;
+    icon: typeof UserIcon;
+}) {
+    return <div className="flex min-w-0 items-start gap-2 py-2">
+        <Icon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-gray-400" />
+        <div className="min-w-0">
+            <dt className="text-xs font-medium text-gray-500">{label}</dt>
+            <dd className="text-sm font-medium text-gray-700 [overflow-wrap:anywhere]">
+                {value?.trim() || <span className="font-normal text-gray-400">Nincs megadva</span>}
+            </dd>
+        </div>
+    </div>;
 }
 
 export default function AdminAccountList({ accounts: initialAccounts }: { accounts: AdminAccount[] }) {
@@ -97,10 +112,12 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                                     setSavedProfiles((current) => ({ ...current, [account.id]: profile }));
                                     setEditingId(null);
                                     setSavedId(account.id);
-                                }} /> : <dl className="grid gap-x-5 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-                                <Field label="Név" value={[account.last_name, account.first_name].filter(Boolean).join(" ")} />
-                                <Field label="E-mail cím" value={account.email} /><Field label="Telefonszám" value={account.phone} />
-                                <Field label="Vármegye" value={account.county} /><Field label="Település" value={account.city} />
+                                }} /> : <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
+                                <ProfileField label="Név" value={[account.last_name, account.first_name].filter(Boolean).join(" ")} icon={UserIcon} />
+                                <ProfileField label="E-mail cím" value={account.email} icon={EnvelopeIcon} />
+                                <ProfileField label="Telefonszám" value={account.phone?.replace(/^(\+36)(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3 $4") ?? null} icon={PhoneIcon} />
+                                <ProfileField label="Vármegye" value={account.county} icon={MapIcon} />
+                                <ProfileField label="Település" value={account.city} icon={MapPinIcon} />
                                 <Field label="Szerepkör" value={account.user_id ? roleLabel(account.role) : "Még nincs felhasználói fiók"} />
                             </dl>}
                         </section>

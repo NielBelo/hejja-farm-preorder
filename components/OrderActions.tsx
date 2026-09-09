@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
+import { normalizeSizePreference } from "@/lib/sizePreferences";
 import {
     updateOrder,
     type UpdateOrderItem,
@@ -90,7 +91,7 @@ export default function OrderActions({
                 quantity: item.quantity,
                 note: item.note ?? "",
                 selectedNote:
-                    item.size_preference ?? "Átlagos méret megfelelő",
+                    item.size_preference ?? "Átlagos méret",
                 collapsed: true,
                 touched: true,
                 showValidation: false,
@@ -104,7 +105,7 @@ export default function OrderActions({
                 selectedPackageId: null,
                 quantity: 1,
                 note: "",
-                selectedNote: "Átlagos méret megfelelő",
+                selectedNote: "Átlagos méret",
                 collapsed: true,
                 touched: false,
                 showValidation: false,
@@ -143,7 +144,7 @@ export default function OrderActions({
         item.selectedPackageId === null &&
         item.quantity === 1 &&
         item.note === "" &&
-        item.selectedNote === "Átlagos méret megfelelő" &&
+        item.selectedNote === "Átlagos méret" &&
         !item.touched;
 
     const itemsToSave = editedItems.filter(
@@ -164,7 +165,7 @@ export default function OrderActions({
                 originalItem.package_id !== editedItem.selectedPackageId ||
                 originalItem.quantity !== editedItem.quantity ||
                 (originalItem.note ?? "") !== editedItem.note ||
-                (originalItem.size_preference ?? "Átlagos méret megfelelő") !==
+                normalizeSizePreference(originalItem.size_preference) !==
                 editedItem.selectedNote
             );
         });

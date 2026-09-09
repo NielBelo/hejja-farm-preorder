@@ -18,7 +18,7 @@ export function validateAccountProfile(input: unknown): { profile: AccountProfil
     if (!profile.first_name || !profile.last_name || !profile.county) {
         return { error: "A vezetéknév, keresztnév és vármegye megadása kötelező." };
     }
-    let digits = profile.phone.replace(/[\s()+-]/g, "");
+    let digits = profile.phone.replace(/\D/g, "");
     if (digits.startsWith("06")) digits = `36${digits.slice(2)}`;
     if (!/^36\d{9}$/.test(digits)) return { error: "Adjon meg érvényes magyar telefonszámot (pl. +36 30 123 4567)." };
     profile.phone = `+${digits}`;

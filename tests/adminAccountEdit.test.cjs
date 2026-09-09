@@ -25,9 +25,13 @@ test('normalizes names and phone and permits an empty city', () => {
     assert.equal(profile.city, '');
 });
 test('rejects missing required fields, malformed inputs and invalid phones', () => {
-    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: 'abc36301234567' }, { ...valid, city: 'x'.repeat(101) }]) {
+    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }]) {
         assert.ok(validation.validateAccountProfile(value).error);
     }
+});
+test('accepts the same separator-tolerant phone format as the customer profile editor', () => {
+    const { profile } = validation.validateAccountProfile({ ...valid, phone: '+36 (30) 123-4567' });
+    assert.equal(profile.phone, '+36301234567');
 });
 test('strips attempts to change email, role or consent', () => {
     const result = validation.validateAccountProfile({ ...valid, email: 'other@example.com', role: 'admin', consents: [] });

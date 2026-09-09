@@ -17,6 +17,7 @@ import ProductSelector from "@/components/ProductSelector";
 import { createClient } from "@/lib/supabase/client";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { updateAdminOrder } from "@/app/(protected)/admin/orders/actions";
+import { normalizeSizePreference } from "@/lib/sizePreferences";
 
 type Product = {
     id: number;
@@ -208,7 +209,7 @@ export default function AdminOrderCard({
                 note: item.note ?? "",
                 selectedNote:
                     item.size_preference ??
-                    "Átlagos méret megfelelő",
+                    "Átlagos méret",
                 collapsed: true,
                 touched: true,
                 showValidation: false,
@@ -220,7 +221,7 @@ export default function AdminOrderCard({
                 quantity: 1,
                 note: "",
                 selectedNote:
-                    "Átlagos méret megfelelő",
+                    "Átlagos méret",
                 collapsed: true,
                 touched: false,
                 showValidation: false,
@@ -270,7 +271,7 @@ export default function AdminOrderCard({
         item.quantity === 1 &&
         item.note === "" &&
         item.selectedNote ===
-        "Átlagos méret megfelelő" &&
+        "Átlagos méret" &&
         !item.touched;
 
     // ------------------------------------------------------------
@@ -301,8 +302,7 @@ export default function AdminOrderCard({
                 editedItem.quantity ||
                 (originalItem.note ?? "") !==
                 editedItem.note ||
-                (originalItem.size_preference ??
-                    "Átlagos méret megfelelő") !==
+                normalizeSizePreference(originalItem.size_preference) !==
                 editedItem.selectedNote
             );
         });

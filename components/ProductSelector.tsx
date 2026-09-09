@@ -10,6 +10,7 @@ import {
     canChoosePackaging,
     normalizePackageId,
 } from "@/lib/orderPackaging";
+import { DEFAULT_SIZE_PREFERENCE, normalizeSizePreference, SIZE_PREFERENCES } from "@/lib/sizePreferences";
 
 
 type Product = {
@@ -50,7 +51,7 @@ type ProductSelectorProps = {
     initialItems?: OrderItem[];
 };
 
-const DEFAULT_NOTE = "Átlagos méret megfelelő";
+const DEFAULT_NOTE = DEFAULT_SIZE_PREFERENCE;
 
 const emptyItem = (collapsed = false): OrderItem => ({
     selectedProductId: null,
@@ -79,7 +80,7 @@ export default function ProductSelector({
 }: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>(() =>
         initialItems && initialItems.length > 0
-            ? initialItems
+            ? initialItems.map((item) => ({ ...item, selectedNote: normalizeSizePreference(item.selectedNote) }))
             : [emptyItem(true)]
     );
 
@@ -92,7 +93,7 @@ export default function ProductSelector({
     }, [items, onOrderChangesChange, onItemsChange]);
     useEffect(() => {
         if (initialItems && initialItems.length > 0) {
-            setItems(initialItems);
+            setItems(initialItems.map((item) => ({ ...item, selectedNote: normalizeSizePreference(item.selectedNote) })));
             return;
         }
 
@@ -308,14 +309,7 @@ export default function ProductSelector({
         (p) => p.id === item.selectedPackageId
     );
 
-    const sizeText =
-        item.selectedNote ===
-        "Átlagostól inkább kisebbet kérek, ha lehet"
-            ? "Átlagostól kisebb méret"
-            : item.selectedNote ===
-                "Átlagostól inkább nagyobbat kérek, ha lehet"
-              ? "Átlagostól nagyobb méret"
-              : "Átlagos méret";
+    const sizeText = normalizeSizePreference(item.selectedNote);
 
     if (!item.touched && !itemHasContent(item)) {
         return "Új tétel";
@@ -614,11 +608,7 @@ export default function ProductSelector({
                                         />
 
                                         <div className="grid gap-3">
-                                            {[
-                                                "Átlagos méret megfelelő",
-                                                "Átlagostól inkább kisebbet kérek, ha lehet",
-                                                "Átlagostól inkább nagyobbat kérek, ha lehet",
-                                            ].map((option) => {
+                                            {SIZE_PREFERENCES.map((option) => {
                                                 const selected = item.selectedNote === option;
 
                                                 return (
@@ -642,6 +632,9 @@ export default function ProductSelector({
                                             })}
                                         </div>
                                     </div>
+                                    <p className="mt-3 text-center text-sm leading-relaxed text-gray-500 italic">
+                                        A megadott méret irányadó jellegű; a tényleges méretet jelentősen befolyásolja az adott szezon állományának összetétele.
+                                    </p>
                                 </div>
                                 <div className="mt-8 border-t border-gray-200 pt-6">
 
