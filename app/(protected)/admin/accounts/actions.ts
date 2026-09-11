@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { validateAccountProfile } from "@/lib/adminAccountEdit";
+import { validateAdminAccount } from "@/lib/adminAccountEdit";
 
 export async function updateAdminAccount(userId: string, input: unknown) {
     const supabase = await createClient();
@@ -13,11 +13,11 @@ export async function updateAdminAccount(userId: string, input: unknown) {
     if (typeof userId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) {
         return { success: false as const, error: "Érvénytelen felhasználó." };
     }
-    const validated = validateAccountProfile(input);
+    const validated = validateAdminAccount(input);
     if (validated.error) return { success: false as const, error: validated.error };
     const { data, error } = await supabase.rpc("update_admin_account_profile", {
         target_user_id: userId,
-        profile_data: validated.profile,
+        profile_data: validated.account,
     });
     if (error || !data) {
         return { success: false as const, error: "A személyes adatok mentése sikertelen. Kérjük, próbálja újra." };
@@ -26,5 +26,5 @@ export async function updateAdminAccount(userId: string, input: unknown) {
     revalidatePath("/admin/orders");
     revalidatePath("/admin/pickup");
     revalidatePath("/profile");
-    return { success: true as const, profile: validated.profile! };
+    return { success: true as const, account: validated.account! };
 }

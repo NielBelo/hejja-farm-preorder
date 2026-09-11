@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
-import type { AccountProfileInput } from "@/lib/adminAccountEdit";
+import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
 import { ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
 import { accountName, accountStatusLabels, filterAccounts, type AdminAccount } from "@/lib/adminAccountData";
@@ -13,6 +13,13 @@ function date(value: string | null) {
 }
 function roleLabel(role: string) {
     return role === "admin" ? "Adminisztrátor" : role === "user" ? "Vásárló" : role;
+}
+function specialSizePreferenceLabel(preference: AdminAccount["special_size_preference"]) {
+    return preference === "smaller"
+        ? "Átlagostól kisebb méret, ha lehet"
+        : preference === "larger"
+            ? "Átlagostól nagyobb méret, ha lehet"
+            : "Nincs külön igény";
 }
 function Field({ label, value }: { label: string; value: string | null }) {
     return <div className="min-w-0"><dt className="text-xs text-gray-500">{label}</dt><dd className="break-words text-sm font-medium text-gray-800">{value || "Nincs megadva"}</dd></div>;
@@ -34,8 +41,8 @@ function ProfileField({ label, value, icon: Icon }: {
 }
 
 export default function AdminAccountList({ accounts: initialAccounts }: { accounts: AdminAccount[] }) {
-    const [savedProfiles, setSavedProfiles] = useState<Record<string, AccountProfileInput>>({});
-    const accounts = initialAccounts.map((account) => ({ ...account, ...savedProfiles[account.id] }));
+    const [savedAccounts, setSavedAccounts] = useState<Record<string, AdminAccountUpdateInput>>({});
+    const accounts = initialAccounts.map((account) => ({ ...account, ...savedAccounts[account.id] }));
     const [editingId, setEditingId] = useState<string | null>(null);
     const [savedId, setSavedId] = useState<string | null>(null);
     const editing = editingId !== null;
@@ -96,7 +103,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         <span className="flex flex-wrap items-center gap-2">
                             <span className="break-words font-semibold text-gray-800">{accountName(account)}</span>
                             <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${account.status === "registered" ? "bg-green-50 text-green-700" : account.status === "invited" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{accountStatusLabels[account.status]}</span>
-                            {account.role === "admin" && <span className="rounded-md bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">Adminisztrátor</span>}
+                            {account.is_superadmin ? <span className="rounded-md bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">Superadmin</span> : account.role === "admin" && <span className="rounded-md bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">Adminisztrátor</span>}
                         </span>
                         <span className="mt-1.5 block break-words text-sm text-gray-500">{[account.email, account.county, account.city].filter(Boolean).join(" · ")}</span>
                     </span>
@@ -108,8 +115,8 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             <h3 className="mb-2 text-sm font-semibold text-gray-700">Személyes és kapcsolattartási adatok</h3>
                             {editingId === account.id ? <AdminAccountEditor account={account}
                                 onCancel={() => setEditingId(null)}
-                                onSaved={(profile) => {
-                                    setSavedProfiles((current) => ({ ...current, [account.id]: profile }));
+                                onSaved={(updatedAccount) => {
+                                    setSavedAccounts((current) => ({ ...current, [account.id]: updatedAccount }));
                                     setEditingId(null);
                                     setSavedId(account.id);
                                 }} /> : <dl className="mt-3 grid gap-x-6 gap-y-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -119,6 +126,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                                 <ProfileField label="Vármegye" value={account.county} icon={MapIcon} />
                                 <ProfileField label="Település" value={account.city} icon={MapPinIcon} />
                                 <Field label="Szerepkör" value={account.user_id ? roleLabel(account.role) : "Még nincs felhasználói fiók"} />
+                                <Field label="Speciális méretigény" value={specialSizePreferenceLabel(account.special_size_preference)} />
                             </dl>}
                         </section>
                         <section className="border-t border-gray-100 pt-3">

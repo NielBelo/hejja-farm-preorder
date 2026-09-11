@@ -7,7 +7,9 @@ export type AdminAccount = {
     phone: string | null;
     county: string | null;
     city: string | null;
+    special_size_preference: "smaller" | "larger" | null;
     role: string;
+    is_superadmin: boolean;
     status: "invited" | "unconfirmed" | "registered";
     registered_at: string | null;
     updated_at: string | null;

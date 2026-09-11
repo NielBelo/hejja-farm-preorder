@@ -3,7 +3,7 @@
 import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { updateAdminAccount } from "@/app/(protected)/admin/accounts/actions";
-import { validateAccountProfile, type AccountProfileInput } from "@/lib/adminAccountEdit";
+import { validateAdminAccount, type AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
 import type { AdminAccount } from "@/lib/adminAccountData";
 
 const counties = [
@@ -60,31 +60,33 @@ function CountySelect({ value, onChange, disabled }: { value: string; onChange: 
 export default function AdminAccountEditor({ account, onCancel, onSaved }: {
     account: AdminAccount;
     onCancel: () => void;
-    onSaved: (profile: AccountProfileInput) => void;
+    onSaved: (account: AdminAccountUpdateInput) => void;
 }) {
-    const initial: AccountProfileInput = {
+    const initial: AdminAccountUpdateInput = {
         last_name: account.last_name ?? "",
         first_name: account.first_name ?? "",
         phone: formatPhoneInput(account.phone ?? ""),
         county: account.county ?? "",
         city: account.city ?? "",
+        role: account.role === "admin" ? "admin" : "user",
+        special_size_preference: account.special_size_preference,
     };
     const [form, setForm] = useState(initial);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const hasChanges = (Object.keys(initial) as Array<keyof AccountProfileInput>)
-        .some((key) => form[key].trim() !== initial[key]);
+    const hasChanges = (Object.keys(initial) as Array<keyof AdminAccountUpdateInput>)
+        .some((key) => form[key] !== initial[key]);
 
     return <form aria-label="Személyes adatok módosítása" aria-busy={saving} onSubmit={async (event) => {
         event.preventDefault();
         if (saving || !hasChanges || !account.user_id) return;
-        const validated = validateAccountProfile(form);
+        const validated = validateAdminAccount(form);
         if (validated.error) { setError(validated.error); return; }
         setSaving(true);
         setError(null);
         try {
-            const result = await updateAdminAccount(account.user_id, validated.profile);
-            if (result.success) onSaved(result.profile);
+            const result = await updateAdminAccount(account.user_id, validated.account);
+            if (result.success) onSaved(result.account);
             else setError(result.error);
         } catch {
             setError("A mentés sikertelen. Ellenőrizze a kapcsolatot, majd próbálja újra.");
@@ -107,9 +109,36 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
             </label>
             <CountySelect value={form.county} disabled={saving} onChange={(county) => setForm((current) => ({ ...current, county }))} />
             <label className="text-xs font-medium text-gray-500">Település
-                <input name="city" type="text" maxLength={100} value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
+                <input name="city" type="text" required maxLength={100} value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
                     className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
             </label>
+            <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2 lg:col-span-3">
+                <p className="text-sm font-semibold text-gray-700">Jogosultság és speciális igények</p>
+                {account.is_superadmin ? (
+                    <p className="text-sm text-violet-700">Superadmin · A védett jogosultság nem módosítható.</p>
+                ) : (
+                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+                        <input type="checkbox" checked={form.role === "admin"} onChange={(event) => setForm((current) => ({ ...current, role: event.target.checked ? "admin" : "user" }))}
+                            className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
+                        Adminisztrátor
+                    </label>
+                )}
+                <div>
+                    <p className="mb-2 text-sm font-medium text-gray-500">Speciális méretigény</p>
+                    <div className="flex flex-wrap gap-x-5 gap-y-2">
+                        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" checked={form.special_size_preference === "smaller"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "smaller" : null }))}
+                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
+                            Átlagostól kisebb méret, ha lehet
+                        </label>
+                        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                            <input type="checkbox" checked={form.special_size_preference === "larger"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "larger" : null }))}
+                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
+                            Átlagostól nagyobb méret, ha lehet
+                        </label>
+                    </div>
+                </div>
+            </div>
         </fieldset>
         <p className="mt-2 text-xs text-gray-500">E-mail cím: {account.email || "Nincs megadva"} · Az e-mail címet a fiók tulajdonosa módosíthatja a személyes adatainál.</p>
         {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
