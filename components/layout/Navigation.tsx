@@ -74,7 +74,7 @@ export default function Navigation({
 
   return (
     <nav className="rounded-md bg-white">
-      <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-end">
+      <div className="flex flex-wrap items-center justify-center gap-1">
 
         {/* Normál felhasználó */}
         {!isAdmin &&

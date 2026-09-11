@@ -143,7 +143,8 @@ export default function ProfileEditor({
         isValidEmail(form.email) &&
         normalizedPhone !== null &&
         form.county !== null &&
-        form.county.trim() !== "";
+        form.county.trim() !== "" &&
+        form.city.trim() !== "";
 
     const passwordValid =
         !isPasswordEditing ||
@@ -221,7 +222,8 @@ export default function ProfileEditor({
             !form.last_name.trim() ||
             !form.first_name.trim() ||
             !form.email.trim() ||
-            !form.county?.trim()
+            !form.county?.trim() ||
+            !form.city.trim()
         ) {
             setSaveError(
                 "Kérjük, töltse ki az összes kötelező mezőt."
@@ -435,17 +437,17 @@ export default function ProfileEditor({
                 <SecurityPattern />
 
                 {/* TELJES KÁRTYATARTALOM */}
-                <div className="relative z-10 p-6 sm:p-8">
+                <div className="relative z-10 p-7 sm:p-10">
 
                     {/* FEJLÉC */}
                     <div
                         className="
                             relative z-20
-                            -mx-6 -mt-6 mb-7
+                            -mx-7 -mt-7 mb-7
                             flex flex-col gap-4
                             bg-[#F0FAEE]
-                            px-6 py-5
-                            sm:-mx-8 sm:-mt-8 sm:px-8
+                            px-7 py-6
+                            sm:-mx-10 sm:-mt-10 sm:px-10
                             sm:flex-row
                             sm:items-center
                             sm:justify-between
@@ -493,7 +495,7 @@ export default function ProfileEditor({
                             <div>
                                 <div
                                     className="
-                                        text-xl font-semibold
+                                        text-2xl font-semibold
                                         tracking-wide text-gray-800
                                     "
                                 >
@@ -503,7 +505,7 @@ export default function ProfileEditor({
 
                                 <div
                                     className="
-                                        mt-1 text-xs font-medium
+                                        mt-1 text-base font-medium
                                         uppercase tracking-[0.18em]
                                         text-gray-400
                                     "
@@ -522,14 +524,14 @@ export default function ProfileEditor({
                                     justify-center gap-2
                                     rounded-lg border
                                     border-[rgb(49,171,2)]/40
-                                    bg-white px-4 py-2
-                                    text-sm font-medium
+                                    bg-white px-5 py-3
+                                    text-base font-semibold
                                     text-[rgb(49,171,2)]
                                     transition
                                     hover:bg-[#F0FAEE]
                                 "
                             >
-                                <PencilSquareIcon className="h-4 w-4" />
+                                <PencilSquareIcon className="h-5 w-5" />
                                 Szerkesztés
                             </button>
                         )}
@@ -542,7 +544,7 @@ export default function ProfileEditor({
                                 mb-6 rounded-lg
                                 border border-green-200
                                 bg-green-50 px-4 py-3
-                                text-sm text-green-700
+                                text-base text-green-700
                             "
                         >
                             {saveSuccess}
@@ -581,7 +583,7 @@ export default function ProfileEditor({
                                 mt-6 rounded-lg
                                 border border-red-200
                                 bg-red-50 px-4 py-3
-                                text-sm text-red-600
+                                text-base text-red-600
                             "
                         >
                             {saveError}
@@ -592,7 +594,7 @@ export default function ProfileEditor({
                     {isEditing && (
                         <div
                             className="
-                                mt-7 flex justify-end gap-3
+                                mt-7 flex flex-wrap justify-end gap-3
                                 pt-5
                             "
                         >
@@ -604,14 +606,14 @@ export default function ProfileEditor({
                                     flex items-center gap-2
                                     rounded-lg
                                     border border-gray-300
-                                    bg-white px-5 py-2
-                                    text-sm font-medium
+                                    bg-white px-5 py-3
+                                    text-base font-semibold
                                     text-gray-600
                                     transition hover:bg-gray-50
                                     disabled:opacity-50
                                 "
                             >
-                                <XMarkIcon className="h-4 w-4" />
+                                <XMarkIcon className="h-5 w-5" />
                                 Mégse
                             </button>
 
@@ -623,8 +625,8 @@ export default function ProfileEditor({
     flex items-center gap-2
     rounded-lg
     bg-[rgb(49,171,2)]
-    px-5 py-2
-    text-sm font-medium
+    px-5 py-3
+    text-base font-semibold
     text-white
     transition
     hover:opacity-90
@@ -634,7 +636,7 @@ export default function ProfileEditor({
     disabled:opacity-100
 "
                             >
-                                <CheckIcon className="h-4 w-4" />
+                                <CheckIcon className="h-5 w-5" />
 
                                 {isSaving
                                     ? "Mentés..."
@@ -656,30 +658,30 @@ function ReadOnlyProfile({
     userId: string;
 }) {
     return (
-        <div className="grid gap-x-10 gap-y-6 sm:grid-cols-2">
+        <div className="grid gap-x-10 gap-y-7 sm:grid-cols-2">
 
             {/* 1. SOR */}
             <InfoField
-                icon={<EnvelopeIcon className="h-5 w-5" />}
+                icon={<EnvelopeIcon className="h-6 w-6" />}
                 label="E-mail cím"
                 value={profile.email}
             />
 
             <InfoField
-                icon={<MapIcon className="h-5 w-5" />}
+                icon={<MapIcon className="h-6 w-6" />}
                 label="Vármegye"
                 value={profile.county ?? "—"}
             />
 
             {/* 2. SOR */}
             <InfoField
-                icon={<PhoneIcon className="h-5 w-5" />}
+                icon={<PhoneIcon className="h-6 w-6" />}
                 label="Telefonszám"
                 value={formatStoredPhone(profile.phone)}
             />
 
             <InfoField
-                icon={<MapPinIcon className="h-5 w-5" />}
+                icon={<MapPinIcon className="h-6 w-6" />}
                 label="Település"
                 value={profile.city.trim() || "—"}
             />
@@ -710,7 +712,7 @@ function InfoField({
 
                 <span
                     className="
-                        text-xs font-medium uppercase
+                        text-base font-medium uppercase
                         tracking-wider text-gray-400
                     "
                 >
@@ -718,7 +720,7 @@ function InfoField({
                 </span>
             </div>
 
-            <div className="pl-7 text-base font-medium text-gray-800">
+            <div className="pl-8 text-lg font-medium text-gray-800">
                 {value}
             </div>
         </div>
@@ -747,7 +749,7 @@ function EditProfile({
     onConfirmPasswordChange: (value: string) => void;
 }) {
     return (
-        <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+        <div className="grid gap-x-6 gap-y-6 sm:grid-cols-2">
 
             {/* 1. SOR */}
             <ProfileInput
@@ -778,7 +780,7 @@ function EditProfile({
                     required
                 />
 
-                <div className="mt-1.5 text-xs leading-relaxed text-gray-400">
+                <div className="mt-2 text-base leading-6 text-gray-400">
                     Módosítás esetén megerősítő e-mailt küldünk
                     az új címre.
                 </div>
@@ -813,6 +815,7 @@ function EditProfile({
                 name="city"
                 value={form.city}
                 onChange={handleChange}
+                required
             />
 
             {/* JELSZÓ */}
@@ -825,8 +828,8 @@ function EditProfile({
                             flex items-center gap-2
                             rounded-lg
                             border border-gray-200
-                            bg-white px-3.5 py-2.5
-                            text-sm font-medium
+                            bg-white px-5 py-3
+                            text-base font-semibold
                             text-gray-600
                             transition
                             hover:border-[rgb(49,171,2)]/30
@@ -834,7 +837,7 @@ function EditProfile({
                             hover:text-[rgb(49,171,2)]
                         "
                     >
-                        <LockClosedIcon className="h-4 w-4" />
+                        <LockClosedIcon className="h-5 w-5" />
                         Jelszó módosítása
                     </button>
                 ) : (
@@ -856,14 +859,14 @@ function EditProfile({
                             <div>
                                 <div
                                     className="
-                                        text-sm font-medium
+                                        text-lg font-semibold
                                         text-gray-700
                                     "
                                 >
                                     Jelszó módosítása
                                 </div>
 
-                                <div className="text-xs text-gray-400">
+                                <div className="text-base text-gray-400">
                                     Az új jelszó legalább 6 karakter legyen.
                                 </div>
                             </div>
@@ -941,8 +944,8 @@ function CountySelect({
                 className={`
                     flex w-full items-center justify-between
                     rounded-lg border
-                    bg-white px-3 py-2.5
-                    text-left text-gray-800
+                    bg-white px-4 py-3
+                    text-left text-lg text-gray-800
                     outline-none transition
                     ${
                         isOpen
@@ -963,7 +966,7 @@ function CountySelect({
 
                 <ChevronDownIcon
                     className={`
-                        h-4 w-4 shrink-0
+                        h-5 w-5 shrink-0
                         text-gray-400
                         transition-transform duration-200
                         ${isOpen ? "rotate-180" : ""}
@@ -1008,8 +1011,8 @@ function CountySelect({
                                         flex w-full
                                         items-center justify-between
                                         rounded-lg
-                                        px-3 py-2.5
-                                        text-left text-sm
+                                        px-4 py-3
+                                        text-left text-base
                                         text-gray-800
                                         transition-colors
                                         hover:bg-[#F0FAEE]
@@ -1027,7 +1030,7 @@ function CountySelect({
                                     {isSelected && (
                                         <CheckIcon
                                             className="
-                                                h-4 w-4 shrink-0
+                                                h-5 w-5 shrink-0
                                                 text-[rgb(49,171,2)]
                                             "
                                         />
@@ -1080,8 +1083,8 @@ function ProfileInput({
                 className="
                     w-full rounded-lg
                     border border-gray-300
-                    bg-white px-3 py-2.5
-                    text-gray-800 outline-none
+                    bg-white px-4 py-3
+                    text-lg text-gray-800 outline-none
                     transition
                     placeholder:text-gray-300
                     focus:border-[rgb(49,171,2)]
@@ -1118,8 +1121,8 @@ function PasswordInput({
                 className="
                     w-full rounded-lg
                     border border-gray-300
-                    bg-white px-3 py-2.5
-                    text-gray-800 outline-none
+                    bg-white px-4 py-3
+                    text-lg text-gray-800 outline-none
                     transition
                     focus:border-[rgb(49,171,2)]
                     focus:ring-2
@@ -1141,8 +1144,7 @@ function FieldLabel({
         <label
             className="
                 mb-1.5 block
-                text-xs font-medium
-                uppercase tracking-wider
+                text-base font-medium
                 text-gray-400
             "
         >
@@ -1183,12 +1185,12 @@ function SecurityBarcode({
             {/* FEJLÉC */}
             <div className="mb-2 flex items-center gap-2">
                 <span className="text-[rgb(49,171,2)]">
-                    <LockClosedIcon className="h-5 w-5" />
+                    <LockClosedIcon className="h-6 w-6" />
                 </span>
 
                 <span
                     className="
-                        text-xs font-medium uppercase
+                        text-base font-medium uppercase
                         tracking-wider text-gray-400
                     "
                 >
@@ -1196,9 +1198,9 @@ function SecurityBarcode({
                 </span>
             </div>
 
-            <div className="pl-7">
+            <div className="pl-8">
 
-                <div className="mb-2 text-xs text-gray-400">
+                <div className="mb-2 text-base text-gray-400">
                     A jelszó biztonsági okból nem jeleníthető meg.
                 </div>
 
@@ -1258,7 +1260,7 @@ function FarmVerificationMark() {
                 <div>
                     <div
                         className="
-                            text-[11px] font-semibold
+                            text-sm font-semibold
                             uppercase tracking-[0.12em]
                             text-gray-700
                         "
@@ -1269,7 +1271,7 @@ function FarmVerificationMark() {
                     <div
                         className="
                             mt-0.5 flex items-center gap-1
-                            text-[7px] font-medium
+                            text-sm font-medium
                             uppercase tracking-[0.12em]
                             text-[rgb(49,171,2)]
                         "
