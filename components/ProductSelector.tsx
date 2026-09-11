@@ -10,6 +10,7 @@ import {
     canChoosePackaging,
     normalizePackageId,
 } from "@/lib/orderPackaging";
+import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
 import { DEFAULT_SIZE_PREFERENCE, normalizeSizePreference, SIZE_PREFERENCES } from "@/lib/sizePreferences";
 
 
@@ -52,6 +53,11 @@ type ProductSelectorProps = {
 };
 
 const DEFAULT_NOTE = DEFAULT_SIZE_PREFERENCE;
+const SIZE_PREFERENCE_LABELS: Record<typeof SIZE_PREFERENCES[number], string> = {
+    "Átlagos méret": "Átlagos méret",
+    "Átlagostól kisebb méret": "Átlagostól kisebb méret, ha lehet",
+    "Átlagostól nagyobb méret": "Átlagostól nagyobb méret, ha lehet",
+};
 
 const emptyItem = (collapsed = false): OrderItem => ({
     selectedProductId: null,
@@ -109,6 +115,12 @@ export default function ProductSelector({
         item.quantity !== 1 ||
         item.selectedNote !== DEFAULT_NOTE;
 
+    const itemRequiresPackaging = (item: OrderItem) =>
+        canChoosePackaging(
+            products.find((product) => product.id === item.selectedProductId),
+            item.quantity,
+        );
+
     const getRemainingQuantity = (items: OrderItem[], currentIndex: number) => {
         const used = items.reduce((sum, item, index) => {
             if (index === currentIndex) return sum;
@@ -137,6 +149,7 @@ export default function ProductSelector({
                     changes.quantity !== undefined
                         ? Math.min(
                             remaining,
+                            MAX_QUANTITY_PER_ITEM,
                             Math.max(1, changes.quantity)
                         )
                         : item.quantity;
@@ -188,7 +201,7 @@ export default function ProductSelector({
 
             const lastItemIsComplete =
                 lastItem.selectedProductId !== null &&
-                lastItem.selectedPackageId !== null;
+                (!itemRequiresPackaging(lastItem) || lastItem.selectedPackageId !== null);
 
             // Csak befejezhető utolsó tétel után jelenjen meg
             // pontosan egy új, összecsukott tétel
@@ -208,7 +221,7 @@ export default function ProductSelector({
 
     if (
         currentItem.selectedProductId === null ||
-        currentItem.selectedPackageId === null
+        (itemRequiresPackaging(currentItem) && currentItem.selectedPackageId === null)
     ) {
         setItems((prev) =>
             prev.map((item, i) =>
@@ -268,7 +281,7 @@ export default function ProductSelector({
 
             const isComplete =
                 openItem.selectedProductId !== null &&
-                openItem.selectedPackageId !== null;
+                (!itemRequiresPackaging(openItem) || openItem.selectedPackageId !== null);
 
             // A nyitott tétel még nincs befejezve
             if (!isComplete) {
@@ -350,12 +363,17 @@ export default function ProductSelector({
                     );
                 const marginClass = "mt-4"
 
+                const missingProduct = !item.selectedProductId;
+                const missingPackaging =
+                    itemRequiresPackaging(item) && !item.selectedPackageId;
                 const validationMessage =
-                    !item.selectedProductId && !item.selectedPackageId
+                    missingProduct && missingPackaging
                         ? "Fejezze be a tétel kitöltését! (Hiányzik a termék és a csomagolás.)"
-                        : !item.selectedProductId
+                        : missingProduct
                             ? "Fejezze be a tétel kitöltését! (Hiányzik a termék.)"
-                            : "Fejezze be a tétel kitöltését! (Hiányzik a csomagolás.)";
+                            : missingPackaging
+                                ? "Fejezze be a tétel kitöltését! (Hiányzik a csomagolás.)"
+                                : "";
 
 
                 return (
@@ -395,10 +413,7 @@ export default function ProductSelector({
     flex items-center justify-between
     px-6 py-2
     ${item.collapsed ? "rounded-xl" : "rounded-t-xl rounded-b-none"}
-    ${!item.touched && !itemHasContent(item)
-                                    ? "border sm border-gray-200 bg-white shadow-x1 text-[rgb(145,155,160)]"
-                                    : "border-[rgb(145,155,160)] bg-[rgb(145,155,160)] text-white"
-                                }
+    border-2 border-[rgb(92,113,190)] bg-[rgb(92,113,190)] text-white
     ${canOpen
                                     ? "cursor-pointer hover:brightness-95"
                                     : "cursor-not-allowed opacity-60"
@@ -407,7 +422,7 @@ export default function ProductSelector({
                         >
                             <div className="flex min-w-0 items-center gap-2">
                                 {!itemHasContent(item) ? (
-                                    <span className="flex h-5 w-5 shrink-0 items-center justify-center text-xl font-medium">
+                                    <span className="flex h-6 w-6 shrink-0 items-center justify-center text-2xl font-medium">
                                         +
                                     </span>
                                 ) : item.collapsed ? (
@@ -417,12 +432,12 @@ export default function ProductSelector({
                                 )}
 
                                 <div className="flex min-w-0 items-center gap-2">
-                                    <h2 className="shrink-0 text-sm font-semibold">
+                                    <h2 className="shrink-0 text-lg font-semibold">
                                         {getHeaderText(item, index)}
                                     </h2>
 
                                     {!isPickupDaySelected && index === 0 && (
-                                        <span className="truncate text-xs font-normal italic opacity-80">
+                                        <span className="truncate text-base font-normal italic opacity-80">
                                             - A rendelési tételek megadásához először válasszon átvételi napot!
                                         </span>
                                     )}
@@ -439,7 +454,7 @@ export default function ProductSelector({
                                     className="rounded p-1 transition hover:bg-white/10"
                                     title="Tétel törlése"
                                 >
-                                    <TrashIcon className="h-5 w-5 text-white" />
+                                    <TrashIcon className="h-6 w-6 text-white" />
                                 </button>
                             )}
                         </div>
@@ -448,11 +463,11 @@ export default function ProductSelector({
 
                             <div className="bg-white p-4">
                                 {item.showValidation && item.validationPosition === "top" && (
-                                    <p className="mb-4 text-center text-sm font-medium text-red-600">
+                                    <p className="mb-4 text-center text-base font-medium text-red-600">
                                         {validationMessage}
                                     </p>
                                 )}
-                                <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
+                                <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
                                     Válasszon terméket!
                                 </h3>
 
@@ -468,7 +483,7 @@ export default function ProductSelector({
                                                 }
                                                 type="button"
                                                 className={`
-                          rounded-xl border p-4 text-left transition-all
+                          rounded-xl border p-5 text-left transition-all
                           ${selected
                                                         ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
                                                         : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
@@ -477,11 +492,11 @@ export default function ProductSelector({
                                             >
                                                 <div className="flex items-center gap-3">
                                                     <div className="flex-1">
-                                                        <h3 className="text-base font-semibold text-gray-700">
+                                                        <h3 className="text-lg font-semibold text-gray-700">
                                                             {product.name}
                                                         </h3>
 
-                                                        <p className="mt-1 text-sm text-gray-500">
+                                                        <p className="mt-1 text-base text-gray-500">
                                                             {product.description}
                                                         </p>
                                                     </div>
@@ -502,11 +517,11 @@ export default function ProductSelector({
                                 </div>
 
                                 <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
                                         Adja meg a mennyiséget!
                                     </h3>
 
-                                    <div className="flex items-center justify-center gap-4">
+                                    <div className="flex items-center justify-center gap-5">
                                         <button
                                             onClick={() =>
                                                 updateItem(index, {
@@ -514,7 +529,7 @@ export default function ProductSelector({
                                                 })
                                             }
                                             type="button"
-                                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 text-lg font-semibold text-gray-700 transition hover:bg-gray-100"
+                                            className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-300 text-xl font-semibold text-gray-700 transition hover:bg-gray-100"
                                         >
                                             −
                                         </button>
@@ -523,29 +538,29 @@ export default function ProductSelector({
                                             <input
                                                 type="number"
                                                 min={1}
-                                                max={100}
+                                                max={MAX_QUANTITY_PER_ITEM}
                                                 value={item.quantity}
                                                 onChange={(e) =>
                                                     updateItem(index, {
                                                         quantity: Math.min(
-                                                            100,
+                                                            MAX_QUANTITY_PER_ITEM,
                                                             Math.max(1, Number(e.target.value) || 1)
                                                         ),
                                                     })
                                                 }
-                                                className="w-10 bg-transparent text-center text-lg font-semibold text-gray-700 outline-none"
+                                                className="w-12 bg-transparent text-center text-xl font-semibold text-gray-700 outline-none"
                                             />
-                                            <span className="text-lg text-gray-700">db</span>
+                                            <span className="text-xl text-gray-700">db</span>
                                         </div>
 
                                         <button
                                             onClick={() =>
                                                 updateItem(index, {
-                                                    quantity: Math.min(100, item.quantity + 1),
+                                                    quantity: Math.min(MAX_QUANTITY_PER_ITEM, item.quantity + 1),
                                                 })
                                             }
                                             type="button"
-                                            className="flex h-10 w-10 items-center justify-center rounded-lg border border-gray-300 text-lg font-semibold text-gray-700 transition hover:bg-gray-100"
+                                            className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-300 text-xl font-semibold text-gray-700 transition hover:bg-gray-100"
                                         >
                                             +
                                         </button>
@@ -556,7 +571,7 @@ export default function ProductSelector({
                                     products.find((product) => product.id === item.selectedProductId),
                                     item.quantity,
                                 ) && <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
                                         Válasszon csomagolási módot!
                                     </h3>
 
@@ -572,18 +587,18 @@ export default function ProductSelector({
                                                     }
                                                     type="button"
                                                     className={`
-                            rounded-xl border p-4 text-left transition-all
+                            rounded-xl border p-5 text-left transition-all
                             ${selected
                                                             ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
                                                             : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                         }
                           `}
                                                 >
-                                                    <h3 className="text-base font-semibold text-gray-700">
+                                                    <h3 className="text-lg font-semibold text-gray-700">
                                                         {pack.name}
                                                     </h3>
 
-                                                    <p className="mt-1 text-sm text-gray-500">
+                                                    <p className="mt-1 text-base text-gray-500">
                                                         {pack.description}
                                                     </p>
                                                 </button>
@@ -593,7 +608,7 @@ export default function ProductSelector({
                                 </div>}
 
                                 <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-base font-semibold text-gray-700">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
                                         Opcionális megjegyzés a csomaghoz
                                     </h3>
 
@@ -604,7 +619,7 @@ export default function ProductSelector({
                                                 updateItem(index, { note: e.target.value })
                                             }
                                             placeholder="Ide írhat egyedi megjegyzést..."
-                                            className="min-h-32 resize-none rounded-xl border border-[rgba(7,109,143,0.4)] p-4 text-sm text-gray-700 outline-none transition focus:border-[rgb(49,171,2)]"
+                                            className="min-h-32 resize-none rounded-xl border border-[rgba(7,109,143,0.4)] p-4 text-base text-gray-700 outline-none transition focus:border-[rgb(49,171,2)]"
                                         />
 
                                         <div className="grid gap-3">
@@ -619,27 +634,24 @@ export default function ProductSelector({
                                                             updateItem(index, { selectedNote: option })
                                                         }
                                                         className={`
-                              rounded-xl border p-4 text-left text-sm transition-all
+                              rounded-xl border p-4 text-left text-base transition-all
                               ${selected
                                                                 ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
                                                                 : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                             }
                             `}
                                                     >
-                                                        {option}
+                                                        {SIZE_PREFERENCE_LABELS[option]}
                                                     </button>
                                                 );
                                             })}
                                         </div>
                                     </div>
-                                    <p className="mt-3 text-center text-sm leading-relaxed text-gray-500 italic">
-                                        A megadott méret irányadó jellegű; a tényleges méretet jelentősen befolyásolja az adott szezon állományának összetétele.
-                                    </p>
                                 </div>
                                 <div className="mt-8 border-t border-gray-200 pt-6">
 
                                     {item.showValidation && item.validationPosition === "bottom" && (
-                                        <p className="mb-4 text-center text-sm font-medium text-red-600">
+                                        <p className="mb-4 text-center text-base font-medium text-red-600">
                                             {validationMessage}
                                         </p>
                                     )}
@@ -649,11 +661,11 @@ export default function ProductSelector({
                                             onClick={() => finishItem(index, "bottom")}
                                             type="button"
                                             className="
-            rounded-lg border border-gray-300
-            bg-[rgb(145,155,160)] px-5 py-2
-            text-sm font-medium text-white
+            rounded-lg border border-[rgb(92,113,190)]
+            bg-[rgb(92,113,190)] px-6 py-3
+            text-base font-semibold text-white
             transition
-            hover:bg-[rgb(133,144,149)] hover:text-white/90
+            hover:bg-[rgb(72,93,162)] hover:text-white/90
         "
                                         >
                                             ✓ Tétel kész, összecsukás

@@ -124,14 +124,14 @@ export default function OrderActions({
         availableStock + originalQuantity;
 
     const stockStatus =
-        maxAvailableQuantity <= 0
+        availableStock <= 0
             ? {
                 text: "Előrendelés betelt!",
                 iconClass: "text-red-500",
             }
-            : maxAvailableQuantity <= 30
+            : availableStock <= 30
                 ? {
-                    text: `Már csak ${maxAvailableQuantity} db csirke elérhető!`,
+                    text: `Már csak ${availableStock} db csirke elérhető!`,
                     iconClass: "text-yellow-500",
                 }
                 : {
@@ -293,13 +293,13 @@ export default function OrderActions({
 
             {showCancelModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
 
-                        <h2 className="text-lg font-semibold text-gray-800">
+                        <h2 className="text-2xl font-semibold text-gray-800">
                             Figyelem!
                         </h2>
 
-                        <p className="mt-3 text-sm leading-6 text-gray-600">
+                        <p className="mt-4 text-lg leading-7 text-gray-600">
                             Biztosan törölni szeretné a(z){" "}
                             <span className="font-semibold text-gray-800">
                                 {publicOrderNumber}
@@ -308,13 +308,13 @@ export default function OrderActions({
                             A művelet nem vonható vissza.
                         </p>
 
-                        <div className="mt-6 flex justify-end gap-3">
+                        <div className="mt-8 flex flex-wrap justify-end gap-3">
 
                             <button
                                 type="button"
                                 onClick={() => setShowCancelModal(false)}
                                 disabled={isCancelling}
-                                className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                                className="rounded-lg border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
                             >
                                 Mégse
                             </button>
@@ -326,7 +326,7 @@ export default function OrderActions({
                                 className="
         rounded-lg
         bg-red-600
-        px-4 py-2
+        px-5 py-3 text-base
         font-semibold text-white
         hover:bg-red-600
         disabled:cursor-not-allowed
@@ -344,21 +344,21 @@ export default function OrderActions({
 
             {saveError && !isEditing && (
                 <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                    <p className="text-center text-sm text-red-600">
+                    <p className="text-center text-base text-red-600">
                         {saveError}
                     </p>
                 </div>
             )}
             {saveSuccess && !isEditing && (
                 <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                    <p className="text-sm text-center text-[rgb(49,171,2)]">
+                    <p className="text-base text-center text-[rgb(49,171,2)]">
                         {saveSuccess}
                     </p>
                 </div>
             )}
             {emailWarning && !isEditing && (
                 <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                    <p className="text-center text-sm text-amber-700">
+                    <p className="text-center text-base text-amber-700">
                         {emailWarning}
                     </p>
                 </div>
@@ -366,14 +366,14 @@ export default function OrderActions({
 
             {/* Normál műveleti gombok */}
             {!isEditing && (
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-3">
                     <button
                         type="button"
                         onClick={handleEdit}
                         disabled={anotherOrderIsEditing}
                         className={`
         rounded-lg border border-gray-300
-        px-4 py-2 text-sm
+        px-5 py-3 text-base font-semibold
         transition-colors
         ${anotherOrderIsEditing
                                 ? "cursor-not-allowed bg-gray-100 text-gray-300"
@@ -390,7 +390,7 @@ export default function OrderActions({
                         disabled={isCancelling || anotherOrderIsEditing}
                         className={`
         rounded-lg border border-red-200
-        px-4 py-2 text-sm
+        px-5 py-3 text-base font-semibold
         transition-colors
         ${isCancelling || anotherOrderIsEditing
                                 ? "cursor-not-allowed bg-gray-50 text-gray-300"
@@ -414,7 +414,7 @@ export default function OrderActions({
                         className="mb-4 w-full scroll-mt-24"
                     >
                         {/* Cím */}
-                        <h3 className="text-center font-semibold text-gray-800">
+                        <h3 className="text-center text-xl font-semibold text-gray-500">
                             Rendelés módosítása
                         </h3>
 
@@ -425,7 +425,7 @@ export default function OrderActions({
                                 className={`h-5 w-5 ${stockStatus.iconClass}`}
                             />
 
-                            <p className="text-sm font-medium text-gray-700">
+                            <p className="text-base font-medium text-gray-700">
                                 {stockStatus.text}
                             </p>
                         </div>
@@ -450,22 +450,22 @@ export default function OrderActions({
                     />
 
                     {saveError && (
-                        <p className="mt-4 text-sm text-red-600">
+                        <p className="mt-4 text-base text-red-600">
                             {saveError}
                         </p>
                     )}
 
 
                     {/* Módosítás mentése */}
-                    <div className="mt-5 flex justify-end gap-3">
+                    <div className="mt-5 flex flex-wrap justify-end gap-3">
                         <button
                             type="button"
                             onClick={handleCancelEdit}
                             disabled={isSaving}
                             className="
             rounded-lg border border-gray-300
-            px-5 py-2
-            text-sm font-medium text-gray-600
+            px-5 py-3
+            text-base font-medium text-gray-600
             transition-colors
             hover:bg-gray-50
             hover:text-gray-800
@@ -481,8 +481,8 @@ export default function OrderActions({
                             onClick={handleSave}
                             disabled={!canSave || isSaving}
                             className={`
-            rounded-lg px-5 py-2
-            text-sm font-medium
+            rounded-lg px-5 py-3
+            text-base font-medium
             transition-colors
             ${canSave && !isSaving
                                     ? `

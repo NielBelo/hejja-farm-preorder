@@ -72,14 +72,14 @@ export default function CountdownCard({ startDate, endDate }: Props) {
  return (
   <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5 text-gray-700">
 
-    <div className="grid grid-cols-3 items-center text-base text-gray-600 leading-5">
+    <div className="grid grid-cols-1 items-center gap-4 text-lg leading-6 text-gray-600 sm:grid-cols-3 sm:gap-0">
       <div className="text-center">
         <span className="font-semibold">Előrendelés kezdete:</span>
         <br />
         {formatDate(startDate)}
       </div>
 
-      <div className="text-center border-x border-gray-300">
+      <div className="border-gray-300 text-center sm:border-x">
         <span className="font-semibold">Előrendelés vége:</span>
         <br />
         {formatDate(end.toISOString())}
@@ -90,7 +90,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Kezdésig hátralévő idő
             <br />
-            {timeLeft}
+            <span className="text-blue-700">{timeLeft}</span>
           </>
         )}
 
@@ -98,7 +98,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Hátralévő idő
             <br />
-            {timeLeft}
+            <span className="text-blue-700">{timeLeft}</span>
           </>
         )}
 

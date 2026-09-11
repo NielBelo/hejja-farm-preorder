@@ -43,11 +43,11 @@ export default async function PreorderPage() {
   return (
     <main className="mx-auto mt-4 w-full max-w-5xl">
       <PreorderIntro imageUrl={orderInfo1?.image_url}>
-          <div className="text-base text-gray-600 leading-7 whitespace-pre-line">
+          <div className="text-lg text-gray-600 leading-7 whitespace-pre-line">
             {orderInfo1?.content}
           </div>
 
-          <div className="mt-4 font-bold text-base text-gray-600 leading-7 whitespace-pre-line">
+          <div className="mt-4 font-bold text-lg text-gray-600 leading-7 whitespace-pre-line">
             <SeasonOrderInfo
               startDate={season?.time_window_start}
               endDate={season?.time_window_end}

@@ -74,7 +74,7 @@ export default function Navigation({
 
   return (
     <nav className="rounded-md bg-white">
-      <div className="flex items-center gap-1">
+      <div className="flex flex-wrap items-center justify-center gap-1 sm:justify-end">
 
         {/* Normál felhasználó */}
         {!isAdmin &&
@@ -88,7 +88,7 @@ export default function Navigation({
                 key={item.href}
                 href={item.href}
                 className={`
-                  px-2 py-2 text-base transition-all
+                  px-2 py-2 text-base sm:px-3 sm:text-lg transition-all
                   ${
                     isActive
                       ? "text-[rgb(49,171,2)]"
@@ -108,7 +108,7 @@ export default function Navigation({
               <button
                 type="button"
                 onClick={() => setOrderMenuOpen((open) => !open)}
-                className={`flex items-center gap-1 px-2 py-2 text-base transition-all ${
+                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
                   pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/pickup")
                     ? "text-[rgb(49,171,2)]"
                     : "text-gray-500/80 hover:text-gray-700"
@@ -139,7 +139,7 @@ export default function Navigation({
                       key={href}
                       href={href}
                       onClick={() => setOrderMenuOpen(false)}
-                      className="block rounded-md px-3 py-2 text-sm text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
+                      className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
                     >
                       {label}
                     </Link>
@@ -153,7 +153,7 @@ export default function Navigation({
             }}>
               <button type="button" aria-expanded={accountMenuOpen} aria-controls="account-menu"
                 onClick={() => setAccountMenuOpen((open) => !open)}
-                className={`flex items-center gap-1 px-2 py-2 text-base transition-all ${pathname.startsWith("/admin/accounts") ? "text-[rgb(49,171,2)]" : "text-gray-500/80 hover:text-gray-700"}`}>
+                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${pathname.startsWith("/admin/accounts") ? "text-[rgb(49,171,2)]" : "text-gray-500/80 hover:text-gray-700"}`}>
                 Fiók
                 <svg className={`h-4 w-4 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z" clipRule="evenodd" />
@@ -161,7 +161,7 @@ export default function Navigation({
               </button>
               {accountMenuOpen && <div id="account-menu" className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                 <Link href="/admin/accounts" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts" ? "page" : undefined}
-                  className="block rounded-md px-3 py-2 text-sm text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
+                  className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
               </div>}
             </div>
 
@@ -169,7 +169,7 @@ export default function Navigation({
               <button
                 type="button"
                 onClick={() => setEmailMenuOpen((open) => !open)}
-                className={`flex items-center gap-1 px-2 py-2 text-base transition-all ${
+                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
                   pathname.startsWith("/admin/email-preview")
                     ? "text-[rgb(49,171,2)]"
                     : "text-gray-500/80 hover:text-gray-700"
@@ -201,7 +201,7 @@ export default function Navigation({
                       key={template}
                       href={`/admin/email-preview?template=${template}`}
                       onClick={() => setEmailMenuOpen(false)}
-                      className="block rounded-md px-3 py-2 text-sm text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
+                      className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
                     >
                       {label}
                     </Link>
@@ -220,7 +220,7 @@ export default function Navigation({
               type="button"
               onClick={() => setUserMenuOpen((open) => !open)}
               className={`
-                flex items-center gap-1 px-2 py-2 text-base transition-all
+                flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all
                 ${
                   isUserSectionActive
                     ? "text-[rgb(49,171,2)]"
@@ -259,7 +259,7 @@ export default function Navigation({
                       href={item.href}
                       onClick={() => setUserMenuOpen(false)}
                       className={`
-                        block rounded-md px-3 py-2 text-sm transition-all
+                        block rounded-md px-3 py-2 text-base transition-all
                         ${
                           isActive
                             ? "bg-gray-50 text-[rgb(49,171,2)]"

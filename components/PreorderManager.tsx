@@ -93,6 +93,7 @@ export default function PreorderManager({
         }
 
         setSelectedPickupDay(day);
+        setTermsAccepted(false);
         setLastSubmittedOrder(null);
     };
 
@@ -100,6 +101,7 @@ export default function PreorderManager({
         if (!pendingPickupDay) return;
 
         setSelectedPickupDay(pendingPickupDay);
+        setTermsAccepted(false);
         setResetKey((prev) => prev + 1);
 
         setLastSubmittedOrder(null);
@@ -127,6 +129,8 @@ export default function PreorderManager({
     const [orderItems, setOrderItems] = useState<OrderItem[]>([]);
 
     const [emailWarning, setEmailWarning] = useState<string | null>(null);
+    const [termsAccepted, setTermsAccepted] = useState(false);
+    const [termsModalOpen, setTermsModalOpen] = useState(false);
 
     const validOrderItems = orderItems.filter(
         (item) =>
@@ -137,6 +141,7 @@ export default function PreorderManager({
     const canSubmitOrder =
         selectedPickupDay !== null &&
         validOrderItems.length > 0 &&
+        termsAccepted &&
         validOrderItems.every(
             (item) =>
                 item.selectedProductId !== null &&
@@ -216,6 +221,7 @@ export default function PreorderManager({
         setOrderItems([]);
         setHasOrderChanges(false);
         setSelectedPickupDay(null);
+        setTermsAccepted(false);
         setEmailWarning(result.emailWarning ?? null);
     };
 
@@ -289,7 +295,7 @@ export default function PreorderManager({
                         </div>
                     </div>
 
-                    <div className="mt-6">
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
                         {lastSubmittedOrder.items.map((item, index) => {
                             const product = products.find(
                                 (product) => product.id === item.selectedProductId
@@ -302,32 +308,18 @@ export default function PreorderManager({
                             return (
                                 <div
                                     key={index}
-                                    className={`
-                            py-4 text-sm text-gray-600
-                            ${index > 0
-                                            ? "border-t border-gray-200"
-                                            : ""
-                                        }
-                        `}
+                                    className="rounded-lg border border-[rgba(92,113,190,0.35)] bg-[rgba(92,113,190,0.07)] p-3 text-base text-gray-700"
                                 >
-                                    <p className="font-semibold text-gray-700">
-                                        {index + 1}. tétel
+                                    <p className="font-semibold text-[rgb(55,75,150)]">
+                                        {index + 1}. tétel: {product?.name}
                                     </p>
 
-                                    <p>
-                                        {product?.name} – {item.quantity} db
-                                    </p>
-
-                                    <p>
-                                        Csomagolás: {packageOption?.name}
-                                    </p>
-
-                                    <p>
-                                        Méret: {item.selectedNote}
+                                    <p className="mt-1">
+                                        {item.quantity} db · Csomagolás: {packageOption?.name} · Méret: {item.selectedNote}
                                     </p>
 
                                     {item.note && (
-                                        <p>
+                                        <p className="mt-1 text-gray-600">
                                             Megjegyzés: {item.note}
                                         </p>
                                     )}
@@ -336,34 +328,28 @@ export default function PreorderManager({
                         })}
                     </div>
 
-                    <div className="mt-5 border-t border-gray-200 pt-5 text-center text-sm leading-6 text-gray-600">
+                    <div className="mt-5 border-t border-gray-200 pt-5 text-center text-base leading-6 text-gray-600">
                         <p>
                             Korábban leadott rendeléseit az{" "}
                             <span className="font-semibold text-gray-700">
                                 Előzmények
                             </span>{" "}
-                            oldalon tekintheti meg.
-                        </p>
-
-                        <p>
-                            Rendelése az előrendelési időszak végéig,{" "}
+                            oldalon tekintheti meg. Rendelése az előrendelési időszak végéig,{" "}
                             <span className="font-semibold text-gray-700">
                                 {formatOrderWindowEnd(season.time_window_end)}
                             </span>
                             -ig módosítható vagy törölhető.
-                        </p>
-
-                        {lastSubmittedOrder.emailRecipient && (
-                            <p className="mt-2">
-                                A(z){" "}
+                            {lastSubmittedOrder.emailRecipient && (
+                                <> A(z){" "}
                                 <span className="font-semibold text-gray-700">
                                     {lastSubmittedOrder.emailRecipient}
                                 </span>{" "}
                                 e-mail-címre visszaigazolást küldtünk, és a
                                 rendelés átvétele előtt egy nappal újabb
                                 automatikus emlékeztetőt fog kapni.
-                            </p>
-                        )}
+                                </>
+                            )}
+                        </p>
                     </div>
                 </div>
             )}
@@ -371,8 +357,8 @@ export default function PreorderManager({
             <div className="mx-auto mt-6 mb-4 flex w-full max-w-4xl items-center gap-4">
                 <div className="h-px flex-1 bg-gray-400" />
 
-                <h2 className="text-md font-semibold tracking-wider text-gray-500">
-                    ÚJ ELŐRENDELÉS
+                <h2 className="text-xl font-semibold tracking-wider text-gray-500">
+                    ELŐRENDELÉS
                 </h2>
 
                 <div className="h-px flex-1 bg-gray-400" />
@@ -386,40 +372,66 @@ export default function PreorderManager({
                 onSelectPickupDay={handlePickupDayChange}
             />
 
-            <ProductSelector
-                products={products}
-                packages={packages}
-                maxAvailableQuantity={selectedPickupDay?.available_stock ?? null}
-                resetKey={resetKey}
-                isPickupDaySelected={selectedPickupDay !== null}
-                onOrderChangesChange={setHasOrderChanges}
-                onItemsChange={setOrderItems}
-                onItemEdited={() => {
-                    setSubmitError(null);
-                    setLastSubmittedOrder(null);
-                }}
-            />
+            <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                <h2 className="mb-3 text-center text-xl font-semibold text-gray-400">
+                    Adja meg a rendelési tétel(eke)t!
+                </h2>
+
+                <ProductSelector
+                    products={products}
+                    packages={packages}
+                    maxAvailableQuantity={selectedPickupDay?.available_stock ?? null}
+                    resetKey={resetKey}
+                    isPickupDaySelected={selectedPickupDay !== null}
+                    onOrderChangesChange={setHasOrderChanges}
+                    onItemsChange={setOrderItems}
+                    onItemEdited={() => {
+                        setSubmitError(null);
+                        setLastSubmittedOrder(null);
+                    }}
+                />
+            </section>
 
 
 
-            <div className="mt-10 border-t border-gray-300 pt-8">
+            {selectedPickupDay && (
+            <div className="mt-10 pt-8">
 
                 {validOrderItems.length > 0 &&
                     validOrderItems.some((item) => !item.collapsed) && (
-                        <p className="mb-4 text-center text-sm font-medium text-gray-600">
+                        <p className="mb-4 text-center text-base font-medium text-gray-400">
                             A rendelés véglegesítéséhez először fejezze be az összes tételt!
                         </p>
                     )}
 
                 {submitError && (
-                    <p className="mb-4 text-center text-sm font-medium text-red-600">
+                    <p className="mb-4 text-center text-base font-medium text-red-600">
                         {submitError}
                     </p>
                 )}
 
 
 
-                <div className="flex justify-center"></div>
+                <div className="mx-auto mb-5 flex max-w-xl items-start justify-center gap-3 text-base text-gray-700">
+                    <input
+                        id="terms-accepted"
+                        type="checkbox"
+                        checked={termsAccepted}
+                        onChange={(event) => setTermsAccepted(event.target.checked)}
+                        className="mt-1 h-5 w-5 shrink-0 accent-[rgb(92,113,190)]"
+                    />
+                    <label htmlFor="terms-accepted" className="leading-6">
+                        Elfogadom a{" "}
+                        <button
+                            type="button"
+                            onClick={() => setTermsModalOpen(true)}
+                            className="font-semibold text-[rgb(72,93,162)] underline underline-offset-2 hover:text-[rgb(55,75,150)]"
+                        >
+                            szerződési feltételeket
+                        </button>
+                        .
+                    </label>
+                </div>
 
                 <div className="flex justify-center">
                     <button
@@ -427,7 +439,7 @@ export default function PreorderManager({
                         onClick={handleFinalizeOrder}
                         disabled={!canSubmitOrder}
                         className={`
-                rounded-lg px-8 py-3 font-semibold text-white transition
+                rounded-lg px-10 py-4 text-lg font-semibold text-white transition
                 ${canSubmitOrder
                                 ? "bg-[rgb(49,171,2)] hover:brightness-95"
                                 : "cursor-not-allowed bg-gray-300"
@@ -438,26 +450,49 @@ export default function PreorderManager({
                     </button>
                 </div>
             </div>
+            )}
+
+            {termsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                        <h2 className="text-xl font-semibold text-gray-800">
+                            Szerződési feltételek
+                        </h2>
+                        <p className="mt-3 text-base leading-6 text-gray-600">
+                            A részletes szerződési feltételek szövege hamarosan elérhető lesz.
+                        </p>
+                        <div className="mt-6 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setTermsModalOpen(false)}
+                                className="rounded-lg bg-[rgb(92,113,190)] px-5 py-3 text-base font-semibold text-white hover:bg-[rgb(72,93,162)]"
+                            >
+                                Bezárás
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {showDayChangeModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
 
-                        <h2 className="text-lg font-semibold text-gray-800">
+                        <h2 className="text-2xl font-semibold text-gray-800">
                             Figyelem!
                         </h2>
 
-                        <p className="mt-3 text-sm leading-6 text-gray-600">
+                        <p className="mt-4 text-lg leading-7 text-gray-600">
                             Az átvételi nap módosításával a korábban megadott, de még nem véglegesített rendelési tételek
                             elvesznek. Folytatja?
                         </p>
 
-                        <div className="mt-6 flex justify-end gap-3">
+                        <div className="mt-8 flex justify-end gap-3">
 
                             <button
                                 type="button"
                                 onClick={cancelPickupDayChange}
-                                className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                                className="rounded-lg border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
                             >
                                 Mégse
                             </button>
@@ -465,7 +500,7 @@ export default function PreorderManager({
                             <button
                                 type="button"
                                 onClick={confirmPickupDayChange}
-                                className="rounded-lg bg-[rgb(49,171,2)] px-4 py-2 font-semibold text-white hover:brightness-95"
+                                className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
                             >
                                 Folytatás
                             </button>
