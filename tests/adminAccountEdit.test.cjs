@@ -16,26 +16,38 @@ function load(relativePath, imports = {}) {
     return exports;
 }
 const validation = load('../lib/adminAccountEdit.ts');
-const valid = { first_name: ' Ágnes ', last_name: 'Héjja', phone: '06 30 123 4567', county: 'Pest', city: '' };
+const valid = {
+    first_name: ' Ágnes ',
+    last_name: 'Héjja',
+    phone: '06 30 123 4567',
+    county: 'Pest',
+    city: 'Budapest',
+    role: 'user',
+    special_size_preference: null,
+};
 
-test('normalizes names and phone and permits an empty city', () => {
-    const { profile } = validation.validateAccountProfile(valid);
-    assert.equal(profile.first_name, 'Ágnes');
-    assert.equal(profile.phone, '+36301234567');
-    assert.equal(profile.city, '');
+test('normalizes names and phone and returns the permitted account options', () => {
+    const { account } = validation.validateAdminAccount(valid);
+    assert.equal(account.first_name, 'Ágnes');
+    assert.equal(account.phone, '+36301234567');
+    assert.equal(account.city, 'Budapest');
+    assert.equal(account.role, 'user');
+    assert.equal(account.special_size_preference, null);
 });
 test('rejects missing required fields, malformed inputs and invalid phones', () => {
-    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }]) {
-        assert.ok(validation.validateAccountProfile(value).error);
+    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }, { ...valid, role: 'owner' }, { ...valid, special_size_preference: 'medium' }]) {
+        assert.ok(validation.validateAdminAccount(value).error);
     }
 });
 test('accepts the same separator-tolerant phone format as the customer profile editor', () => {
-    const { profile } = validation.validateAccountProfile({ ...valid, phone: '+36 (30) 123-4567' });
-    assert.equal(profile.phone, '+36301234567');
+    const { account } = validation.validateAdminAccount({ ...valid, phone: '+36 (30) 123-4567' });
+    assert.equal(account.phone, '+36301234567');
 });
-test('strips attempts to change email, role or consent', () => {
-    const result = validation.validateAccountProfile({ ...valid, email: 'other@example.com', role: 'admin', consents: [] });
-    assert.deepEqual(Object.keys(result.profile).sort(), ['city', 'county', 'first_name', 'last_name', 'phone']);
+test('includes only the supported admin options and ignores unrelated input', () => {
+    const result = validation.validateAdminAccount({ ...valid, email: 'other@example.com', role: 'admin', special_size_preference: 'larger', consents: [] });
+    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'phone', 'role', 'special_size_preference']);
+    assert.equal(result.account.role, 'admin');
+    assert.equal(result.account.special_size_preference, 'larger');
 });
 
 function actionFixture({ signedIn = true, admin = true, rpcError = null } = {}) {
@@ -67,11 +79,11 @@ test('invalid target or input cannot reach the database mutation', async () => {
     assert.equal((await updateAdminAccount(targetId, {})).success, false);
     assert.equal(calls.length, 0);
 });
-test('successful save writes only validated personal fields to the target user', async () => {
+test('successful save writes validated profile, role and size options to the target user', async () => {
     const { updateAdminAccount, calls } = actionFixture();
     const result = await updateAdminAccount(targetId, { ...valid, role: 'admin' });
     assert.equal(result.success, true);
-    assert.deepEqual(calls, [['update_admin_account_profile', { target_user_id: targetId, profile_data: result.profile }]]);
+    assert.deepEqual(calls, [['update_admin_account_profile', { target_user_id: targetId, profile_data: result.account }]]);
 });
 test('database errors are not reported as successful saves', async () => {
     const { updateAdminAccount } = actionFixture({ rpcError: { code: 'PGRST202' } });

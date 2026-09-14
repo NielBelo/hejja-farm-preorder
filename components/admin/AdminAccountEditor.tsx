@@ -69,7 +69,10 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         county: account.county ?? "",
         city: account.city ?? "",
         role: account.role === "admin" ? "admin" : "user",
-        special_size_preference: account.special_size_preference,
+        // Régebbi RPC-válaszokból ez a mező hiányozhat. A hiányzó érték
+        // ugyanazt jelenti, mint hogy nincs külön méretigény, ezért a
+        // mentéshez mindig explicit nullt küldünk.
+        special_size_preference: account.special_size_preference ?? null,
     };
     const [form, setForm] = useState(initial);
     const [saving, setSaving] = useState(false);

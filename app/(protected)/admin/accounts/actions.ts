@@ -28,3 +28,34 @@ export async function updateAdminAccount(userId: string, input: unknown) {
     revalidatePath("/profile");
     return { success: true as const, account: validated.account! };
 }
+
+export async function deleteAdminAccount(userId: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return { success: false as const, error: "A törléshez jelentkezzen be újra." };
+    if (typeof userId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return { success: false as const, error: "Érvénytelen felhasználó." };
+    const { data, error } = await supabase.rpc("delete_admin_account", { target_user_id: userId });
+    if (error) {
+        console.error("Admin fióktörlési hiba:", error.code, error.message);
+        return { success: false as const, error: error.message || "A felhasználói fiók törlése sikertelen." };
+    }
+    if (!data) return { success: false as const, error: "A felhasználói fiók törlése sikertelen." };
+    revalidatePath("/admin/accounts");
+    return { success: true as const };
+}
+
+export async function deleteAdminInvite(email: string) {
+    const supabase = await createClient();
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) return { success: false as const, error: "A törléshez jelentkezzen be újra." };
+    const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { success: false as const, error: "Érvénytelen e-mail-cím." };
+    const { data, error } = await supabase.rpc("delete_admin_registration_invite", { target_email: normalizedEmail });
+    if (error) {
+        console.error("Admin meghívótörlési hiba:", error.code, error.message);
+        return { success: false as const, error: error.message || "A meghívó törlése sikertelen." };
+    }
+    if (!data) return { success: false as const, error: "A meghívó törlése sikertelen." };
+    revalidatePath("/admin/accounts");
+    return { success: true as const };
+}

@@ -7,10 +7,11 @@ type Preview = {
     modifiedAtLabel?: string;
 };
 
-type TemplateKey = "registration" | "order-created" | "order-updated";
+type TemplateKey = "registration" | "registration-invite" | "order-created" | "order-updated";
 
 const templateLabels: Record<TemplateKey, string> = {
     registration: "Regisztráció megerősítése",
+    "registration-invite": "Regisztrációs meghívó",
     "order-created": "Új rendelés visszaigazolása",
     "order-updated": "Rendelés módosítása",
 };

@@ -16,6 +16,7 @@ const textValue = (formData: FormData, name: string) => {
 };
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
+const PRODUCTION_SITE_URL = "https://hejja-farm.hu";
 
 function normalizeHungarianPhone(value: string) {
   let digits = value.replace(/\D/g, "");
@@ -72,6 +73,7 @@ export async function register(_previous: RegisterState, formData: FormData): Pr
     email: invitedEmail,
     password,
     options: {
+      emailRedirectTo: `${PRODUCTION_SITE_URL}/auth/confirm`,
       data: {
         registration_invite_token: invite,
         privacy_policy_accepted: true,

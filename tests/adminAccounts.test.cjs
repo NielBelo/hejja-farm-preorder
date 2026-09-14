@@ -27,6 +27,9 @@ test('invited users without profiles remain searchable and filterable', () => {
     assert.equal(accountName(accounts[2]), 'meghivott@example.hu');
     assert.deepEqual(filterAccounts(accounts, 'meghivott', [], [], ['__missing']).map(a => a.id), ['3']);
 });
+test('sent invitations have a dedicated, filterable status', () => {
+    assert.deepEqual(filterAccounts(accounts, '', ['invited'], [], []).map(a => a.id), ['3']);
+});
 test('cleared filters return every account', () => {
     assert.equal(filterAccounts(accounts, '  ', [], [], []).length, 3);
 });

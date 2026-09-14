@@ -162,6 +162,8 @@ export default function Navigation({
               {accountMenuOpen && <div id="account-menu" className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                 <Link href="/admin/accounts" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts" ? "page" : undefined}
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
+                <Link href="/admin/accounts/invites" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/invites" ? "page" : undefined}
+                  className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Meghívó</Link>
               </div>}
             </div>
 
@@ -194,6 +196,7 @@ export default function Navigation({
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                   {[
                     ["Regisztráció megerősítése", "registration"],
+                    ["Regisztrációs meghívó", "registration-invite"],
                     ["Új rendelés visszaigazolása", "order-created"],
                     ["Rendelés módosítása", "order-updated"],
                   ].map(([label, template]) => (

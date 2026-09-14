@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
+import { deleteAdminAccount, deleteAdminInvite } from "@/app/(protected)/admin/accounts/actions";
 import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
 import { ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
@@ -13,6 +14,17 @@ function date(value: string | null) {
 }
 function roleLabel(role: string) {
     return role === "admin" ? "Adminisztrátor" : role === "user" ? "Vásárló" : role;
+}
+function accountBadge(account: AdminAccount) {
+    if (account.status !== "registered") {
+        return {
+            label: accountStatusLabels[account.status],
+            className: account.status === "invited" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700",
+        };
+    }
+    if (account.is_superadmin) return { label: "Szuper adminisztrátor", className: "bg-violet-50 text-violet-700" };
+    if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-violet-50 text-violet-700" };
+    return { label: "Vásárló", className: "bg-green-50 text-green-700" };
 }
 function specialSizePreferenceLabel(preference: AdminAccount["special_size_preference"]) {
     return preference === "smaller"
@@ -42,7 +54,8 @@ function ProfileField({ label, value, icon: Icon }: {
 
 export default function AdminAccountList({ accounts: initialAccounts }: { accounts: AdminAccount[] }) {
     const [savedAccounts, setSavedAccounts] = useState<Record<string, AdminAccountUpdateInput>>({});
-    const accounts = initialAccounts.map((account) => ({ ...account, ...savedAccounts[account.id] }));
+    const [deletedIds, setDeletedIds] = useState<Set<string>>(() => new Set());
+    const accounts = initialAccounts.filter((account) => !deletedIds.has(account.id)).map((account) => ({ ...account, ...savedAccounts[account.id] }));
     const [editingId, setEditingId] = useState<string | null>(null);
     const [savedId, setSavedId] = useState<string | null>(null);
     const editing = editingId !== null;
@@ -51,6 +64,9 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
     const [roles, setRoles] = useState<string[]>([]);
     const [counties, setCounties] = useState<string[]>([]);
     const [openId, setOpenId] = useState<string | null>(null);
+    const [confirmingAccount, setConfirmingAccount] = useState<AdminAccount | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
     const filtered = filterAccounts(accounts, search, statuses, roles, counties);
     const selectionCount = statuses.length + roles.length + counties.length + (search.trim() ? 1 : 0);
     const countyOptions = [...new Set(accounts.map((account) => account.county || "__missing"))]
@@ -96,14 +112,14 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                 .map((consent) => consent.document_version))];
             const open = openId === account.id;
             const panelId = `account-${encodeURIComponent(account.id)}`;
+            const badge = accountBadge(account);
             return <article key={account.id} className={`overflow-hidden rounded-xl bg-white shadow-sm transition-all ${open ? "border-2 border-blue-400 ring-2 ring-blue-100" : "border border-gray-200"}`}>
                 <h2><button type="button" disabled={editing} aria-expanded={open} aria-controls={panelId} onClick={() => setOpenId(open ? null : account.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/70 focus-visible:outline-blue-400">
                     <UserCircleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-gray-400" />
                     <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-2">
                             <span className="break-words font-semibold text-gray-800">{accountName(account)}</span>
-                            <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${account.status === "registered" ? "bg-green-50 text-green-700" : account.status === "invited" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700"}`}>{accountStatusLabels[account.status]}</span>
-                            {account.is_superadmin ? <span className="rounded-md bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">Superadmin</span> : account.role === "admin" && <span className="rounded-md bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700">Adminisztrátor</span>}
+                            <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
                         </span>
                         <span className="mt-1.5 block break-words text-sm text-gray-500">{[account.email, account.county, account.city].filter(Boolean).join(" · ")}</span>
                     </span>
@@ -139,13 +155,34 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             </dl>
                         </section>
                         {savedId === account.id && <p role="status" className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">A személyes adatok módosítása sikeres.</p>}
-                        {editingId !== account.id && account.user_id && <div className="border-t border-gray-200 pt-3">
-                            <button type="button" disabled={editing} onClick={() => { setEditingId(account.id); setSavedId(null); }}
+                        {editingId !== account.id && <div className="border-t border-gray-200 pt-3">
+                            {account.user_id && <button type="button" disabled={editing || deleting} onClick={() => { setEditingId(account.id); setSavedId(null); }}
                                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300">Módosítás</button>
+                            }
+                            {!account.is_superadmin && <button type="button" disabled={editing || deleting} onClick={() => { setDeleteError(null); setConfirmingAccount(account); }}
+                                className="ml-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300">{account.user_id ? "Fiók törlése" : "Meghívó törlése"}</button>}
                         </div>}
                     </>}
                 </div>
             </article>;
         })}
+        {confirmingAccount && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setConfirmingAccount(null); }}>
+            <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
+                <h2 id="delete-account-title" className="text-lg font-semibold text-gray-900">{confirmingAccount.user_id ? "Fiók törlésének megerősítése" : "Meghívó törlésének megerősítése"}</h2>
+                <p className="mt-3 text-sm leading-6 text-gray-700">{confirmingAccount.user_id ? "A fiókhoz tartozó személyes adatok, rendelések, hozzájárulások és meghívók is végleg törlődnek." : "A fel nem használt meghívó végleg törlődik."}</p>
+                <p className="mt-2 break-words text-sm font-semibold text-gray-900">{accountName(confirmingAccount)} · {confirmingAccount.email}</p>
+                {deleteError && <p role="alert" className="mt-3 text-sm text-red-700">{deleteError}</p>}
+                <div className="mt-5 flex justify-end gap-2">
+                    <button type="button" disabled={deleting} onClick={() => setConfirmingAccount(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700">Mégse</button>
+                    <button type="button" disabled={deleting} onClick={async () => {
+                        setDeleting(true); setDeleteError(null);
+                        const result = confirmingAccount.user_id ? await deleteAdminAccount(confirmingAccount.user_id) : await deleteAdminInvite(confirmingAccount.email ?? "");
+                        if (result.success) { setDeletedIds((current) => new Set(current).add(confirmingAccount.id)); setOpenId(null); setConfirmingAccount(null); }
+                        else setDeleteError(result.error);
+                        setDeleting(false);
+                    }} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{deleting ? "Törlés…" : "Igen, törlöm"}</button>
+                </div>
+            </div>
+        </div>}
     </div>;
 }

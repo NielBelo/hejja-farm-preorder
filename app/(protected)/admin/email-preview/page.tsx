@@ -1,6 +1,7 @@
 import { buildOrderNotification } from "@/lib/email/orderNotification";
 import { getLatestOrderUpdate } from "@/lib/email/latestOrderUpdate";
 import { buildRegistrationConfirmation } from "@/lib/email/registrationConfirmation";
+import { buildRegistrationInvite } from "@/lib/email/registrationInvite";
 import { createClient } from "@/lib/supabase/server";
 import EmailPreviewSwitcher from "./EmailPreviewSwitcher";
 
@@ -63,7 +64,11 @@ export default async function AdminEmailPreviewPage({
     }, {
         logoSrc: "/images/logo2.png",
     });
-    const selectedTemplate = initialTemplate === "order-created" || initialTemplate === "order-updated"
+    const inviteEmail = buildRegistrationInvite({
+        recipientName: "Dániel",
+        invitationUrl: "https://hejja-farm.hu/register?invite=minta-egyszer-hasznalatos-token",
+    });
+    const selectedTemplate = initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "registration-invite"
         ? initialTemplate
         : "registration" as const;
     const previews = {
@@ -71,6 +76,12 @@ export default async function AdminEmailPreviewPage({
             subject: registrationEmail.subject,
             html: registrationEmail.html,
             iframeTitle: "Regisztráció-megerősítő e-mail",
+            height: 850,
+        },
+        "registration-invite": {
+            subject: inviteEmail.subject,
+            html: inviteEmail.html,
+            iframeTitle: "Regisztrációs meghívó e-mail",
             height: 850,
         },
         "order-created": {
@@ -90,6 +101,7 @@ export default async function AdminEmailPreviewPage({
     };
     const useCases = {
         registration: "A vásárló a meghívásos regisztráció elküldése után kapja meg, hogy megerősítse e-mail-címét és aktiválja a fiókját.",
+        "registration-invite": "Az adminisztrátor ezzel az e-maillel küld egyszer használatos linket a vásárlónak a meghívásos regisztráció megkezdéséhez.",
         "order-created": "A vásárló közvetlenül az új előrendelés leadása után kapja meg, amikor a rendszer sikeresen rögzítette a rendelését.",
         "order-updated": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését módosítja, és a rendszer elmenti a változtatást.",
     };

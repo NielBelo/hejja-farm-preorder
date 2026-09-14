@@ -22,7 +22,7 @@ export type AdminAccount = {
 };
 
 export const accountStatusLabels = {
-    invited: "Regisztrációra vár",
+    invited: "Meghívó elküldve",
     unconfirmed: "Megerősítésre vár",
     registered: "Regisztrált",
 };
