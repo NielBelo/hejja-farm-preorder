@@ -7,10 +7,11 @@ type Preview = {
     modifiedAtLabel?: string;
 };
 
-type TemplateKey = "registration" | "registration-invite" | "order-created" | "order-updated";
+type TemplateKey = "registration" | "registration-confirmation" | "registration-invite" | "order-created" | "order-updated";
 
 const templateLabels: Record<TemplateKey, string> = {
-    registration: "Regisztráció megerősítése",
+    registration: "Regisztráció",
+    "registration-confirmation": "Regisztráció megerősítése",
     "registration-invite": "Regisztrációs meghívó",
     "order-created": "Új rendelés visszaigazolása",
     "order-updated": "Rendelés módosítása",
@@ -20,10 +21,12 @@ export default function EmailPreviewSwitcher({
     selectedTemplate,
     preview,
     useCase,
+    registrationFormPreview,
 }: {
     selectedTemplate: TemplateKey;
     preview: Preview;
     useCase: string;
+    registrationFormPreview?: ReactNode;
 }) {
     return (
         <div className="mx-auto w-full max-w-5xl">
@@ -59,15 +62,21 @@ export default function EmailPreviewSwitcher({
                 </div>
 
                 <div className="bg-[#f4f7f5] p-3 sm:p-6">
-                    <iframe
+                    {registrationFormPreview ? (
+                        <div className="mx-auto max-w-2xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
+                            <h2 className="mb-6 text-center text-2xl font-bold text-gray-700">Regisztráció</h2>
+                            {registrationFormPreview}
+                        </div>
+                    ) : <iframe
                         title={preview.iframeTitle}
                         srcDoc={preview.html}
                         sandbox="allow-popups allow-popups-to-escape-sandbox"
                         className="w-full rounded-xl border-0 bg-[#f4f7f5]"
                         style={{ height: preview.height }}
-                    />
+                    />}
                 </div>
             </div>
         </div>
     );
 }
+import type { ReactNode } from "react";

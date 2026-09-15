@@ -2,6 +2,7 @@ import { buildOrderNotification } from "@/lib/email/orderNotification";
 import { getLatestOrderUpdate } from "@/lib/email/latestOrderUpdate";
 import { buildRegistrationConfirmation } from "@/lib/email/registrationConfirmation";
 import { buildRegistrationInvite } from "@/lib/email/registrationInvite";
+import RegisterForm, { RegistrationSuccessMessage } from "@/app/(public)/register/RegisterForm";
 import { createClient } from "@/lib/supabase/server";
 import EmailPreviewSwitcher from "./EmailPreviewSwitcher";
 
@@ -68,11 +69,17 @@ export default async function AdminEmailPreviewPage({
         recipientName: "Dániel",
         invitationUrl: "https://hejja-farm.hu/register?invite=minta-egyszer-hasznalatos-token",
     });
-    const selectedTemplate = initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "registration-invite"
+    const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "registration-invite"
         ? initialTemplate
-        : "registration" as const;
+        : "registration-invite" as const;
     const previews = {
         registration: {
+            subject: "Sikeres regisztráció – képernyőn megjelenő tájékoztató",
+            html: "",
+            iframeTitle: "Sikeres regisztráció tájékoztató",
+            height: 0,
+        },
+        "registration-confirmation": {
             subject: registrationEmail.subject,
             html: registrationEmail.html,
             iframeTitle: "Regisztráció-megerősítő e-mail",
@@ -100,7 +107,8 @@ export default async function AdminEmailPreviewPage({
         },
     };
     const useCases = {
-        registration: "A vásárló a meghívásos regisztráció elküldése után kapja meg, hogy megerősítse e-mail-címét és aktiválja a fiókját.",
+        registration: "Ezt a képernyőn megjelenő tájékoztatót a vásárló közvetlenül az adatok sikeres elküldése után látja.",
+        "registration-confirmation": "A vásárló a meghívásos regisztráció elküldése után kapja meg, hogy megerősítse e-mail-címét és aktiválja a fiókját.",
         "registration-invite": "Az adminisztrátor ezzel az e-maillel küld egyszer használatos linket a vásárlónak a meghívásos regisztráció megkezdéséhez.",
         "order-created": "A vásárló közvetlenül az új előrendelés leadása után kapja meg, amikor a rendszer sikeresen rögzítette a rendelését.",
         "order-updated": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését módosítja, és a rendszer elmenti a változtatást.",
@@ -111,6 +119,7 @@ export default async function AdminEmailPreviewPage({
             selectedTemplate={selectedTemplate}
             preview={previews[selectedTemplate]}
             useCase={useCases[selectedTemplate]}
+            registrationFormPreview={selectedTemplate === "registration" ? <div className="space-y-8"><RegisterForm preview token="admin-preview" email="pelda@domain.hu" /><div className="border-t border-gray-200 pt-8"><p className="mb-3 text-center text-sm font-medium text-gray-500">Sikeres regisztráció utáni visszajelzés</p><RegistrationSuccessMessage /></div></div> : undefined}
         />
     );
 }

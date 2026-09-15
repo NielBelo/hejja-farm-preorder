@@ -39,7 +39,7 @@ export default async function RegisterPage({
         : "A meghívó érvénytelen vagy nem létezik.";
 
     return (
-      <main className="mx-auto mt-10 max-w-md rounded-xl bg-white p-6 shadow-sm">
+      <main className="mx-auto mt-10 max-w-2xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
         <h1 className="mb-4 text-center text-2xl font-bold text-gray-700">
           Regisztráció
         </h1>
@@ -55,7 +55,7 @@ export default async function RegisterPage({
   }
 
   return (
-    <main className="mx-auto mt-10 max-w-md rounded-xl bg-white p-6 shadow-sm">
+    <main className="mx-auto mt-10 max-w-2xl rounded-xl bg-white p-6 shadow-sm sm:p-8">
       <h1 className="mb-6 text-center text-2xl font-bold text-gray-700">
         Regisztráció
       </h1>

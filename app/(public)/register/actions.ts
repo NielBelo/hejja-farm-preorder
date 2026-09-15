@@ -1,13 +1,12 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
 
 export type RegisterState = {
   error: string | null;
   success: string | null;
-  fieldErrors: Partial<Record<"firstName" | "lastName" | "phone" | "county" | "password" | "passwordConfirmation" | "privacyAccepted", string>>;
-  values: Partial<Record<"firstName" | "lastName" | "phone" | "county" | "city", string>>;
+  fieldErrors: Partial<Record<"firstName" | "lastName" | "phone" | "county" | "city" | "password" | "passwordConfirmation" | "privacyAccepted", string>>;
+  values: Partial<Record<"firstName" | "lastName" | "phone" | "county" | "city", string>> & { privacyAccepted?: boolean };
 };
 
 const textValue = (formData: FormData, name: string) => {
@@ -36,13 +35,14 @@ export async function register(_previous: RegisterState, formData: FormData): Pr
   const password = textValue(formData, "password");
   const passwordConfirmation = textValue(formData, "passwordConfirmation");
   const privacyAccepted = formData.get("privacyAccepted") === "true";
-  const values = { firstName, lastName, phone: phoneInput, county, city };
+  const values = { firstName, lastName, phone: phoneInput, county, city, privacyAccepted };
   const fieldErrors: RegisterState["fieldErrors"] = {};
 
   if (!firstName) fieldErrors.firstName = "A keresztnév megadása kötelező.";
   if (!lastName) fieldErrors.lastName = "A vezetéknév megadása kötelező.";
   if (!phone) fieldErrors.phone = "Kérjük, adjon meg érvényes magyar telefonszámot.";
-  if (!county) fieldErrors.county = "A vármegye kiválasztása kötelező.";
+  if (!county) fieldErrors.county = "A megye kiválasztása kötelező.";
+  if (!city) fieldErrors.city = "A település megadása kötelező.";
   if (password.length < 6) fieldErrors.password = "A jelszónak legalább 6 karakter hosszúnak kell lennie.";
   if (password !== passwordConfirmation) fieldErrors.passwordConfirmation = "A két jelszó nem egyezik.";
   if (!privacyAccepted) fieldErrors.privacyAccepted = "Az adatkezelési tájékoztató elfogadása kötelező.";
@@ -122,5 +122,10 @@ export async function register(_previous: RegisterState, formData: FormData): Pr
     };
   }
 
-  redirect("/login?registered=1");
+  return {
+    error: null,
+    success: "Sikeresen rögzítettük az adataidat. Hamarosan kapsz egy e-mailt; a benne lévő megerősítő linkre kattintva fejezheted be a regisztrációt.",
+    fieldErrors: {},
+    values: {},
+  };
 }

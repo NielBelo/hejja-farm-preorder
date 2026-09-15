@@ -195,8 +195,9 @@ export default function Navigation({
               {emailMenuOpen && (
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                   {[
-                    ["Regisztráció megerősítése", "registration"],
-                    ["Regisztrációs meghívó", "registration-invite"],
+                    ["Meghívó", "registration-invite"],
+                    ["Regisztráció", "registration"],
+                    ["Megerősítés", "registration-confirmation"],
                     ["Új rendelés visszaigazolása", "order-created"],
                     ["Rendelés módosítása", "order-updated"],
                   ].map(([label, template]) => (
