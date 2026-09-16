@@ -4,7 +4,7 @@ import { OrderActionsManager } from "@/components/OrderActionsManager";
 import EditableOrderCard from "@/components/EditableOrderCard";
 import CountdownCard from "@/components/CountdownCard";
 import Image from "next/image";
-import { getPickupDateStatus } from "@/lib/usePickupDateStatus";
+import { getPickupDateStatus } from "@/lib/pickupDateStatus";
 
 
 
@@ -280,10 +280,10 @@ export default async function HistoryPage({
                   {/* Fejléc */}
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-2">
 
-                    {/* Rendelési azonosító - bal oldal */}
-                    <span className="text-lg font-semibold text-gray-800">
-                      Rendelési azonosító:{" "}
-                      {order.public_order_number}
+                    {/* Átvételi nap - bal oldal */}
+                    <span className="inline-block rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
+                      Átvétel:{" "}
+                      {pickupDate ? formatDate(pickupDate) : "Nincs megadva"}
                     </span>
 
                     {/* Aktualitás - jobb oldal */}
@@ -333,13 +333,11 @@ export default async function HistoryPage({
 
                       <div className="flex items-baseline gap-2">
                         <span className="text-base text-gray-500">
-                          Átvétel:
+                          Rendelési azonosító:
                         </span>
 
                         <span className="text-base text-gray-700">
-                          {pickupDate
-                            ? formatDate(pickupDate)
-                            : "Nincs megadva"}
+                          {order.public_order_number}
                         </span>
                       </div>
                     </div>

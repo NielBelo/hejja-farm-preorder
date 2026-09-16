@@ -196,7 +196,7 @@ export default function PickupSheet({
     const distributions = useMemo(() => getPickupDistributions(visibleOrders), [visibleOrders]);
     const wholeChickenCount = distributions.products.find((entry) => entry.label === "Egész")?.quantity ?? 0;
     const choppedChickenCount = distributions.products.find((entry) => entry.label === "Darab")?.quantity ?? 0;
-    const printSummaryLabel = `${summary.chickenCount} csirke · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
+    const printSummaryLabel = `${summary.chickenCount} csirke (${wholeChickenCount} egész · ${choppedChickenCount} darabolt) · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
 
     useEffect(() => {
         const root = document.documentElement;
@@ -252,16 +252,6 @@ export default function PickupSheet({
                             <div className="px-1">
                                 <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
                                 <span className="text-[11px]">tétel</span>
-                            </div>
-                        </div>
-                        <div className="mt-3 grid grid-cols-2 divide-x divide-gray-300 border-t border-gray-300 pt-3 text-center text-gray-600">
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{wholeChickenCount}</strong>
-                                <span className="text-[11px]">egész</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{choppedChickenCount}</strong>
-                                <span className="text-[11px]">darabolt</span>
                             </div>
                         </div>
                     </section>
