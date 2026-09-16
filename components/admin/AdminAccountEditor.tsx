@@ -5,24 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { updateAdminAccount } from "@/app/(protected)/admin/accounts/actions";
 import { validateAdminAccount, type AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
 import type { AdminAccount } from "@/lib/adminAccountData";
+import { formatHungarianPhoneInput as formatPhoneInput } from "@/lib/phoneNumber";
 
 const counties = [
     "Bács-Kiskun", "Baranya", "Békés", "Borsod-Abaúj-Zemplén", "Budapest", "Csongrád-Csanád", "Fejér",
     "Győr-Moson-Sopron", "Hajdú-Bihar", "Heves", "Jász-Nagykun-Szolnok", "Komárom-Esztergom", "Nógrád",
     "Pest", "Somogy", "Szabolcs-Szatmár-Bereg", "Tolna", "Vas", "Veszprém", "Zala",
 ];
-
-function formatPhoneInput(value: string): string {
-    let digits = value.replace(/\D/g, "");
-    if (digits.startsWith("06")) digits = `36${digits.slice(2)}`;
-    if (!digits.startsWith("36")) digits = `36${digits}`;
-    digits = digits.slice(0, 11);
-
-    const prefix = digits.slice(2, 4);
-    const first = digits.slice(4, 7);
-    const second = digits.slice(7, 11);
-    return `+36${prefix ? ` ${prefix}` : ""}${first ? ` ${first}` : ""}${second ? ` ${second}` : ""}`;
-}
 
 function CountySelect({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
     const [isOpen, setIsOpen] = useState(false);

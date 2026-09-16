@@ -1,3 +1,5 @@
+import { normalizeHungarianPhone } from "@/lib/phoneNumber";
+
 export type AccountProfileInput = {
     first_name: string;
     last_name: string;
@@ -26,10 +28,9 @@ export function validateAdminAccount(input: unknown): { account: AdminAccountUpd
     if (!profile.first_name || !profile.last_name || !profile.county || !profile.city) {
         return { error: "A vezetéknév, keresztnév, vármegye és település megadása kötelező." };
     }
-    let digits = profile.phone.replace(/\D/g, "");
-    if (digits.startsWith("06")) digits = `36${digits.slice(2)}`;
-    if (!/^36\d{9}$/.test(digits)) return { error: "Adjon meg érvényes magyar telefonszámot (pl. +36 30 123 4567)." };
-    profile.phone = `+${digits}`;
+    const normalizedPhone = normalizeHungarianPhone(profile.phone);
+    if (!normalizedPhone) return { error: "Adjon meg érvényes magyar telefonszámot (pl. +36 30 123 4567)." };
+    profile.phone = normalizedPhone;
 
     if (values.role !== "user" && values.role !== "admin") {
         return { error: "Érvénytelen jogosultsági beállítás." };

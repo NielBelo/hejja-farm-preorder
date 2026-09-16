@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { normalizeHungarianPhone } from "@/lib/phoneNumber";
 
 export type RegisterState = {
   error: string | null;
@@ -16,12 +17,6 @@ const textValue = (formData: FormData, name: string) => {
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
 const PRODUCTION_SITE_URL = "https://hejja-farm.hu";
-
-function normalizeHungarianPhone(value: string) {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("06")) digits = `36${digits.slice(2)}`;
-  return /^36\d{9}$/.test(digits) ? `+${digits}` : null;
-}
 
 export async function register(_previous: RegisterState, formData: FormData): Promise<RegisterState> {
   const invite = textValue(formData, "invite");

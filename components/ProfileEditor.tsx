@@ -14,6 +14,7 @@ import {
     XMarkIcon,
     ChevronDownIcon,
 } from "@heroicons/react/24/outline";
+import { formatHungarianPhoneInput, normalizeHungarianPhone } from "@/lib/phoneNumber";
 
 type Profile = {
     first_name: string;
@@ -56,48 +57,12 @@ const counties = [
     "Zala",
 ];
 
-function formatPhoneInput(value: string): string {
-    let digits = value.replace(/\D/g, "");
-
-    if (digits.startsWith("06")) {
-        digits = "36" + digits.slice(2);
-    }
-
-    if (!digits.startsWith("36")) {
-        digits = "36" + digits;
-    }
-
-    digits = digits.slice(0, 11);
-
-    const prefix = digits.slice(2, 4);
-    const first = digits.slice(4, 7);
-    const second = digits.slice(7, 11);
-
-    let result = "+36";
-
-    if (prefix) result += ` ${prefix}`;
-    if (first) result += ` ${first}`;
-    if (second) result += ` ${second}`;
-
-    return result;
-}
-
-function normalizeHungarianPhone(value: string): string | null {
-    const digits = value.replace(/\D/g, "");
-
-    if (!/^36\d{9}$/.test(digits)) {
-        return null;
-    }
-
-    return `+${digits}`;
-}
-
 function formatStoredPhone(value: string): string {
     if (!value) {
         return "+36";
     }
 
-    return formatPhoneInput(value);
+    return formatHungarianPhoneInput(value);
 }
 
 function isValidEmail(value: string): boolean {
@@ -166,7 +131,7 @@ export default function ProfileEditor({
         if (name === "phone") {
             setForm((prev) => ({
                 ...prev,
-                phone: formatPhoneInput(value),
+                phone: formatHungarianPhoneInput(value),
             }));
 
             return;
@@ -369,7 +334,7 @@ export default function ProfileEditor({
                 ...prev,
                 first_name: form.first_name.trim(),
                 last_name: form.last_name.trim(),
-                phone: formatPhoneInput(phone),
+                phone: formatHungarianPhoneInput(phone),
                 county: form.county,
                 city: form.city.trim(),
             }));

@@ -5,17 +5,10 @@ import { CheckIcon, ChevronDownIcon, EyeIcon, EyeSlashIcon } from "@heroicons/re
 import { useActionState, useEffect, useRef, useState } from "react";
 import FormInput from "@/components/FormInput";
 import { register, type RegisterState } from "./actions";
+import { formatHungarianPhoneInput as formatPhoneInput, normalizeHungarianPhone } from "@/lib/phoneNumber";
 
 const counties = ["Bács-Kiskun", "Baranya", "Békés", "Borsod-Abaúj-Zemplén", "Budapest", "Csongrád-Csanád", "Fejér", "Győr-Moson-Sopron", "Hajdú-Bihar", "Heves", "Jász-Nagykun-Szolnok", "Komárom-Esztergom", "Nógrád", "Pest", "Somogy", "Szabolcs-Szatmár-Bereg", "Tolna", "Vas", "Veszprém", "Zala"];
 const initialState: RegisterState = { error: null, success: null, fieldErrors: {}, values: {} };
-
-function formatPhoneInput(value: string) {
-  let digits = value.replace(/\D/g, "");
-  if (digits.startsWith("06")) digits = `36${digits.slice(2)}`;
-  if (!digits.startsWith("36")) digits = `36${digits}`;
-  digits = digits.slice(0, 11);
-  return ["+36", digits.slice(2, 4), digits.slice(4, 7), digits.slice(7, 11)].filter(Boolean).join(" ");
-}
 
 async function previewRegister(_previous: RegisterState, formData: FormData): Promise<RegisterState> {
   const value = (name: string) => {
@@ -23,8 +16,7 @@ async function previewRegister(_previous: RegisterState, formData: FormData): Pr
     return typeof input === "string" ? input.trim() : "";
   };
   const phoneInput = value("phone");
-  let phoneDigits = phoneInput.replace(/\D/g, "");
-  if (phoneDigits.startsWith("06")) phoneDigits = `36${phoneDigits.slice(2)}`;
+  const normalizedPhone = normalizeHungarianPhone(phoneInput);
   const values = {
     firstName: value("firstName"), lastName: value("lastName"), phone: phoneInput,
     county: value("county"), city: value("city"), privacyAccepted: formData.get("privacyAccepted") === "true",
@@ -32,7 +24,7 @@ async function previewRegister(_previous: RegisterState, formData: FormData): Pr
   const fieldErrors: RegisterState["fieldErrors"] = {};
   if (!values.firstName) fieldErrors.firstName = "A keresztnév megadása kötelező.";
   if (!values.lastName) fieldErrors.lastName = "A vezetéknév megadása kötelező.";
-  if (!/^36\d{9}$/.test(phoneDigits)) fieldErrors.phone = "Kérjük, adjon meg érvényes magyar telefonszámot.";
+  if (!normalizedPhone) fieldErrors.phone = "Kérjük, adjon meg érvényes magyar telefonszámot.";
   if (!values.county) fieldErrors.county = "A megye kiválasztása kötelező.";
   if (!values.city) fieldErrors.city = "A település megadása kötelező.";
   if (value("password").length < 6) fieldErrors.password = "A jelszónak legalább 6 karakter hosszúnak kell lennie.";
