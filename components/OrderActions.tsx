@@ -124,14 +124,14 @@ export default function OrderActions({
         availableStock + originalQuantity;
 
     const stockStatus =
-        availableStock <= 0
+        maxAvailableQuantity <= 0
             ? {
                 text: "Előrendelés betelt!",
                 iconClass: "text-red-500",
             }
-            : availableStock <= 30
+            : maxAvailableQuantity <= 30
                 ? {
-                    text: `Már csak ${availableStock} db csirke elérhető!`,
+                    text: `Már csak ${maxAvailableQuantity} db csirke elérhető!`,
                     iconClass: "text-yellow-500",
                 }
                 : {
