@@ -41,6 +41,8 @@ export async function deleteAdminAccount(userId: string) {
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return { success: false as const, error: "A törléshez jelentkezzen be újra." };
+    const { data: role, error: roleError } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    if (roleError || !role) return { success: false as const, error: "Adminisztrátori jogosultság szükséges." };
     if (typeof userId !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId)) return { success: false as const, error: "Érvénytelen felhasználó." };
     const { data, error } = await supabase.rpc("delete_admin_account", { target_user_id: userId });
     if (error) {
@@ -56,6 +58,8 @@ export async function deleteAdminInvite(email: string) {
     const supabase = await createClient();
     const { data: { user }, error: userError } = await supabase.auth.getUser();
     if (userError || !user) return { success: false as const, error: "A törléshez jelentkezzen be újra." };
+    const { data: role, error: roleError } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    if (roleError || !role) return { success: false as const, error: "Adminisztrátori jogosultság szükséges." };
     const normalizedEmail = typeof email === "string" ? email.trim().toLowerCase() : "";
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) return { success: false as const, error: "Érvénytelen e-mail-cím." };
     const { data, error } = await supabase.rpc("delete_admin_registration_invite", { target_email: normalizedEmail });
