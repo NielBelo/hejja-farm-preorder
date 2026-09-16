@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon, CheckIcon, ChevronDownIcon, ShieldCheckIcon, TruckIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { updateAdminAccount } from "@/app/(protected)/admin/accounts/actions";
 import { validateAdminAccount, type AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
@@ -73,6 +73,7 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         // ugyanazt jelenti, mint hogy nincs külön méretigény, ezért a
         // mentéshez mindig explicit nullt küldünk.
         special_size_preference: account.special_size_preference ?? null,
+        oroshazi_delivery: account.oroshazi_delivery ?? false,
     };
     const [form, setForm] = useState(initial);
     const [saving, setSaving] = useState(false);
@@ -115,33 +116,35 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
                 <input name="city" type="text" required maxLength={100} value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
                     className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
             </label>
-            <div className="space-y-3 rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2 lg:col-span-3">
-                <p className="text-sm font-semibold text-gray-700">Jogosultság és speciális igények</p>
+            <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:col-span-2 lg:col-span-3" aria-label="Adminisztrátori privilégiumok">
+                <div><p className="text-sm font-semibold text-slate-800">Adminisztrátori privilégiumok</p><p className="mt-0.5 text-xs text-slate-500">Ezek a beállítások kizárólag itt, az admin felületen láthatók.</p></div>
                 {account.is_superadmin ? (
-                    <p className="text-sm text-violet-700">Superadmin · A védett jogosultság nem módosítható.</p>
+                    <p className="flex items-center gap-2 text-sm text-violet-700"><ShieldCheckIcon aria-hidden="true" className="h-5 w-5" />Superadmin · A védett jogosultság nem módosítható.</p>
                 ) : (
-                    <label className="flex cursor-pointer items-center gap-2 text-sm font-medium text-gray-700">
+                    <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-slate-200">
                         <input type="checkbox" checked={form.role === "admin"} onChange={(event) => setForm((current) => ({ ...current, role: event.target.checked ? "admin" : "user" }))}
                             className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                        Adminisztrátor
+                        <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />Adminisztrátori jog
                     </label>
                 )}
-                <div>
-                    <p className="mb-2 text-sm font-medium text-gray-500">Speciális méretigény</p>
-                    <div className="flex flex-wrap gap-x-5 gap-y-2">
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
                             <input type="checkbox" checked={form.special_size_preference === "smaller"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "smaller" : null }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                            Átlagostól kisebb méret, ha lehet
+                            <ArrowsPointingInIcon aria-hidden="true" className="h-4 w-4 text-sky-500" />Kisebb méret preferáció
                         </label>
-                        <label className="flex cursor-pointer items-center gap-2 text-sm text-gray-700">
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
                             <input type="checkbox" checked={form.special_size_preference === "larger"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "larger" : null }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                            Átlagostól nagyobb méret, ha lehet
+                            <ArrowsPointingOutIcon aria-hidden="true" className="h-4 w-4 text-amber-500" />Nagyobb méret preferáció
                         </label>
-                    </div>
+                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
+                            <input type="checkbox" checked={form.oroshazi_delivery} onChange={(event) => setForm((current) => ({ ...current, oroshazi_delivery: event.target.checked }))}
+                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
+                            <TruckIcon aria-hidden="true" className="h-4 w-4 text-emerald-500" />Orosházi kiszállítás
+                        </label>
                 </div>
-            </div>
+            </section>
         </fieldset>
         <p className="mt-2 text-xs text-gray-500">E-mail cím: {account.email || "Nincs megadva"} · Az e-mail címet a fiók tulajdonosa módosíthatja a személyes adatainál.</p>
         {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}

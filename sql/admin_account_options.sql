@@ -6,6 +6,9 @@ alter table public.profiles
   add column if not exists special_size_preference text;
 
 alter table public.profiles
+  add column if not exists oroshazi_delivery boolean not null default false;
+
+alter table public.profiles
   drop constraint if exists profiles_special_size_preference_check;
 
 alter table public.profiles
@@ -108,7 +111,7 @@ begin
   return (
     with accounts as (
       select u.id::text as id, u.id as user_id, u.email,
-        p.first_name, p.last_name, p.phone, p.county, p.city, p.special_size_preference,
+        p.first_name, p.last_name, p.phone, p.county, p.city, p.special_size_preference, p.oroshazi_delivery,
         coalesce(r.role::text, 'user') as role,
         coalesce(r.is_superadmin, false) as is_superadmin,
         case
@@ -140,7 +143,7 @@ begin
       union all
 
       select 'invite:' || i.email, null::uuid, i.email,
-        null::text, null::text, null::text, null::text, null::text, null::text,
+        null::text, null::text, null::text, null::text, null::text, null::text, false,
         'user'::text, false,
         'invited'::text,
         null::timestamptz, null::timestamptz, null::timestamptz,
@@ -224,4 +227,21 @@ $$;
 revoke all on function public.update_admin_account_profile(uuid, jsonb) from public, anon;
 grant execute on function public.update_admin_account_profile(uuid, jsonb) to authenticated;
 
+notify pgrst, 'reload schema';
+
+-- Orosházi kiszállítás: futtasd ezt a blokkot akkor is, ha a fenti
+-- fiókbeállítási szkript már korábban élesben lefutott.
+create or replace function public.update_admin_oroshazi_delivery(target_user_id uuid, enabled boolean)
+returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+  if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
+    raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
+  end if;
+  update public.profiles set oroshazi_delivery = enabled where id = target_user_id;
+  if not found then raise exception 'A felhasználó személyes adatlapja nem található.' using errcode = 'P0002'; end if;
+  return true;
+end;
+$$;
+revoke all on function public.update_admin_oroshazi_delivery(uuid, boolean) from public, anon;
+grant execute on function public.update_admin_oroshazi_delivery(uuid, boolean) to authenticated;
 notify pgrst, 'reload schema';

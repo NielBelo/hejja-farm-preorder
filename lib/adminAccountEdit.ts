@@ -11,6 +11,7 @@ export type SpecialSizePreference = "smaller" | "larger" | null;
 export type AdminAccountUpdateInput = AccountProfileInput & {
     role: "user" | "admin";
     special_size_preference: SpecialSizePreference;
+    oroshazi_delivery: boolean;
 };
 
 export function validateAdminAccount(input: unknown): { account: AdminAccountUpdateInput; error?: never } | { error: string; account?: never } {
@@ -37,12 +38,14 @@ export function validateAdminAccount(input: unknown): { account: AdminAccountUpd
     if (values.special_size_preference !== null && values.special_size_preference !== "smaller" && values.special_size_preference !== "larger") {
         return { error: "Érvénytelen méretigény." };
     }
+    if (typeof values.oroshazi_delivery !== "boolean") return { error: "Érvénytelen kiszállítási beállítás." };
 
     return {
         account: {
             ...profile,
             role: values.role,
             special_size_preference: values.special_size_preference,
+            oroshazi_delivery: values.oroshazi_delivery,
         },
     };
 }

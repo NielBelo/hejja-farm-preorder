@@ -109,7 +109,7 @@ export default function Navigation({
                 type="button"
                 onClick={() => setOrderMenuOpen((open) => !open)}
                 className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
-                  pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/pickup")
+                  pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/pickup") || pathname.startsWith("/admin/seasons")
                     ? "text-[rgb(49,171,2)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }`}
@@ -134,6 +134,7 @@ export default function Navigation({
                   {[
                     ["Szerkesztés", "/admin/orders"],
                     ["Átvétel", "/admin/pickup"],
+                    ["Szezonok", "/admin/seasons"],
                   ].map(([label, href]) => (
                     <Link
                       key={href}

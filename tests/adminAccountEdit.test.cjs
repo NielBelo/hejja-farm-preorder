@@ -24,6 +24,7 @@ const valid = {
     city: 'Budapest',
     role: 'user',
     special_size_preference: null,
+    oroshazi_delivery: false,
 };
 
 test('normalizes names and phone and returns the permitted account options', () => {
@@ -33,6 +34,7 @@ test('normalizes names and phone and returns the permitted account options', () 
     assert.equal(account.city, 'Budapest');
     assert.equal(account.role, 'user');
     assert.equal(account.special_size_preference, null);
+    assert.equal(account.oroshazi_delivery, false);
 });
 test('rejects missing required fields, malformed inputs and invalid phones', () => {
     for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }, { ...valid, role: 'owner' }, { ...valid, special_size_preference: 'medium' }]) {
@@ -45,7 +47,7 @@ test('accepts the same separator-tolerant phone format as the customer profile e
 });
 test('includes only the supported admin options and ignores unrelated input', () => {
     const result = validation.validateAdminAccount({ ...valid, email: 'other@example.com', role: 'admin', special_size_preference: 'larger', consents: [] });
-    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'phone', 'role', 'special_size_preference']);
+    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'oroshazi_delivery', 'phone', 'role', 'special_size_preference']);
     assert.equal(result.account.role, 'admin');
     assert.equal(result.account.special_size_preference, 'larger');
 });
@@ -83,7 +85,10 @@ test('successful save writes validated profile, role and size options to the tar
     const { updateAdminAccount, calls } = actionFixture();
     const result = await updateAdminAccount(targetId, { ...valid, role: 'admin' });
     assert.equal(result.success, true);
-    assert.deepEqual(calls, [['update_admin_account_profile', { target_user_id: targetId, profile_data: result.account }]]);
+    assert.deepEqual(calls, [
+        ['update_admin_account_profile', { target_user_id: targetId, profile_data: result.account }],
+        ['update_admin_oroshazi_delivery', { target_user_id: targetId, enabled: false }],
+    ]);
 });
 test('database errors are not reported as successful saves', async () => {
     const { updateAdminAccount } = actionFixture({ rpcError: { code: 'PGRST202' } });

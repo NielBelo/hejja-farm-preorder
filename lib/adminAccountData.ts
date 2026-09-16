@@ -8,6 +8,7 @@ export type AdminAccount = {
     county: string | null;
     city: string | null;
     special_size_preference: "smaller" | "larger" | null;
+    oroshazi_delivery: boolean;
     role: string;
     is_superadmin: boolean;
     status: "invited" | "unconfirmed" | "registered";

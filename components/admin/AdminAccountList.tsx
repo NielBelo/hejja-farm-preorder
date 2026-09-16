@@ -4,7 +4,7 @@ import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
 import { deleteAdminAccount, deleteAdminInvite } from "@/app/(protected)/admin/accounts/actions";
 import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
-import { ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon, ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
 import { accountName, accountStatusLabels, filterAccounts, type AdminAccount } from "@/lib/adminAccountData";
 
@@ -26,13 +26,6 @@ function accountBadge(account: AdminAccount) {
     if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-violet-50 text-violet-700" };
     return { label: "Vásárló", className: "bg-green-50 text-green-700" };
 }
-function specialSizePreferenceLabel(preference: AdminAccount["special_size_preference"]) {
-    return preference === "smaller"
-        ? "Átlagostól kisebb méret, ha lehet"
-        : preference === "larger"
-            ? "Átlagostól nagyobb méret, ha lehet"
-            : "Nincs külön igény";
-}
 function Field({ label, value }: { label: string; value: string | null }) {
     return <div className="min-w-0"><dt className="text-xs text-gray-500">{label}</dt><dd className="break-words text-sm font-medium text-gray-800">{value || "Nincs megadva"}</dd></div>;
 }
@@ -49,6 +42,12 @@ function ProfileField({ label, value, icon: Icon }: {
                 {value?.trim() || <span className="font-normal text-gray-400">Nincs megadva</span>}
             </dd>
         </div>
+    </div>;
+}
+function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof TruckIcon }) {
+    return <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${enabled ? "bg-white text-gray-800 ring-1 ring-slate-200" : "bg-slate-100/60 text-gray-500"}`}>
+        <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(49,171,2)]" : "text-gray-400"}`} />
+        <span>{label}</span><span className="ml-auto text-xs font-medium">{enabled ? "Aktív" : "Nincs"}</span>
     </div>;
 }
 
@@ -141,10 +140,18 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                                 <ProfileField label="Telefonszám" value={account.phone?.replace(/^(\+36)(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3 $4") ?? null} icon={PhoneIcon} />
                                 <ProfileField label="Vármegye" value={account.county} icon={MapIcon} />
                                 <ProfileField label="Település" value={account.city} icon={MapPinIcon} />
-                                <Field label="Szerepkör" value={account.user_id ? roleLabel(account.role) : "Még nincs felhasználói fiók"} />
-                                <Field label="Speciális méretigény" value={specialSizePreferenceLabel(account.special_size_preference)} />
                             </dl>}
                         </section>
+                        {editingId !== account.id && <section className="border-t border-gray-100 pt-3">
+                            <h3 className="mb-1 text-sm font-semibold text-gray-700">Adminisztrátori privilégiumok</h3>
+                            <p className="mb-3 text-xs text-gray-500">Csak az adminisztráció számára megjelenő beállítások.</p>
+                            <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                                <Privilege label="Adminisztrátori jog" enabled={account.role === "admin"} icon={ShieldCheckIcon} />
+                                <Privilege label="Kisebb méret preferáció" enabled={account.special_size_preference === "smaller"} icon={ArrowsPointingInIcon} />
+                                <Privilege label="Nagyobb méret preferáció" enabled={account.special_size_preference === "larger"} icon={ArrowsPointingOutIcon} />
+                                <Privilege label="Orosházi kiszállítás" enabled={account.oroshazi_delivery} icon={TruckIcon} />
+                            </div>
+                        </section>}
                         <section className="border-t border-gray-100 pt-3">
                             <h3 className="mb-2 text-sm font-semibold text-gray-700">Regisztráció és adatkezelés</h3>
                             <dl className="grid gap-x-5 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
