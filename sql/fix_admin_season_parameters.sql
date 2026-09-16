@@ -1,5 +1,12 @@
 -- Futtasd a Supabase SQL Editorban. A rendelést tartalmazó szezonok
 -- átvételi napjai ezután is szerkeszthetők maradnak.
+--
+-- FONTOS: ez a függvény a pickup_days.season_parameter_id idegen kulcs
+-- alapján párosítja az átvételi napokat a szezonhoz (nem az év+szezon
+-- szöveg alapján), megegyezően a sql/fix_multi_season_and_delete.sql
+-- szkriptben bevezetett javítással. Ez teszi lehetővé, hogy ugyanarra az
+-- évre/szezonra (pl. "2026 Ősz") több különálló szezon kártya is
+-- létezzen anélkül, hogy az átvételi napjaik összekeverednének.
 create or replace function public.admin_save_season_parameters(season_data jsonb)
 returns boolean language plpgsql security definer set search_path = '' as $$
 declare
@@ -14,6 +21,7 @@ declare
   v_days jsonb := season_data -> 'pickupDays';
   v_active boolean := coalesce((season_data ->> 'active')::boolean, false);
   v_day jsonb; v_date date; v_limit integer;
+  v_season_id bigint;
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
@@ -24,25 +32,37 @@ begin
     or jsonb_array_length(v_days) not between 1 and 5 then
     raise exception 'Érvénytelen szezonadatok.' using errcode = '22023';
   end if;
+  if v_id is not null and not exists (select 1 from public.season_parameters where id = v_id) then
+    raise exception 'A szezon nem található.' using errcode = 'P0002';
+  end if;
   if v_active then
-    update public.season_parameters set is_active = false where is_active;
-    update public.pickup_days set is_active = false where is_active;
+    update public.season_parameters set is_active = false where is_active and id is distinct from v_id;
+    update public.pickup_days set is_active = false
+      where is_active and season_parameter_id is distinct from v_id;
   end if;
   if v_id is null then
     insert into public.season_parameters(year, season, weight_min, weight_max, price, is_active, time_window_start, time_window_end)
-    values(v_year, v_season, v_weight_min, v_weight_max, v_price, v_active, v_start::timestamptz, v_end::timestamptz);
+    values(v_year, v_season, v_weight_min, v_weight_max, v_price, v_active, v_start::timestamptz, v_end::timestamptz)
+    returning id into v_season_id;
   else
-    update public.season_parameters set year=v_year, season=v_season, weight_min=v_weight_min, weight_max=v_weight_max, price=v_price, is_active=v_active, time_window_start=v_start::timestamptz, time_window_end=v_end::timestamptz where id=v_id;
+    update public.season_parameters
+      set year = v_year, season = v_season, weight_min = v_weight_min, weight_max = v_weight_max,
+          price = v_price, is_active = v_active, time_window_start = v_start::timestamptz, time_window_end = v_end::timestamptz
+      where id = v_id
+      returning id into v_season_id;
   end if;
-  delete from public.pickup_days p where p.year=v_year and p.season=v_season
-    and not exists (select 1 from public.orders o where o.pickup_day_id=p.id)
-    and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date=p.pickup_date);
+  -- Kivett átvételi napok törlése, kivéve amelyekre már érkezett rendelés.
+  delete from public.pickup_days p where p.season_parameter_id = v_season_id
+    and not exists (select 1 from public.orders o where o.pickup_day_id = p.id)
+    and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
   for v_day in select * from jsonb_array_elements(v_days) loop
     v_date := (v_day->>'date')::date; v_limit := (v_day->>'limit')::integer;
-    update public.pickup_days set planned_stock=v_limit, is_active=v_active where year=v_year and season=v_season and pickup_date=v_date;
+    update public.pickup_days
+      set planned_stock = v_limit, is_active = v_active, year = v_year, season = v_season
+      where season_parameter_id = v_season_id and pickup_date = v_date;
     if not found then
-      insert into public.pickup_days(year, season, pickup_date, planned_stock, available_stock, is_active, serial_number, _group)
-      values(v_year, v_season, v_date, v_limit, v_limit, v_active, 1, 1);
+      insert into public.pickup_days(year, season, pickup_date, planned_stock, available_stock, is_active, serial_number, _group, season_parameter_id)
+      values(v_year, v_season, v_date, v_limit, v_limit, v_active, 1, 1, v_season_id);
     end if;
   end loop;
   return true;
