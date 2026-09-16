@@ -4,6 +4,7 @@ import { OrderActionsManager } from "@/components/OrderActionsManager";
 import EditableOrderCard from "@/components/EditableOrderCard";
 import CountdownCard from "@/components/CountdownCard";
 import Image from "next/image";
+import { getPickupDateStatus } from "@/lib/usePickupDateStatus";
 
 
 
@@ -147,8 +148,6 @@ export default async function HistoryPage({
     .order("id");
   const orders = (data ?? []) as unknown as Order[];
 
-  const now = new Date();
-
   const { data: historyPic } = await supabase
     .from("page_contents")
     .select("image_url")
@@ -262,7 +261,7 @@ export default async function HistoryPage({
 
               const isCurrent =
                 !!pickupDate &&
-                new Date(pickupDate) >= now;
+                getPickupDateStatus(pickupDate) === "current";
 
               const items =
                 order.current_version?.order_items ?? [];
