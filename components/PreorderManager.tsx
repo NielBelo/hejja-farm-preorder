@@ -138,17 +138,6 @@ export default function PreorderManager({
             item.selectedPackageId !== null
     );
 
-    const canSubmitOrder =
-        selectedPickupDay !== null &&
-        validOrderItems.length > 0 &&
-        termsAccepted &&
-        validOrderItems.every(
-            (item) =>
-                item.selectedProductId !== null &&
-                item.selectedPackageId !== null &&
-                item.collapsed
-        );
-
     const refreshPickupDays = async () => {
         const supabase = createClient();
 
@@ -177,7 +166,23 @@ export default function PreorderManager({
 
 
     const handleFinalizeOrder = async () => {
-        if (!canSubmitOrder || !selectedPickupDay) {
+        if (!selectedPickupDay) {
+            setSubmitError("Válasszon átvételi napot a rendelés véglegesítéséhez!");
+            return;
+        }
+
+        if (validOrderItems.length === 0) {
+            setSubmitError("Adjon meg legalább egy rendelési tételt a véglegesítéshez!");
+            return;
+        }
+
+        if (validOrderItems.some((item) => !item.collapsed)) {
+            setSubmitError("Fejezze be az összes rendelési tételt a véglegesítés előtt!");
+            return;
+        }
+
+        if (!termsAccepted) {
+            setSubmitError("A véglegesítéshez fogadja el a szerződési feltételeket!");
             return;
         }
 
@@ -236,6 +241,27 @@ export default function PreorderManager({
         });
     }, [lastSubmittedOrder]);
 
+    const pickupDaySectionRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!selectedPickupDay) return;
+
+        // Double rAF: ProductSelector reacts to isPickupDaySelected in its own effect
+        // (a separate, later commit) and expands the item panel. A single rAF can still
+        // fire before that second commit has been painted, so we wait for one extra frame
+        // to guarantee the expanded layout is settled before measuring the scroll target.
+        requestAnimationFrame(() => {
+            requestAnimationFrame(() => {
+                pickupDaySectionRef.current?.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            });
+        });
+        // Only re-scroll when the selected day itself changes, not when refreshPickupDays() updates its stock numbers.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedPickupDay?.id]);
+
     return (
         <>
             {season && (
@@ -274,18 +300,21 @@ export default function PreorderManager({
                         </div>
 
                         <div className="text-center">
-                            Rögzítés időpontja:{" "}
-                            <span className="font-semibold text-gray-700">
-                                {lastSubmittedOrder.submittedAt.toLocaleString("hu-HU")}
+                            <span className="inline-block rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
+                                Átvétel:{" "}
+                                {new Date(
+                                    lastSubmittedOrder.pickupDay.pickup_date
+                                ).toLocaleDateString("hu-HU")}
                             </span>
                         </div>
 
                         <div className="text-right">
-                            Átvétel:{" "}
+                            Rögzítés időpontja:{" "}
                             <span className="font-semibold text-gray-700">
-                                {new Date(
-                                    lastSubmittedOrder.pickupDay.pickup_date
-                                ).toLocaleDateString("hu-HU")}
+                                {new Intl.DateTimeFormat("hu-HU", {
+                                    dateStyle: "short",
+                                    timeStyle: "short",
+                                }).format(lastSubmittedOrder.submittedAt)}
                             </span>
                         </div>
                     </div>
@@ -344,6 +373,11 @@ export default function PreorderManager({
                                 automatikus emlékeztetőt fog kapni.
                                 </>
                             )}
+                            {" "}Átvétel helyszíne:{" "}
+                            <span className="font-semibold text-gray-700">
+                                Hódmezővásárhely, Vámház u. 8/A
+                            </span>
+                            {" "}– Albert Garden Kertészeti Áruda parkolójában!
                         </p>
                     </div>
                 </div>
@@ -359,13 +393,15 @@ export default function PreorderManager({
                 <div className="h-px flex-1 bg-gray-400" />
             </div>
 
-            <PickupDaySelector
-                startDate={season?.time_window_start}
-                endDate={season?.time_window_end}
-                pickupDays={currentPickupDays}
-                selectedPickupDayId={selectedPickupDay?.id ?? null}
-                onSelectPickupDay={handlePickupDayChange}
-            />
+            <div ref={pickupDaySectionRef} className="scroll-mt-24">
+                <PickupDaySelector
+                    startDate={season?.time_window_start}
+                    endDate={season?.time_window_end}
+                    pickupDays={currentPickupDays}
+                    selectedPickupDayId={selectedPickupDay?.id ?? null}
+                    onSelectPickupDay={handlePickupDayChange}
+                />
+            </div>
 
             <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <h2 className="mb-3 text-center text-xl font-semibold text-gray-400">
@@ -432,14 +468,7 @@ export default function PreorderManager({
                     <button
                         type="button"
                         onClick={handleFinalizeOrder}
-                        disabled={!canSubmitOrder}
-                        className={`
-                rounded-lg px-10 py-4 text-lg font-semibold text-white transition
-                ${canSubmitOrder
-                                ? "bg-[rgb(49,171,2)] hover:brightness-95"
-                                : "cursor-not-allowed bg-gray-300"
-                            }
-            `}
+                        className="rounded-lg bg-[rgb(49,171,2)] px-10 py-4 text-lg font-semibold text-white transition hover:brightness-95"
                     >
                         Rendelés véglegesítése
                     </button>

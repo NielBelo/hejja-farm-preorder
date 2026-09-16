@@ -93,7 +93,7 @@ export default function PickupDaySelector({
                         type="button"
                         disabled
                         aria-label={`${number}. nap – jelenleg nem elérhető`}
-                        className="relative h-[168px] cursor-not-allowed rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-left"
+                        className="relative flex h-[168px] cursor-not-allowed flex-col items-stretch justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-left"
                     >
                         <div className="pr-10">
                             <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
@@ -104,7 +104,7 @@ export default function PickupDaySelector({
                             aria-hidden="true"
                             className="absolute right-3 top-3 h-8 w-8 text-gray-400"
                         />
-                        <div className="mx-auto mt-2 w-4/5 border-t-2 border-gray-300" aria-hidden="true" />
+                        <div className="mx-auto mt-2 w-4/5 border-t-2 border-black" aria-hidden="true" />
                     </button>
                 )) : displayedPickupDays.map((day) => {
                     const selected = selectedPickupDayId === day.id;
@@ -125,7 +125,7 @@ export default function PickupDaySelector({
                                 }
                             }}
                             className={`
-                                relative h-[168px] rounded-xl p-3 text-left transition-all
+                                relative flex h-[168px] flex-col items-stretch justify-start rounded-xl p-3 text-left transition-all
                                 ${
                                     selected
                                         ? `border-2 ${cardBorderClass} bg-[rgba(216,227,232,0.51)] shadow-md`
@@ -154,7 +154,7 @@ export default function PickupDaySelector({
                                 className={`absolute right-3 top-3 h-8 w-8 ${status.iconClass}`}
                             />
 
-                            <div className={`mx-auto mt-2 w-4/5 border-t-2 ${cardBorderClass}`} />
+                            <div className="mx-auto mt-2 w-4/5 border-t-2 border-black" />
 
                             <p className={`mt-2 text-center text-base font-medium leading-5 ${status.iconClass}`}>
                                 {status.text}
