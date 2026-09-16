@@ -192,16 +192,11 @@ export default function PreorderManager({
             note: item.note || null,
         }));
 
-        console.log("RPC items:", rpcItems);
-        console.log("Selected pickup day:", selectedPickupDay);
-
         const result = await submitOrder({
             seasonParameterId: season.id,
             pickupDayId: selectedPickupDay.id,
             items: rpcItems,
         });
-
-        console.log("Order submission result:", result);
 
         await refreshPickupDays();
 
