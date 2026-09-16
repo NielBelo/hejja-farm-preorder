@@ -47,12 +47,13 @@ export async function sendRegistrationInvites(rawEmails: string): Promise<Invite
 
     const sent: string[] = [];
     const failed: InviteBatchResult["failed"] = [];
-    for (const { email, recipientName } of parsedRecipients) {
+
+    async function sendOne({ email, recipientName }: InviteRecipient) {
         const { data: inviteRows, error: inviteError } = await supabase.rpc("admin_create_registration_invite", { invitee_email: email });
         const invite = Array.isArray(inviteRows) ? inviteRows[0] as { invite_id?: string; invite_token?: string } | undefined : undefined;
         if (inviteError || !invite?.invite_id || !invite.invite_token) {
             failed.push({ email, error: "A meghívó létrehozása sikertelen." });
-            continue;
+            return;
         }
         const message = buildRegistrationInvite({ recipientName, invitationUrl: `${siteUrl}/register?invite=${encodeURIComponent(invite.invite_token)}` });
         try {
@@ -66,6 +67,15 @@ export async function sendRegistrationInvites(rawEmails: string): Promise<Invite
             failed.push({ email, error: message });
         }
     }
+
+    // Korlátozott párhuzamossággal küldjük a meghívókat, hogy nagy listánál
+    // (akár 100 címzett) ne fusson bele a Cloudflare Workers kérés-időkorlátjába
+    // a szekvenciálisan összeadódó várakozási idő.
+    const CONCURRENCY = 10;
+    for (let i = 0; i < parsedRecipients.length; i += CONCURRENCY) {
+        await Promise.all(parsedRecipients.slice(i, i + CONCURRENCY).map(sendOne));
+    }
+
     revalidatePath("/admin/accounts");
     return { success: failed.length === 0, sent, failed };
 }
