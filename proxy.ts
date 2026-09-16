@@ -50,8 +50,11 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Már be van jelentkezve → ne tudjon visszamenni a loginra
-  if (user && isPublicRoute) {
+  // Már be van jelentkezve → ne tudjon visszamenni a loginra.
+  // A /auth/confirm route-ot kivesszük: ennek saját auth flow-ja van
+  // (token beolvasása), aminek akkor is le kell futnia, ha a böngészőben
+  // épp fut egy másik, korábbi munkamenet.
+  if (user && isPublicRoute && pathname !== "/auth/confirm") {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
