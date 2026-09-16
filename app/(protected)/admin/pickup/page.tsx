@@ -54,7 +54,7 @@ export default async function AdminPickupPage() {
     const { data: profiles, error: profileError } = userIds.length > 0
         ? await supabase
             .from("profiles")
-            .select("id, first_name, last_name, phone")
+            .select("id, first_name, last_name, phone, special_size_preference")
             .in("id", userIds)
         : { data: [], error: null };
 
@@ -72,6 +72,7 @@ export default async function AdminPickupPage() {
                 .filter(Boolean).join(" ").trim() || "Ismeretlen vásárló",
             phone: profile?.phone ?? "—",
             items: order.current_version?.order_items ?? [],
+            specialSizePreference: profile?.special_size_preference ?? null,
         };
     }));
     const pickupDates = getPickupDateOptions(
