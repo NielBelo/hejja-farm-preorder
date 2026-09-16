@@ -1,6 +1,7 @@
 "use client";
 
-import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import { ArchiveBoxIcon, NoSymbolIcon } from "@heroicons/react/24/outline";
+import { isWithinOrderWindow, useOrderWindow } from "@/lib/useOrderWindow";
 
 type PickupDay = {
     id: number;
@@ -18,11 +19,24 @@ export default function PickupDaySelector({
     pickupDays,
     selectedPickupDayId,
     onSelectPickupDay,
+    startDate,
+    endDate,
 }: {
     pickupDays: PickupDay[];
     selectedPickupDayId: number | null;
     onSelectPickupDay: (day: PickupDay) => void;
+    startDate?: string | null;
+    endDate?: string | null;
 }) {
+    const isOrderingOpen = useOrderWindow(startDate, endDate);
+    const displayedPickupDays = [...pickupDays]
+        .sort(
+            (first, second) =>
+                new Date(first.pickup_date).getTime() -
+                new Date(second.pickup_date).getTime()
+        )
+        .slice(0, 5);
+
     const getStatus = (availableStock: number) => {
         if (availableStock <= 0) {
             return {
@@ -44,9 +58,13 @@ export default function PickupDaySelector({
         };
     };
 
-    const formatDate = (date: string) =>
+    const formatMonth = (date: string) =>
         new Intl.DateTimeFormat("hu-HU", {
             month: "long",
+        }).format(new Date(date));
+
+    const formatDay = (date: string) =>
+        new Intl.DateTimeFormat("hu-HU", {
             day: "numeric",
         }).format(new Date(date));
 
@@ -57,51 +75,88 @@ export default function PickupDaySelector({
 
     return (
         <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="text-center text-base font-semibold text-gray-700">
-                Válasszon átvételi napot!
+            <h2 className="text-center text-xl font-semibold text-gray-400">
+                {isOrderingOpen
+                    ? "Válasszon átvételi napot!"
+                    : "Jelenleg nincs lehetőség előrendelésre!"}
             </h2>
+            {!isOrderingOpen && (
+                <p className="text-center text-xl font-semibold text-gray-400">
+                    A következő előrendelési lehetőségről e-mailben értesítjük.
+                </p>
+            )}
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {pickupDays.map((day) => {
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-5">
+                {!isOrderingOpen ? [1, 2, 3, 4, 5].map((number) => (
+                    <button
+                        key={number}
+                        type="button"
+                        disabled
+                        aria-label={`${number}. nap – jelenleg nem elérhető`}
+                        className="relative h-[168px] cursor-not-allowed rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-left"
+                    >
+                        <div className="pr-10">
+                            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                                {number}. nap
+                            </p>
+                        </div>
+                        <NoSymbolIcon
+                            aria-hidden="true"
+                            className="absolute right-3 top-3 h-8 w-8 text-gray-400"
+                        />
+                        <div className="mx-auto mt-2 w-4/5 border-t-2 border-gray-300" aria-hidden="true" />
+                    </button>
+                )) : displayedPickupDays.map((day) => {
                     const selected = selectedPickupDayId === day.id;
                     const status = getStatus(day.available_stock);
                     const isFull = day.available_stock <= 0;
+                    const cardBorderClass = selected
+                        ? "border-[rgb(49,171,2)]"
+                        : "border-[rgba(7,109,143,0.2)]";
 
                     return (
                         <button
                             key={day.id}
                             disabled={isFull}
                             type="button"
-                            onClick={() => onSelectPickupDay(day)}
+                            onClick={() => {
+                                if (isWithinOrderWindow(startDate, endDate)) {
+                                    onSelectPickupDay(day);
+                                }
+                            }}
                             className={`
-                                relative h-[160px] rounded-xl p-4 text-left transition-all
+                                relative h-[168px] rounded-xl p-3 text-left transition-all
                                 ${
                                     selected
-                                        ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                        : "border-2 border-[rgba(7,109,143,0.2)] hover:scale-103 hover:bg-gray-50"
+                                        ? `border-2 ${cardBorderClass} bg-[rgba(216,227,232,0.51)] shadow-md`
+                                        : `border-2 ${cardBorderClass} hover:scale-103 hover:bg-gray-50`
                                 }
                                 ${isFull ? "cursor-not-allowed" : ""}
                             `}
                         >
-                            <div className="h-[76px] pr-12">
-                                <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                            <div className="pr-10">
+                                <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
                                     {day.serial_number}. nap
                                 </p>
 
-                                <p className="mt-1 text-base font-bold text-gray-700">
-                                    {formatDate(day.pickup_date)}
+                                <p className="mt-1 text-xl font-bold leading-7 text-gray-700">
+                                    <span className="block whitespace-nowrap">
+                                        {formatMonth(day.pickup_date)}
+                                    </span>
                                 </p>
 
-                                <p className="text-sm capitalize text-gray-500">
-                                    {formatWeekday(day.pickup_date)}
+                                <p className="text-base font-semibold capitalize text-gray-600">
+                                    {formatDay(day.pickup_date)}. – {formatWeekday(day.pickup_date)}
                                 </p>
                             </div>
 
                             <ArchiveBoxIcon
-                                className={`absolute right-4 top-4 h-8 w-8 ${status.iconClass}`}
+                                className={`absolute right-3 top-3 h-8 w-8 ${status.iconClass}`}
                             />
 
-                            <p className="h-[44px] text-sm font-medium leading-5 text-gray-700">
+                            <div className={`mx-auto mt-2 w-4/5 border-t-2 ${cardBorderClass}`} />
+
+                            <p className={`mt-2 text-center text-base font-medium leading-5 ${status.iconClass}`}>
                                 {status.text}
                             </p>
                         </button>

@@ -1,4 +1,5 @@
 import "./globals.css";
+import BackgroundScene from "@/components/layout/BackgroundScene";
 
 export default function RootLayout({
   children,
@@ -7,7 +8,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="hu">
-      <body>{children}</body>
+      <body>
+        <BackgroundScene />
+        {children}
+      </body>
     </html>
   );
 }

@@ -10,6 +10,26 @@ export type LoginState = {
   email: string;
 };
 
+function getSafeReturnTo(formData: FormData) {
+  const value = formData.get("returnTo");
+
+  if (typeof value !== "string" || !value.startsWith("/") || value.startsWith("//")) {
+    return "/preorder";
+  }
+
+  try {
+    const url = new URL(value, "http://local");
+
+    if (url.origin !== "http://local") {
+      return "/preorder";
+    }
+
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return "/preorder";
+  }
+}
+
 export async function login(
   _prevState: LoginState,
   formData: FormData
@@ -49,5 +69,5 @@ if (error) {
   };
 }
 
-  redirect("/preorder");
+  redirect(getSafeReturnTo(formData));
 }

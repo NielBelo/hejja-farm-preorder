@@ -2,6 +2,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getOrderWindowEnd } from "@/lib/orderWindow";
 
 type Props = {
   startDate?: string | null;
@@ -19,7 +20,7 @@ function formatDate(dateString: string) {
   });
 }
 
-function getTimeLeft(targetDate: string) {
+function getTimeLeft(targetDate: string | Date) {
   const now = new Date();
   const target = new Date(targetDate);
 
@@ -54,7 +55,11 @@ export default function CountdownCard({ startDate, endDate }: Props) {
   }
 
   const start = new Date(startDate);
-  const end = new Date(endDate);
+  const end = getOrderWindowEnd(endDate);
+
+  if (!end) {
+    return null;
+  }
 
   const isBeforeStart = now < start;
   const isActive = now >= start && now <= end;
@@ -62,22 +67,22 @@ export default function CountdownCard({ startDate, endDate }: Props) {
 
   const timeLeft = isBeforeStart
     ? getTimeLeft(startDate)
-    : getTimeLeft(endDate);
+    : getTimeLeft(end);
 
  return (
   <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5 text-gray-700">
 
-    <div className="grid grid-cols-3 items-center text-base text-gray-600 leading-5">
+    <div className="grid grid-cols-1 items-center gap-4 text-lg leading-6 text-gray-600 sm:grid-cols-3 sm:gap-0">
       <div className="text-center">
         <span className="font-semibold">Előrendelés kezdete:</span>
         <br />
         {formatDate(startDate)}
       </div>
 
-      <div className="text-center border-x border-gray-300">
+      <div className="border-gray-300 text-center sm:border-x">
         <span className="font-semibold">Előrendelés vége:</span>
         <br />
-        {formatDate(endDate)}
+        {formatDate(end.toISOString())}
       </div>
 
       <div className="text-center font-semibold text-gray-700">
@@ -85,7 +90,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Kezdésig hátralévő idő
             <br />
-            {timeLeft}
+            <span className="text-blue-700">{timeLeft}</span>
           </>
         )}
 
@@ -93,7 +98,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Hátralévő idő
             <br />
-            {timeLeft}
+            <span className="text-blue-700">{timeLeft}</span>
           </>
         )}
 

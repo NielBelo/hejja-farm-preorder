@@ -6,6 +6,11 @@ import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
+import { normalizeSizePreference } from "@/lib/sizePreferences";
+import {
+    updateOrder,
+    type UpdateOrderItem,
+} from "@/app/(protected)/history/actions";
 
 type Product = {
     id: number;
@@ -73,6 +78,7 @@ export default function OrderActions({
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
+    const [emailWarning, setEmailWarning] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
     const supabase = createClient();
@@ -85,7 +91,7 @@ export default function OrderActions({
                 quantity: item.quantity,
                 note: item.note ?? "",
                 selectedNote:
-                    item.size_preference ?? "Átlagos méret megfelelő",
+                    item.size_preference ?? "Átlagos méret",
                 collapsed: true,
                 touched: true,
                 showValidation: false,
@@ -99,7 +105,7 @@ export default function OrderActions({
                 selectedPackageId: null,
                 quantity: 1,
                 note: "",
-                selectedNote: "Átlagos méret megfelelő",
+                selectedNote: "Átlagos méret",
                 collapsed: true,
                 touched: false,
                 showValidation: false,
@@ -138,7 +144,7 @@ export default function OrderActions({
         item.selectedPackageId === null &&
         item.quantity === 1 &&
         item.note === "" &&
-        item.selectedNote === "Átlagos méret megfelelő" &&
+        item.selectedNote === "Átlagos méret" &&
         !item.touched;
 
     const itemsToSave = editedItems.filter(
@@ -159,7 +165,7 @@ export default function OrderActions({
                 originalItem.package_id !== editedItem.selectedPackageId ||
                 originalItem.quantity !== editedItem.quantity ||
                 (originalItem.note ?? "") !== editedItem.note ||
-                (originalItem.size_preference ?? "Átlagos méret megfelelő") !==
+                normalizeSizePreference(originalItem.size_preference) !==
                 editedItem.selectedNote
             );
         });
@@ -183,6 +189,7 @@ export default function OrderActions({
 
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
 
         startEditing(orderId);
         setIsEditing(true);
@@ -193,24 +200,6 @@ export default function OrderActions({
         stopEditing();
     };
     const router = useRouter();
-    const getChangeSummary = () => {
-        const oldTotal = items.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-        );
-
-        const newTotal = itemsToSave.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-        );
-
-        if (oldTotal !== newTotal) {
-            return `Sikeres módosítás! A rendelés összmennyisége ${oldTotal}-ről ${newTotal} db-ra változott.`;
-        }
-
-        return "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
-    };
-
     const handleSave = async () => {
         if (!canSave || isSaving) {
             return;
@@ -219,6 +208,7 @@ export default function OrderActions({
         setIsSaving(true);
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
         stopEditing();
 
         // Eredeti és módosított összmennyiség
@@ -232,38 +222,38 @@ export default function OrderActions({
             0
         );
 
-        const rpcItems = itemsToSave.map((item) => ({
-            product_id: item.selectedProductId,
-            package_id: item.selectedPackageId,
+        const rpcItems = itemsToSave.map<UpdateOrderItem>((item) => ({
+            product_id: item.selectedProductId!,
+            package_id: item.selectedPackageId!,
             quantity: item.quantity,
             size_preference: item.selectedNote,
             note: item.note,
         }));
 
-        const { error } = await supabase.rpc("update_order", {
-            p_order_id: orderId,
-            p_items: rpcItems,
+        const result = await updateOrder({
+            orderId,
+            items: rpcItems,
         });
 
-        if (error) {
+        if (!result.success) {
             setSaveError(
-                error.message || "A rendelés módosítása sikertelen."
+                result.error || "A rendelés módosítása sikertelen."
             );
 
             setIsSaving(false);
             return;
         }
 
-        // Sikeres módosítás visszajelzése
-        if (oldTotal !== newTotal) {
-            setSaveSuccess(
-                `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
-            );
-        } else {
-            setSaveSuccess(
-                "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak."
-            );
-        }
+        const changeMessage = oldTotal !== newTotal
+            ? `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
+            : "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
+        const emailMessage = result.emailRecipient
+            ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
+            : "";
+
+        setSaveSuccess(`${changeMessage}${emailMessage}`);
+
+        setEmailWarning(result.emailWarning ?? null);
 
         setIsSaving(false);
         setIsEditing(false);
@@ -303,13 +293,13 @@ export default function OrderActions({
 
             {showCancelModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
 
-                        <h2 className="text-lg font-semibold text-gray-800">
+                        <h2 className="text-2xl font-semibold text-gray-800">
                             Figyelem!
                         </h2>
 
-                        <p className="mt-3 text-sm leading-6 text-gray-600">
+                        <p className="mt-4 text-lg leading-7 text-gray-600">
                             Biztosan törölni szeretné a(z){" "}
                             <span className="font-semibold text-gray-800">
                                 {publicOrderNumber}
@@ -318,13 +308,13 @@ export default function OrderActions({
                             A művelet nem vonható vissza.
                         </p>
 
-                        <div className="mt-6 flex justify-end gap-3">
+                        <div className="mt-8 flex flex-wrap justify-end gap-3">
 
                             <button
                                 type="button"
                                 onClick={() => setShowCancelModal(false)}
                                 disabled={isCancelling}
-                                className="rounded-lg border border-gray-300 px-4 py-2 font-semibold text-gray-700 hover:bg-gray-100"
+                                className="rounded-lg border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
                             >
                                 Mégse
                             </button>
@@ -336,7 +326,7 @@ export default function OrderActions({
                                 className="
         rounded-lg
         bg-red-600
-        px-4 py-2
+        px-5 py-3 text-base
         font-semibold text-white
         hover:bg-red-600
         disabled:cursor-not-allowed
@@ -354,29 +344,36 @@ export default function OrderActions({
 
             {saveError && !isEditing && (
                 <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
-                    <p className="text-center text-sm text-red-600">
+                    <p className="text-center text-base text-red-600">
                         {saveError}
                     </p>
                 </div>
             )}
             {saveSuccess && !isEditing && (
                 <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                    <p className="text-sm text-center text-[rgb(49,171,2)]">
+                    <p className="text-base text-center text-[rgb(49,171,2)]">
                         {saveSuccess}
+                    </p>
+                </div>
+            )}
+            {emailWarning && !isEditing && (
+                <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+                    <p className="text-center text-base text-amber-700">
+                        {emailWarning}
                     </p>
                 </div>
             )}
 
             {/* Normál műveleti gombok */}
             {!isEditing && (
-                <div className="flex justify-end gap-3">
+                <div className="flex flex-wrap justify-end gap-3">
                     <button
                         type="button"
                         onClick={handleEdit}
                         disabled={anotherOrderIsEditing}
                         className={`
         rounded-lg border border-gray-300
-        px-4 py-2 text-sm
+        px-5 py-3 text-base font-semibold
         transition-colors
         ${anotherOrderIsEditing
                                 ? "cursor-not-allowed bg-gray-100 text-gray-300"
@@ -393,7 +390,7 @@ export default function OrderActions({
                         disabled={isCancelling || anotherOrderIsEditing}
                         className={`
         rounded-lg border border-red-200
-        px-4 py-2 text-sm
+        px-5 py-3 text-base font-semibold
         transition-colors
         ${isCancelling || anotherOrderIsEditing
                                 ? "cursor-not-allowed bg-gray-50 text-gray-300"
@@ -417,7 +414,7 @@ export default function OrderActions({
                         className="mb-4 w-full scroll-mt-24"
                     >
                         {/* Cím */}
-                        <h3 className="text-center font-semibold text-gray-800">
+                        <h3 className="text-center text-xl font-semibold text-gray-500">
                             Rendelés módosítása
                         </h3>
 
@@ -428,7 +425,7 @@ export default function OrderActions({
                                 className={`h-5 w-5 ${stockStatus.iconClass}`}
                             />
 
-                            <p className="text-sm font-medium text-gray-700">
+                            <p className="text-base font-medium text-gray-700">
                                 {stockStatus.text}
                             </p>
                         </div>
@@ -453,22 +450,22 @@ export default function OrderActions({
                     />
 
                     {saveError && (
-                        <p className="mt-4 text-sm text-red-600">
+                        <p className="mt-4 text-base text-red-600">
                             {saveError}
                         </p>
                     )}
 
 
                     {/* Módosítás mentése */}
-                    <div className="mt-5 flex justify-end gap-3">
+                    <div className="mt-5 flex flex-wrap justify-end gap-3">
                         <button
                             type="button"
                             onClick={handleCancelEdit}
                             disabled={isSaving}
                             className="
             rounded-lg border border-gray-300
-            px-5 py-2
-            text-sm font-medium text-gray-600
+            px-5 py-3
+            text-base font-medium text-gray-600
             transition-colors
             hover:bg-gray-50
             hover:text-gray-800
@@ -484,8 +481,8 @@ export default function OrderActions({
                             onClick={handleSave}
                             disabled={!canSave || isSaving}
                             className={`
-            rounded-lg px-5 py-2
-            text-sm font-medium
+            rounded-lg px-5 py-3
+            text-base font-medium
             transition-colors
             ${canSave && !isSaving
                                     ? `

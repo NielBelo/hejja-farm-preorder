@@ -1,12 +1,16 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
+import { normalizePackageId } from "@/lib/orderPackaging";
+import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
 
 export type SubmitOrderItem = {
-  productId: number;
-  packageId: number;
+  product_id: number;
+  package_id: number;
   quantity: number;
-  note: string;
+  size_preference: string;
+  note: string | null;
 };
 
 export type SubmitOrderData = {
@@ -18,7 +22,6 @@ export type SubmitOrderData = {
 export async function submitOrder(data: SubmitOrderData) {
   const supabase = await createClient();
 
-  // Bejelentkezett felhasználó
   const {
     data: { user },
     error: userError,
@@ -31,45 +34,83 @@ export async function submitOrder(data: SubmitOrderData) {
     };
   }
 
-  // Rendelés létrehozása
-  const { data: order, error: orderError } = await supabase
-    .from("orders")
-    .insert({
-      user_id: user.id,
-      season_parameter_id: data.seasonParameterId,
-      pickup_day_id: data.pickupDayId,
-    })
-    .select("id")
-    .single();
-
-  if (orderError) {
+  if (data.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QUANTITY_PER_ITEM)) {
     return {
       success: false,
-      error: orderError.message,
+      error: `Egy tételben legfeljebb ${MAX_QUANTITY_PER_ITEM} darab csirke rendelhető.`,
     };
   }
 
-  // Tételek létrehozása
-  const items = data.items.map((item) => ({
-    order_id: order.id,
-    product_id: item.productId,
-    package_id: item.packageId,
-    quantity: item.quantity,
-    note: item.note,
-  }));
+  const productIds = [...new Set(data.items.map((item) => item.product_id))];
+  const { data: products, error: productsError } = await supabase
+    .from("products")
+    .select("id, name")
+    .in("id", productIds);
+  const { data: packages, error: packagesError } = await supabase
+    .from("packages")
+    .select("id, name");
 
-  const { error: itemsError } = await supabase
-    .from("order_items")
-    .insert(items);
-
-  if (itemsError) {
+  if (productsError || packagesError) {
     return {
       success: false,
-      error: itemsError.message,
+      error: "A csomagolási beállítások ellenőrzése sikertelen.",
     };
+  }
+
+  const normalizedItems = data.items.map((item) => ({
+    ...item,
+    package_id: normalizePackageId({
+      product: products?.find((product) => product.id === item.product_id),
+      quantity: item.quantity,
+      selectedPackageId: item.package_id,
+      packages: packages ?? [],
+    }),
+  }));
+
+  if (normalizedItems.some((item) => item.package_id === null)) {
+    return {
+      success: false,
+      error: "Az egyedi csomagolás nem található a beállítások között.",
+    };
+  }
+
+  const { data: orderNumber, error } = await supabase.rpc("finalize_order", {
+    p_season_parameter_id: data.seasonParameterId,
+    p_pickup_day_id: data.pickupDayId,
+    p_items: normalizedItems,
+  });
+
+  if (error) {
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+
+  const publicOrderNumber = String(orderNumber);
+  let emailWarning: string | undefined;
+  let emailRecipient: string | undefined;
+
+  try {
+    const notification = await sendOrderNotification({
+      supabase,
+      lookup: { orderNumber: publicOrderNumber },
+      kind: "created",
+    });
+    emailRecipient = notification.recipient;
+  } catch (notificationError) {
+    console.error(
+      `Order confirmation email failed for ${publicOrderNumber}:`,
+      notificationError,
+    );
+    emailWarning =
+      "A rendelés sikeresen létrejött, de a visszaigazoló e-mailt nem sikerült elküldeni.";
   }
 
   return {
     success: true,
+    orderNumber: publicOrderNumber,
+    emailWarning,
+    emailRecipient,
   };
 }

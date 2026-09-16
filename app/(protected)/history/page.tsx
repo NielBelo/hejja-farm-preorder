@@ -4,6 +4,7 @@ import { OrderActionsManager } from "@/components/OrderActionsManager";
 import EditableOrderCard from "@/components/EditableOrderCard";
 import CountdownCard from "@/components/CountdownCard";
 import Image from "next/image";
+import { getPickupDateStatus } from "@/lib/usePickupDateStatus";
 
 
 
@@ -53,8 +54,19 @@ function formatDate(date: string) {
   }).format(new Date(date));
 }
 
-export default async function HistoryPage() {
+export default async function HistoryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ focusOrder?: string | string[] }>;
+}) {
   const supabase = await createClient();
+  const rawFocusOrder = (await searchParams).focusOrder;
+  const focusOrderValue = Array.isArray(rawFocusOrder)
+    ? rawFocusOrder[0]
+    : rawFocusOrder;
+  const focusedOrderId = focusOrderValue && /^\d+$/.test(focusOrderValue)
+    ? Number(focusOrderValue)
+    : null;
 
   const {
     data: { user },
@@ -118,7 +130,7 @@ export default async function HistoryPage() {
 
     return (
       <div className="mx-auto max-w-4xl px-4 py-8">
-        <p className="text-sm text-red-600">
+        <p className="text-base text-red-600">
           Hiba történt a rendelések betöltése közben.
         </p>
       </div>
@@ -135,8 +147,6 @@ export default async function HistoryPage() {
     .select("id, name, description")
     .order("id");
   const orders = (data ?? []) as unknown as Order[];
-
-  const now = new Date();
 
   const { data: historyPic } = await supabase
     .from("page_contents")
@@ -167,7 +177,7 @@ export default async function HistoryPage() {
 
           {/* Tájékoztató felsorolás */}
           <div className="flex-1 md:pl-6">
-            <ul className="text-base leading-7 text-gray-600">
+            <ul className="text-lg leading-7 text-gray-600">
 
               <li className="flex items-start gap-3">
                 <span className="mt-[11px] h-1.5 w-1.5 shrink-0 bg-gray-600" />
@@ -229,7 +239,7 @@ export default async function HistoryPage() {
       <div className="mx-auto mt-4 mb-4 flex w-full max-w-4xl items-center gap-4">
         <div className="h-[1.5px] flex-1 bg-gray-400" />
 
-        <h2 className="shrink-0 text-md font-semibold tracking-wider text-gray-500">
+        <h2 className="shrink-0 text-xl font-semibold tracking-wider text-gray-400">
           RENDELÉSI ELŐZMÉNYEK
         </h2>
 
@@ -239,7 +249,7 @@ export default async function HistoryPage() {
 
       {orders.length === 0 ? (
         <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-          <p className="text-gray-500">
+          <p className="text-base text-gray-500">
             Még nincs korábbi rendelése.
           </p>
         </div>
@@ -251,7 +261,7 @@ export default async function HistoryPage() {
 
               const isCurrent =
                 !!pickupDate &&
-                new Date(pickupDate) >= now;
+                getPickupDateStatus(pickupDate) === "current";
 
               const items =
                 order.current_version?.order_items ?? [];
@@ -265,6 +275,7 @@ export default async function HistoryPage() {
                 <EditableOrderCard
                   key={order.id}
                   orderId={order.id}
+                  focusOnMount={order.id === focusedOrderId}
                 >
                   {/* Fejléc */}
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-2">
@@ -289,7 +300,7 @@ export default async function HistoryPage() {
 
                       <span
                         className={`
-        text-xs font-semibold uppercase tracking-wide
+        text-base font-semibold uppercase tracking-wide
         ${isCurrent
                             ? "text-[rgb(49,171,2)]"
                             : "text-gray-400"
@@ -309,23 +320,23 @@ export default async function HistoryPage() {
                     <div className="mb-2 flex flex-wrap items-center justify-between gap-x-6 gap-y-1 border-b-4 border-double border-gray-200 pb-2">
 
 
-                      <div className="flex items-baseline gap-2 text-sm">
-                        <span className="text-gray-800">
+                      <div className="flex items-baseline gap-2 text-base">
+                        <span className="text-gray-500">
                           Rendelés kelte:
                         </span>
 
-                        <span className="text-gray-800">
+                        <span className="text-gray-700">
                           {formatDate(order.created_at)}
                         </span>
                       </div>
 
 
                       <div className="flex items-baseline gap-2">
-                        <span className="text-sm text-gray-800">
+                        <span className="text-base text-gray-500">
                           Átvétel:
                         </span>
 
-                        <span className=" text-sm text-gray-800">
+                        <span className="text-base text-gray-700">
                           {pickupDate
                             ? formatDate(pickupDate)
                             : "Nincs megadva"}
@@ -334,52 +345,33 @@ export default async function HistoryPage() {
                     </div>
 
                     {/* Tételek */}
-                    <div className="divide-y divide-gray-200">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {items.map((item, index) => (
                         <div
                           key={item.id}
-                          className="py-3 first:pt-0 last:pb-0"
+                          className="rounded-lg border border-[rgba(92,113,190,0.35)] bg-[rgba(92,113,190,0.07)] p-3 text-base text-gray-700"
                         >
                           {/* 1. sor: termék + mennyiség */}
-                          <p className="font-medium text-sm text-gray-800">
-                            <span className="mr-2 font-medium text-gray-800">
-                              {index + 1}. tétel:
-                            </span>
-
-                            {item.products?.name ?? "Ismeretlen termék"}{" "}
-                            {item.quantity} db
+                          <p className="text-lg font-semibold text-[rgb(55,75,150)]">
+                            {index + 1}. tétel: {item.products?.name ?? "Ismeretlen termék"}
                           </p>
 
                           {/* 2. sor: részletek */}
-                          <p className="mt-1 text-sm text-gray-500">
-                            {item.packages?.name ?? "Nincs csomagolás"}
-
-                            {item.size_preference && (
-                              <>
-                                <span className="mx-2 text-gray-500">·</span>
-                                {item.size_preference}
-                              </>
-                            )}
-
-                            {item.note && (
-                              <>
-                                <span className="mx-2 text-gray-500">·</span>
-                                <span>
-                                  Megjegyzés: {item.note}
-                                </span>
-                              </>
-                            )}
+                          <p className="mt-1 text-base">
+                            {item.quantity} db · {item.packages?.name ?? "Nincs csomagolás"}
+                            {item.size_preference && <> · {item.size_preference}</>}
+                            {item.note && <> · Megjegyzés: {item.note}</>}
                           </p>
                         </div>
                       ))}
                     </div>
                     {/* Összesítés + műveletek */}
                     <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 pt-3">
-                      <div className="text-sm">
-                        <span className="font-medium text-gray-800 ">
+                      <div className="text-base">
+                        <span className="font-medium text-gray-700">
                           Összesen:
                         </span>{" "}
-                        <span className="font-medium text-gray-800">
+                        <span className="font-semibold text-gray-700">
                           {totalQuantity} db
                         </span>
                       </div>

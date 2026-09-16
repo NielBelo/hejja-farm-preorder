@@ -17,7 +17,7 @@ export default function LogoutButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-3 rounded-xl border border-gray-500 px-5 py-3 text-sm font-bold text-gray-700 transition hover:bg-gray-200"
+        className="flex items-center gap-3 rounded-xl border border-gray-500 px-4 py-3 text-base font-bold text-gray-700 transition hover:bg-gray-200 sm:px-5"
       >
         {userName}
 

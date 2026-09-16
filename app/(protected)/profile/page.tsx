@@ -24,7 +24,7 @@ export default async function ProfilePage() {
 
     return (
       <div className="mx-auto w-full max-w-3xl">
-        <p className="text-red-600">
+        <p className="text-base text-red-600">
           A személyes adatok betöltése sikertelen.
         </p>
       </div>
@@ -36,7 +36,7 @@ export default async function ProfilePage() {
 
     return (
       <div className="mx-auto w-full max-w-3xl">
-        <p className="text-red-600">
+        <p className="text-base text-red-600">
           A fiók e-mail címe nem tölthető be.
         </p>
       </div>
@@ -48,7 +48,7 @@ export default async function ProfilePage() {
 
       {/* Tájékoztató rész */}
       <div className="mt-8 mb-12 w-full">
-        <p className="text-base leading-7 text-justify text-gray-600">
+        <p className="text-lg leading-7 text-justify text-gray-600">
           <span className="font-medium text-gray-700">
             Az itt megjelenő adatok a Héjja-Farm rendszerében Önről
             tárolt személyes és kapcsolattartási adatok.
@@ -61,7 +61,7 @@ export default async function ProfilePage() {
       </div>
 
       {/* Vásárlói adatlap */}
-      <div className="mx-auto w-full max-w-3xl">
+      <div className="mx-auto w-full max-w-4xl">
         <ProfileEditor
           userId={user.id}
           email={user.email}

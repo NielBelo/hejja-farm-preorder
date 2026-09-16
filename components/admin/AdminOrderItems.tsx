@@ -19,17 +19,19 @@ type AdminOrderItem = {
 
 type AdminOrderItemsProps = {
     items: AdminOrderItem[];
+    compact?: boolean;
 };
 
 export default function AdminOrderItems({
     items,
+    compact = false,
 }: AdminOrderItemsProps) {
     return (
         <div className="divide-y divide-gray-200">
             {items.map((item, index) => (
                 <div
                     key={item.id}
-                    className="py-3 first:pt-0 last:pb-0"
+                    className={`${compact ? "flex flex-wrap items-baseline gap-x-3 gap-y-0.5 py-1.5" : "py-3"} first:pt-0 last:pb-0`}
                 >
                     {/* 1. sor: termék + mennyiség */}
                     <p className="font-medium text-sm text-gray-800">
@@ -42,7 +44,7 @@ export default function AdminOrderItems({
                     </p>
 
                     {/* 2. sor: részletek */}
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className={`${compact ? "min-w-0 break-words" : "mt-1"} text-sm text-gray-500`}>
                         {item.packages?.name ?? "Nincs csomagolás"}
 
                         {item.size_preference && (

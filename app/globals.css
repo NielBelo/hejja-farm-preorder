@@ -12,30 +12,35 @@ html {
 body {
   min-height: 100vh;
   position: relative;
+  isolation: isolate;
   color: #111827;
 }
 
-/* Háttérkép + fehér átmenet */
-body::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
+/* A háttér fél képernyőnyi út után megáll, miközben a tartalom tovább gördül. */
+.site-background,
+.site-header-scroll-mask-background {
+  --background-offset: 0px;
+  inset: 0 0 auto;
+  height: 140vh;
+  pointer-events: none;
+  transform: translate3d(0, var(--background-offset), 0);
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
 
   background-image:
     linear-gradient(
       to bottom,
       rgba(255,255,255,0.6) 0%,
-      rgba(255,255,255,0.7) 20%,
-      rgba(255,255,255,0.85) 50%,
-      rgba(255,255,255,1) 80%,
+      rgba(255,255,255,0.7) 15%,
+      rgba(255,255,255,0.85) 36%,
+      rgba(255,255,255,1) 58%,
       rgba(255,255,255,1) 100%
     ),
     url("/images/background.jpeg");
 
   background-size:
-    100% 1000px,
-    100% auto;
+    100% 100%,
+    cover;
 
   background-position:
     center top,
@@ -44,6 +49,51 @@ body::before {
   background-repeat:
     no-repeat,
     no-repeat;
+}
+
+.site-background {
+  position: fixed;
+  z-index: -1;
+  overflow: hidden;
+}
+
+/* A sticky fejléc felett eltakarja, alatta pedig a háttérbe halványítja
+   az elgördülő oldaltartalmat. */
+.site-header-scroll-mask {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 40;
+  height: 7.25rem;
+  overflow: hidden;
+  pointer-events: none;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(4.75rem + 10px),
+    transparent calc(7.25rem - 5px),
+    transparent 7.25rem
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    black 0,
+    black calc(4.75rem + 10px),
+    transparent calc(7.25rem - 5px),
+    transparent 7.25rem
+  );
+}
+
+.site-header-scroll-mask-background {
+  position: absolute;
+  width: 100%;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .site-background,
+  .site-header-scroll-mask-background {
+    transform: none;
+    transition: none;
+    will-change: auto;
+  }
 }
 
 /* Chrome, Edge, Safari */
@@ -57,4 +107,72 @@ input[type="number"]::-webkit-inner-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
+}
+
+.print-only {
+  display: none;
+}
+
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 24mm 12mm;
+
+    @top-left {
+      content: "Rendelésátvételi lista · " var(--pickup-print-date, "");
+      color: #374151;
+      font-size: 10pt;
+      font-weight: 600;
+      padding-top: 7mm;
+    }
+
+    @bottom-center {
+      content: counter(page) " / " counter(pages);
+      color: #4b5563;
+      font-size: 9pt;
+      font-variant-numeric: tabular-nums;
+      padding-bottom: 7mm;
+    }
+
+    @top-right {
+      content: var(--pickup-print-summary, "");
+      color: #374151;
+      font-size: 10pt;
+      font-weight: 600;
+      text-align: right;
+      padding-top: 7mm;
+    }
+  }
+
+  html,
+  body {
+    min-height: auto;
+    background: white !important;
+  }
+
+  body {
+    color: black;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  body > header,
+  .site-background,
+  .site-header-scroll-mask,
+  .print-hidden {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .pickup-print-page {
+    width: 100%;
+  }
 }
