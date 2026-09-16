@@ -1,3 +1,5 @@
+import { normalizeSizePreference } from "@/lib/sizePreferences";
+
 export type PickupSheetItem = {
     id: number;
     quantity: number;
@@ -15,6 +17,7 @@ export type PickupSheetOrder = {
     customerName: string;
     phone: string;
     items: PickupSheetItem[];
+    specialSizePreference: "smaller" | "larger" | null;
 };
 
 export type PickupSheetPickupDay = {
@@ -134,10 +137,9 @@ export function summarizeProduct(name: string | null | undefined) {
 }
 
 export function summarizeSize(preference: string | null | undefined) {
-    if (!preference) return "Átlagos";
-    const normalized = preference.toLocaleLowerCase("hu");
-    if (normalized.includes("kisebb")) return "Kisebb";
-    if (normalized.includes("nagyobb")) return "Nagyobb";
+    const normalized = normalizeSizePreference(preference);
+    if (normalized === "Átlagostól kisebb méret") return "Kisebb";
+    if (normalized === "Átlagostól nagyobb méret") return "Nagyobb";
     return "Átlagos";
 }
 
