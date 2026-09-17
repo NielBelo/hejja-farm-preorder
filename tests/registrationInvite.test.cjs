@@ -19,7 +19,7 @@ const { buildRegistrationInvite } = load('../lib/email/registrationInvite.ts');
 test('registration invite contains its one-time link in text and HTML', () => {
     const invitationUrl = 'https://hejja-okofarm.hu/register?invite=secure-token';
     const email = buildRegistrationInvite({ recipientName: 'Ágnes', invitationUrl });
-    assert.equal(email.subject, 'Héjja-Farm – meghívó csirke előrendeléshez');
+    assert.equal(email.subject, 'Héjja Ökofarm – meghívó csirke előrendeléshez');
     assert.ok(email.text.includes(invitationUrl));
     assert.ok(email.html.includes(invitationUrl));
     assert.ok(email.html.includes('Regisztráció megkezdése'));
