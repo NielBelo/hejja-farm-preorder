@@ -17,7 +17,7 @@ function load(relativePath) {
 const { buildRegistrationInvite } = load('../lib/email/registrationInvite.ts');
 
 test('registration invite contains its one-time link in text and HTML', () => {
-    const invitationUrl = 'https://hejja-farm.hu/register?invite=secure-token';
+    const invitationUrl = 'https://hejja-okofarm.hu/register?invite=secure-token';
     const email = buildRegistrationInvite({ recipientName: 'Ágnes', invitationUrl });
     assert.equal(email.subject, 'Héjja-Farm – meghívó csirke előrendeléshez');
     assert.ok(email.text.includes(invitationUrl));
@@ -27,7 +27,7 @@ test('registration invite contains its one-time link in text and HTML', () => {
 });
 
 test('registration invite escapes recipient HTML', () => {
-    const email = buildRegistrationInvite({ recipientName: '<script>', invitationUrl: 'https://hejja-farm.hu/register?invite=a' });
+    const email = buildRegistrationInvite({ recipientName: '<script>', invitationUrl: 'https://hejja-okofarm.hu/register?invite=a' });
     assert.ok(email.html.includes('Kedves &lt;script&gt;!'));
     assert.equal(email.html.includes('Kedves <script>!'), false);
 });

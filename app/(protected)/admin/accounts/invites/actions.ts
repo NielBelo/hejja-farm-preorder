@@ -6,7 +6,7 @@ import { sendSmtp2GoEmail, Smtp2GoConfigurationError, Smtp2GoDeliveryError } fro
 import { createClient } from "@/lib/supabase/server";
 
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-const siteUrl = "https://hejja-farm.hu";
+const siteUrl = "https://hejja-okofarm.hu";
 
 export type InviteBatchResult = {
     success: boolean;

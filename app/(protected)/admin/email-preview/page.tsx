@@ -61,13 +61,13 @@ export default async function AdminEmailPreviewPage({
     });
     const registrationEmail = buildRegistrationConfirmation({
         firstName: "Dániel",
-        confirmationUrl: "https://hejja-farm.hu/auth/confirm?token_hash=minta-token&type=email",
+        confirmationUrl: "https://hejja-okofarm.hu/auth/confirm?token_hash=minta-token&type=email",
     }, {
         logoSrc: "/images/logo2.png",
     });
     const inviteEmail = buildRegistrationInvite({
         recipientName: "Dániel",
-        invitationUrl: "https://hejja-farm.hu/register?invite=minta-egyszer-hasznalatos-token",
+        invitationUrl: "https://hejja-okofarm.hu/register?invite=minta-egyszer-hasznalatos-token",
     });
     const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "registration-invite"
         ? initialTemplate

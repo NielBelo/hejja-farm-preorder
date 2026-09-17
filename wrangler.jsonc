@@ -7,7 +7,7 @@
   "workers_dev": true,
   "routes": [
     {
-      "pattern": "hejja-farm.hu",
+      "pattern": "hejja-okofarm.hu",
       "custom_domain": true
     }
   ],

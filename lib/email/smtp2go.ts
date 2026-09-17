@@ -1,7 +1,7 @@
 import "server-only";
 
 const SMTP2GO_EMAILS_URL = "https://api.smtp2go.com/v3/email/send";
-const DEFAULT_FROM = "Héjja-Farm <admin@hejja-farm.hu>";
+const DEFAULT_FROM = "Héjja-Farm <admin@hejja-okofarm.hu>";
 
 export class Smtp2GoConfigurationError extends Error { constructor(message: string) { super(message); this.name = "Smtp2GoConfigurationError"; } }
 export class Smtp2GoDeliveryError extends Error { constructor(message: string) { super(message); this.name = "Smtp2GoDeliveryError"; } }

@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 
-const publicUrl = "https://hejja-farm.hu/";
+const publicUrl = "https://hejja-okofarm.hu/";
 const config = JSON.parse(await readFile("wrangler.jsonc", "utf8"));
 const hasPublicRoute = config.routes?.some(
-  (route) => route.custom_domain === true && route.pattern === "hejja-farm.hu",
+  (route) => route.custom_domain === true && route.pattern === "hejja-okofarm.hu",
 );
 
 if (!hasPublicRoute) {

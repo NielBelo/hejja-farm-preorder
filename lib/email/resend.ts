@@ -1,7 +1,7 @@
 import "server-only";
 
 const RESEND_EMAILS_URL = "https://api.resend.com/emails";
-const DEFAULT_FROM = "Héjja-Farm <rendeles@hejja-farm.hu>";
+const DEFAULT_FROM = "Héjja-Farm <rendeles@hejja-okofarm.hu>";
 
 type SendEmailInput = {
     to: string;

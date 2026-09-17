@@ -17,7 +17,7 @@ const textValue = (formData: FormData, name: string) => {
 };
 
 const normalizeEmail = (value: string) => value.trim().toLowerCase();
-const PRODUCTION_SITE_URL = "https://hejja-farm.hu";
+const PRODUCTION_SITE_URL = "https://hejja-okofarm.hu";
 
 export async function register(_previous: RegisterState, formData: FormData): Promise<RegisterState> {
   const invite = textValue(formData, "invite");

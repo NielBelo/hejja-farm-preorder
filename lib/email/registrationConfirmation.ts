@@ -43,7 +43,7 @@ export function buildRegistrationConfirmation(
         "Ha nem te kezdeményezted a regisztrációt, nincs további teendőd.",
         "",
         "Ez egy automatikus e-mail, kérjük, ne válaszolj rá.",
-        "Kérdés esetén: hejja-farm-csirke@gmail.com",
+        "Kérdés esetén: hejjaokofarm@gmail.com",
         "",
         "Üdvözlettel:",
         "Héjja Ökofarm",
@@ -104,7 +104,7 @@ export function buildRegistrationConfirmation(
                             <p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #e5e7eb;font-size:14px;line-height:22px;color:#6b7280;font-style:italic;">
                                 &#9993;&nbsp; Ez egy automatikus e-mail, kérjük, ne válaszolj rá.<br>
                                 Kérdés vagy probléma esetén írj a
-                                <a href="mailto:hejja-farm-csirke@gmail.com" style="color:#218856;font-weight:700;text-decoration:none;">hejja-farm-csirke@gmail.com</a>
+                                <a href="mailto:hejjaokofarm@gmail.com" style="color:#218856;font-weight:700;text-decoration:none;">hejjaokofarm@gmail.com</a>
                                 címre.
                             </p>
 
