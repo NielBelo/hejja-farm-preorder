@@ -65,7 +65,7 @@ function PasswordField({ name, label, error }: { name: "password" | "passwordCon
 }
 
 export function RegistrationSuccessMessage() {
-  return <p className="rounded-lg border border-green-200 bg-green-50 p-4 leading-6 text-center text-green-800">Sikeresen rögzítettük az adataidat. Hamarosan kapsz egy e-mailt; a benne lévő megerősítő linkre kattintva fejezheted be a regisztrációt.</p>;
+  return <p className="rounded-lg border border-green-200 bg-green-50 p-4 text-center text-sm leading-6 text-green-700">A regisztráció sikerült! Küldtünk egy <strong>újabb e-mailt</strong> egy megerősítő linkkel — kattints rá, és az automatikusan bejelentkeztet a weboldalra. A megerősítés nélkül a fiókod <strong>nem fog működni</strong>.</p>;
 }
 
 export default function RegisterForm({ token, email, preview = false }: { token: string; email: string; preview?: boolean }) {
@@ -74,11 +74,11 @@ export default function RegisterForm({ token, email, preview = false }: { token:
   return <form key={JSON.stringify(state.values)} action={formAction} noValidate className="grid gap-x-5 gap-y-4 sm:grid-cols-2">
     <input type="hidden" name="invite" value={token} />
     <div className="sm:col-span-2"><RequiredLabel htmlFor="email">E-mail</RequiredLabel><input id="email" name="email" type="email" value={email} readOnly aria-readonly="true" className="w-full cursor-not-allowed rounded-xl border-2 border-[rgba(7,109,143,0.2)] bg-gray-100 px-4 py-2.5 text-gray-700" /></div>
-    <FormInput label="Vezetéknév *" name="lastName" defaultValue={state.values.lastName} error={state.fieldErrors.lastName} />
-    <FormInput label="Keresztnév *" name="firstName" defaultValue={state.values.firstName} error={state.fieldErrors.firstName} />
+    <FormInput label="Vezetéknév" required name="lastName" defaultValue={state.values.lastName} error={state.fieldErrors.lastName} />
+    <FormInput label="Keresztnév" required name="firstName" defaultValue={state.values.firstName} error={state.fieldErrors.firstName} />
     <div><RequiredLabel htmlFor="phone">Telefonszám</RequiredLabel><input id="phone" name="phone" type="tel" inputMode="tel" placeholder="+36 30 123 4567" defaultValue={state.values.phone ? formatPhoneInput(state.values.phone) : "+36"} onChange={(event) => { event.currentTarget.value = formatPhoneInput(event.currentTarget.value); }} className={`w-full rounded-xl border-2 bg-white px-4 py-2.5 text-gray-700 outline-none ${state.fieldErrors.phone ? "border-red-400" : "border-[rgba(7,109,143,0.2)]"}`} />{state.fieldErrors.phone && <p className="mt-1 text-sm text-red-600">{state.fieldErrors.phone}</p>}</div>
     <CountySelect initialValue={state.values.county ?? ""} error={state.fieldErrors.county} />
-    <FormInput label="Település *" name="city" defaultValue={state.values.city} error={state.fieldErrors.city} />
+    <FormInput label="Település" required name="city" defaultValue={state.values.city} error={state.fieldErrors.city} />
     <div className="hidden sm:block" aria-hidden="true" />
     <PasswordField label="Jelszó" name="password" error={state.fieldErrors.password} /><PasswordField label="Jelszó újra" name="passwordConfirmation" error={state.fieldErrors.passwordConfirmation} />
     <div className="sm:col-span-2"><label className="flex items-start gap-3 text-sm text-gray-700"><input name="privacyAccepted" type="checkbox" value="true" defaultChecked={state.values.privacyAccepted} className="mt-1 h-4 w-4" /><span>Elolvastam és elfogadom az <Link href="/privacy-policy" target="_blank" className="text-[rgb(49,171,2)] underline">adatkezelési tájékoztatót</Link>.<span className="ml-1 text-red-600" aria-hidden="true">*</span></span></label>{state.fieldErrors.privacyAccepted && <p className="mt-1 text-sm text-red-600">{state.fieldErrors.privacyAccepted}</p>}</div>

@@ -28,9 +28,11 @@ export default async function LoginPage({
       </h1>
 
       {registered && (
-        <p className="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 text-center text-sm text-green-700">
-          A regisztráció sikerült. A bejelentkezés előtt erősítsd meg az
-          e-mail-címedet a kiküldött levélben található linkkel.
+        <p className="mb-6 rounded-lg border border-green-200 bg-green-50 p-4 text-center text-sm leading-6 text-green-700">
+          A regisztráció sikerült! Küldtünk egy <strong>újabb e-mailt</strong>{" "}
+          egy megerősítő linkkel — kattints rá, és az automatikusan
+          bejelentkeztet a weboldalra. A megerősítés nélkül a fiókod{" "}
+          <strong>nem fog működni</strong>.
         </p>
       )}
 
@@ -41,7 +43,7 @@ export default async function LoginPage({
         </p>
       )}
 
-      <LoginForm returnTo={returnTo} />
+      {!registered && <LoginForm returnTo={returnTo} />}
     </main>
   );
 }

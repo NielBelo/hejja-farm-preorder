@@ -5,6 +5,7 @@ type FormInputProps = {
   placeholder?: string;
   defaultValue?: string;
   error?: string | null;
+  required?: boolean;
 };
 
 export default function FormInput({
@@ -14,6 +15,7 @@ export default function FormInput({
   placeholder,
   defaultValue,
   error,
+  required = false,
 }: FormInputProps) {
   return (
     <div>
@@ -22,6 +24,9 @@ export default function FormInput({
         className="mb-2 block text-sm font-medium text-gray-700"
       >
         {label}
+        {required && (
+          <span className="text-red-600" aria-hidden="true"> *</span>
+        )}
       </label>
 
       <input
