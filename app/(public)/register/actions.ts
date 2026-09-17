@@ -1,5 +1,6 @@
 "use server";
 
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeHungarianPhone } from "@/lib/phoneNumber";
 
@@ -117,10 +118,5 @@ export async function register(_previous: RegisterState, formData: FormData): Pr
     };
   }
 
-  return {
-    error: null,
-    success: "Sikeresen rögzítettük az adataidat. Hamarosan kapsz egy e-mailt; a benne lévő megerősítő linkre kattintva fejezheted be a regisztrációt.",
-    fieldErrors: {},
-    values: {},
-  };
+  redirect("/login?registered=1");
 }
