@@ -1,4 +1,5 @@
 import LoginForm from "./LoginForm";
+import { LockClosedIcon } from "@heroicons/react/24/outline";
 
 export default async function LoginPage({
   searchParams,
@@ -22,8 +23,12 @@ export default async function LoginPage({
     : rawError === "confirmation";
 
   return (
-    <main className="mx-auto mt-10 max-w-md rounded-xl bg-white p-6 shadow-sm">
-      <h1 className="mb-6 text-2xl font-bold text-gray-700 text-center">
+    <main className="mx-auto mt-10 max-w-lg rounded-2xl bg-white px-6 py-10 shadow-lg sm:px-10 sm:py-12">
+      <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[rgb(49,171,2)]/15">
+        <LockClosedIcon className="h-7 w-7 text-[rgb(49,171,2)]" />
+      </div>
+
+      <h1 className="mb-6 text-center text-xl font-bold text-gray-700 sm:text-2xl">
         Bejelentkezés
       </h1>
 

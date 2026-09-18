@@ -3,6 +3,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 import { createServerClient } from "@supabase/ssr";
 
 const publicRoutes = [
+  "/",
   "/login",
   "/register",
   "/privacy-policy",
@@ -51,10 +52,17 @@ export async function proxy(request: NextRequest) {
   }
 
   // Már be van jelentkezve → ne tudjon visszamenni a loginra.
-  // A /auth/confirm route-ot kivesszük: ennek saját auth flow-ja van
-  // (token beolvasása), aminek akkor is le kell futnia, ha a böngészőben
-  // épp fut egy másik, korábbi munkamenet.
-  if (user && isPublicRoute && pathname !== "/auth/confirm") {
+  // A "/" és a /auth/confirm route-ot kivesszük: a "/" nyilvános
+  // kezdőoldal (bejelentkezve is megnézhető, ide irányítanánk vissza,
+  // ami végtelen átirányítási hurkot okozna), a /auth/confirm-nek pedig
+  // saját auth flow-ja van (token beolvasása), aminek akkor is le kell
+  // futnia, ha a böngészőben épp fut egy másik, korábbi munkamenet.
+  if (
+    user &&
+    isPublicRoute &&
+    pathname !== "/" &&
+    pathname !== "/auth/confirm"
+  ) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
@@ -63,6 +71,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };
