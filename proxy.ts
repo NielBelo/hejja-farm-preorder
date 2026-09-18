@@ -51,19 +51,14 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  // Már be van jelentkezve → ne tudjon visszamenni a loginra.
-  // A "/" és a /auth/confirm route-ot kivesszük: a "/" nyilvános
-  // kezdőoldal (bejelentkezve is megnézhető, ide irányítanánk vissza,
-  // ami végtelen átirányítási hurkot okozna), a /auth/confirm-nek pedig
-  // saját auth flow-ja van (token beolvasása), aminek akkor is le kell
-  // futnia, ha a böngészőben épp fut egy másik, korábbi munkamenet.
-  if (
-    user &&
-    isPublicRoute &&
-    pathname !== "/" &&
-    pathname !== "/auth/confirm"
-  ) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // Már be van jelentkezve → ne tudjon visszamenni a loginra, és a
+  // publikus nyitóoldalt se lássa, hanem kerüljön az előrendelő oldalra.
+  // A /auth/confirm route-ot kivesszük: ennek saját auth flow-ja van
+  // (token beolvasása), aminek akkor is le kell futnia, ha a böngészőben
+  // épp fut egy másik, korábbi munkamenet.
+  if (user && isPublicRoute && pathname !== "/auth/confirm") {
+    const target = pathname === "/" ? "/preorder" : "/";
+    return NextResponse.redirect(new URL(target, request.url));
   }
 
   return response;
