@@ -16,6 +16,7 @@ export type AdminUpdateOrderItem = {
 type AdminUpdateOrderData = {
     orderId: number;
     items: AdminUpdateOrderItem[];
+    pickupDayId: number;
 };
 
 export async function updateAdminOrder(data: AdminUpdateOrderData) {
@@ -89,6 +90,7 @@ export async function updateAdminOrder(data: AdminUpdateOrderData) {
     const { error } = await supabase.rpc("update_order", {
         p_order_id: data.orderId,
         p_items: normalizedItems,
+        p_pickup_day_id: data.pickupDayId,
     });
 
     if (error) {

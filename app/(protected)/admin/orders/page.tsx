@@ -17,7 +17,7 @@ export default async function AdminOrdersPage() {
     // ------------------------------------------------------------
     const seasonOptions = await getAdminSeasonOptions(supabase);
     const defaultSeason = getDefaultAdminSeason(seasonOptions);
-    const [initialOrders, productsResult, packagesResult] = await Promise.all([
+    const [initialOrders, productsResult, packagesResult, pickupDaysResult] = await Promise.all([
         defaultSeason
             ? getAdminOrdersByPickupDayIds(supabase, defaultSeason.pickupDayIds)
             : Promise.resolve([]),
@@ -29,6 +29,14 @@ export default async function AdminOrdersPage() {
             .from("packages")
             .select("id, name, description")
             .order("name"),
+        // Ugyanaz a lista, mint amit az Előzmények oldal az átvételi nap
+        // módosításához felkínál: csak az aktív szezon átvételi napjai.
+        supabase
+            .from("pickup_days")
+            .select("*")
+            .eq("is_active", true)
+            .order("_group")
+            .order("serial_number"),
     ]);
 
     if (productsResult.error) {
@@ -36,6 +44,9 @@ export default async function AdminOrdersPage() {
     }
     if (packagesResult.error) {
         throw new Error(packagesResult.error.message);
+    }
+    if (pickupDaysResult.error) {
+        throw new Error(pickupDaysResult.error.message);
     }
 
     // ------------------------------------------------------------
@@ -57,6 +68,7 @@ export default async function AdminOrdersPage() {
                         seasonOptions={seasonOptions.map(({ value, label }) => ({ value, label }))}
                         products={productsResult.data ?? []}
                         packages={packagesResult.data ?? []}
+                        pickupDays={pickupDaysResult.data ?? []}
                     />
                 </OrderActionsManager>
             </div>

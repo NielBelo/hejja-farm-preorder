@@ -9,6 +9,7 @@ import { emptyFilters, filterLabels, getDefaultOrderFilters, getOrderFilterOptio
 import AdminOrderCard, {
     type AdminOrder,
 } from "@/components/admin/AdminOrderCard";
+import type { PickupDay } from "@/lib/usePickupDayChange";
 
 type Product = {
     id: number;
@@ -29,12 +30,14 @@ export default function AdminOrderList({
     seasonOptions,
     products,
     packages,
+    pickupDays,
 }: {
     initialOrders: AdminOrder[];
     initialSeason: string;
     seasonOptions: { value: string; label: string }[];
     products: Product[];
     packages: PackageOption[];
+    pickupDays: PickupDay[];
 }) {
     const [openOrderId, setOpenOrderId] = useState<number | null>(null);
     const [filters, setFilters] = useState<OrderFilters>(() => getDefaultOrderFilters(initialSeason));
@@ -190,6 +193,7 @@ export default function AdminOrderList({
                         order={order}
                         products={products}
                         packages={packages}
+                        pickupDays={pickupDays}
                         isOpen={openOrderId === order.id}
                         onToggle={() => handleToggle(order.id)}
                         onOrderChanged={refreshLoadedSeasons}

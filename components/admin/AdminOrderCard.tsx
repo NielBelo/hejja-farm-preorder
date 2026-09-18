@@ -14,8 +14,10 @@ import AdminCancelOrder from "@/components/admin/AdminCancelOrder";
 import AdminRestoreOrder from "@/components/admin/AdminRestoreOrder";
 import PickupDateStatus from "@/components/admin/PickupDateStatus";
 import ProductSelector from "@/components/ProductSelector";
+import PickupDayChangeCard from "@/components/PickupDayChangeCard";
 import { createClient } from "@/lib/supabase/client";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
+import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
 import { updateAdminOrder } from "@/app/(protected)/admin/orders/actions";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
 
@@ -118,6 +120,7 @@ export default function AdminOrderCard({
     order,
     products,
     packages,
+    pickupDays,
     isOpen,
     onToggle,
     onOrderChanged,
@@ -125,6 +128,7 @@ export default function AdminOrderCard({
     order: AdminOrder;
     products: Product[];
     packages: PackageOption[];
+    pickupDays: PickupDay[];
     isOpen: boolean;
     onToggle: () => void;
     onOrderChanged: () => Promise<void>;
@@ -261,6 +265,38 @@ export default function AdminOrderCard({
                 };
 
     // ------------------------------------------------------------
+    // Átvételi nap módosítása
+    //
+    // Ugyanaz a logika, mint az Előzmények oldal rendelésmódosításánál:
+    // az összes szerkesztett tétel mennyiségét kell figyelembe venni
+    // annak eldöntéséhez, hogy az új napon elfér-e a rendelés.
+    // ------------------------------------------------------------
+    const requiredQuantity = editedItems.reduce(
+        (sum, item) => sum + item.quantity,
+        0
+    );
+
+    const {
+        selectedPickupDayId,
+        pickupDayCardOpen,
+        collapseAllSignal,
+        insufficientStockDay,
+        pickupDaysForPicker,
+        pickupDayForDisplay,
+        pickupDayChanged,
+        handleTogglePickupDayCard,
+        handleSelectPickupDay,
+        closePickupDayCard,
+        dismissInsufficientStock,
+        reset: resetPickupDaySelection,
+    } = usePickupDayChange({
+        pickupDayId: order.pickup_day_id,
+        pickupDays,
+        originalQuantity,
+        requiredQuantity,
+    });
+
+    // ------------------------------------------------------------
     // Érintetlen üres "Új tétel"
     // ------------------------------------------------------------
     const isUntouchedEmptyItem = (
@@ -285,6 +321,7 @@ export default function AdminOrderCard({
     // Van-e tényleges módosítás?
     // ------------------------------------------------------------
     const hasChanges =
+        pickupDayChanged ||
         items.length !== itemsToSave.length ||
         items.some((originalItem, index) => {
             const editedItem = itemsToSave[index];
@@ -536,6 +573,7 @@ export default function AdminOrderCard({
         setSaveSuccess(null);
         setEmailWarning(null);
         setEditedItems(initialItems);
+        resetPickupDaySelection();
 
         startEditing(order.id);
         setIsEditing(true);
@@ -552,6 +590,7 @@ export default function AdminOrderCard({
         setSaveError(null);
         setEmailWarning(null);
         setEditedItems([]);
+        resetPickupDaySelection();
         setIsEditing(false);
 
         stopEditing();
@@ -596,6 +635,7 @@ export default function AdminOrderCard({
         const result = await updateAdminOrder({
             orderId: order.id,
             items: rpcItems,
+            pickupDayId: selectedPickupDayId,
         });
 
         if (!result.success) {
@@ -612,11 +652,21 @@ export default function AdminOrderCard({
         const changeMessage = oldTotal !== newTotal
             ? `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
             : "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
+        const newPickupDay = pickupDays.find(
+            (day) => day.id === selectedPickupDayId
+        );
+        const pickupDayMessage = pickupDayChanged && newPickupDay
+            ? ` Az átvételi nap ${new Intl.DateTimeFormat("hu-HU", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            }).format(new Date(newPickupDay.pickup_date))}-re módosult.`
+            : "";
         const emailMessage = result.emailRecipient
             ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
             : "";
 
-        setSaveSuccess(`${changeMessage}${emailMessage}`);
+        setSaveSuccess(`${changeMessage}${pickupDayMessage}${emailMessage}`);
 
         setIsSaving(false);
         setIsEditing(false);
@@ -1021,6 +1071,19 @@ export default function AdminOrderCard({
                                 </div>
                             </div>
 
+                            {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel */}
+                            <PickupDayChangeCard
+                                isOpen={pickupDayCardOpen}
+                                onToggle={handleTogglePickupDayCard}
+                                pickupDaysForPicker={pickupDaysForPicker}
+                                selectedPickupDayId={selectedPickupDayId}
+                                pickupDayForDisplay={pickupDayForDisplay}
+                                onSelectPickupDay={handleSelectPickupDay}
+                                bypassWindow
+                                insufficientStockDay={insufficientStockDay}
+                                onDismissInsufficientStock={dismissInsufficientStock}
+                            />
+
                             <ProductSelector
                                 orderId={
                                     order.id
@@ -1038,6 +1101,9 @@ export default function AdminOrderCard({
                                 isPickupDaySelected={
                                     true
                                 }
+                                pickupDate={
+                                    pickupDayForDisplay?.pickup_date ?? null
+                                }
                                 initialItems={
                                     initialItems
                                 }
@@ -1049,6 +1115,12 @@ export default function AdminOrderCard({
                                 }
                                 onItemEdited={
                                     handleItemEdited
+                                }
+                                collapseAllSignal={
+                                    collapseAllSignal
+                                }
+                                onItemOpen={
+                                    closePickupDayCard
                                 }
                             />
 

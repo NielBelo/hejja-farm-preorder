@@ -21,14 +21,19 @@ export default function PickupDaySelector({
     onSelectPickupDay,
     startDate,
     endDate,
+    bypassWindow = false,
 }: {
     pickupDays: PickupDay[];
     selectedPickupDayId: number | null;
     onSelectPickupDay: (day: PickupDay) => void;
     startDate?: string | null;
     endDate?: string | null;
+    // Admin szerkesztésnél a rendelési időablak nem korlátozza a módosítást,
+    // ugyanúgy, ahogy a tételek szerkesztése sem admin esetén.
+    bypassWindow?: boolean;
 }) {
-    const isOrderingOpen = useOrderWindow(startDate, endDate);
+    const isWindowOpen = useOrderWindow(startDate, endDate);
+    const isOrderingOpen = bypassWindow || isWindowOpen;
     const displayedPickupDays = [...pickupDays]
         .sort(
             (first, second) =>
@@ -120,7 +125,7 @@ export default function PickupDaySelector({
                             disabled={isFull}
                             type="button"
                             onClick={() => {
-                                if (isWithinOrderWindow(startDate, endDate)) {
+                                if (bypassWindow || isWithinOrderWindow(startDate, endDate)) {
                                     onSelectPickupDay(day);
                                 }
                             }}
