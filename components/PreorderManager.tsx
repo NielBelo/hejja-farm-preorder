@@ -87,9 +87,20 @@ export default function PreorderManager({
             selectedPickupDay.id !== day.id &&
             hasOrderChanges
         ) {
-            setPendingPickupDay(day);
-            setShowDayChangeModal(true);
-            return;
+            // Ugyanaz az összegzés, mint a ProductSelector getRemainingQuantity
+            // "used" számítása: az összes tétel mennyiségét számoljuk, függetlenül
+            // attól, hogy a tétel már össze van-e csukva vagy van-e már
+            // kiválasztott terméke/csomagolása.
+            const requiredQuantity = orderItems.reduce(
+                (sum, item) => sum + item.quantity,
+                0
+            );
+
+            if (requiredQuantity > day.available_stock) {
+                setPendingPickupDay(day);
+                setShowDayChangeModal(true);
+                return;
+            }
         }
 
         setSelectedPickupDay(day);
@@ -508,8 +519,9 @@ export default function PreorderManager({
                         </h2>
 
                         <p className="mt-4 text-lg leading-7 text-gray-600">
-                            Az átvételi nap módosításával a korábban megadott, de még nem véglegesített rendelési tételek
-                            elvesznek. Folytatja?
+                            A kiválasztott átvételi napon nincs elegendő készlet a jelenleg megadott rendelési tételek
+                            teljes mennyiségéhez. Ha folytatja, a korábban megadott, de még nem véglegesített
+                            rendelési tételek törlődnek, és a rendszer átvált az új napra.
                         </p>
 
                         <div className="mt-8 flex justify-end gap-3">
@@ -527,7 +539,7 @@ export default function PreorderManager({
                                 onClick={confirmPickupDayChange}
                                 className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
                             >
-                                Folytatás
+                                Váltás, tételek törlése
                             </button>
 
                         </div>

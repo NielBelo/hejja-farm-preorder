@@ -2,9 +2,13 @@
 
 import { useMemo, useState } from "react";
 import ProductSelector from "@/components/ProductSelector";
+import PickupDaySelector from "@/components/PickupDaySelector";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { ArchiveBoxIcon } from "@heroicons/react/24/outline";
+import {
+    ChevronDownIcon,
+    ChevronRightIcon,
+} from "@heroicons/react/24/outline";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
 import {
@@ -34,6 +38,18 @@ type ExistingOrderItem = {
     size_preference: string | null;
 };
 
+type PickupDay = {
+    id: number;
+    year: number;
+    season: number;
+    serial_number: number;
+    pickup_date: string;
+    planned_stock: number;
+    available_stock: number;
+    _group: number;
+    is_active: boolean;
+};
+
 type EditedOrderItem = {
     selectedProductId: number | null;
     selectedPackageId: number | null;
@@ -53,6 +69,10 @@ type OrderActionsProps = {
     products: Product[];
     packages: PackageOption[];
     availableStock: number;
+    pickupDayId: number;
+    pickupDays: PickupDay[];
+    seasonStartDate?: string | null;
+    seasonEndDate?: string | null;
 };
 
 export default function OrderActions({
@@ -62,6 +82,10 @@ export default function OrderActions({
     products,
     packages,
     availableStock,
+    pickupDayId,
+    pickupDays,
+    seasonStartDate,
+    seasonEndDate,
 }: OrderActionsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const {
@@ -123,15 +147,66 @@ export default function OrderActions({
     const maxAvailableQuantity =
         availableStock + originalQuantity;
 
+    // Az átvételi nap választóban a jelenleg foglalt napnál a rendelés saját
+    // mennyiségét vissza kell adni a készlethez, ugyanúgy, mint a fenti
+    // maxAvailableQuantity számításnál – enélkül a saját napja tűnne
+    // tévesen betelt(ebb)nek.
+    const pickupDaysForPicker = pickupDays.map((day) =>
+        day.id === pickupDayId
+            ? { ...day, available_stock: day.available_stock + originalQuantity }
+            : day
+    );
+
+    const [selectedPickupDayId, setSelectedPickupDayId] = useState(pickupDayId);
+    const [pickupDayCardOpen, setPickupDayCardOpen] = useState(false);
+    const [collapseAllSignal, setCollapseAllSignal] = useState(0);
+    const [insufficientStockDay, setInsufficientStockDay] =
+        useState<PickupDay | null>(null);
+
+    const handleTogglePickupDayCard = () => {
+        if (!pickupDayCardOpen) {
+            setCollapseAllSignal((n) => n + 1);
+        }
+
+        setPickupDayCardOpen((open) => !open);
+    };
+
+    const handleSelectPickupDay = (day: PickupDay) => {
+        if (day.id === selectedPickupDayId) return;
+
+        // Ugyanaz az összegzés, mint a PreorderManager napváltás-ellenőrzésénél:
+        // az összes szerkesztett tétel mennyiségét számoljuk.
+        const requiredQuantity = editedItems.reduce(
+            (sum, item) => sum + item.quantity,
+            0
+        );
+
+        if (requiredQuantity > day.available_stock) {
+            setInsufficientStockDay(day);
+            return;
+        }
+
+        setSelectedPickupDayId(day.id);
+    };
+
+    const pickupDayForDisplay = pickupDaysForPicker.find(
+        (day) => day.id === selectedPickupDayId
+    );
+
+    // A kártyán belüli készletinformáció mindig az aktuálisan kiválasztott
+    // átvételi naphoz tartozzon, ne a rendelés eredeti napjához.
+    const displayedAvailableStock =
+        pickupDayForDisplay?.available_stock ?? maxAvailableQuantity;
+
     const stockStatus =
-        maxAvailableQuantity <= 0
+        displayedAvailableStock <= 0
             ? {
                 text: "Előrendelés betelt!",
                 iconClass: "text-red-500",
             }
-            : maxAvailableQuantity <= 30
+            : displayedAvailableStock <= 30
                 ? {
-                    text: `Már csak ${maxAvailableQuantity} db csirke elérhető!`,
+                    text: `Már csak ${displayedAvailableStock} db csirke elérhető!`,
                     iconClass: "text-yellow-500",
                 }
                 : {
@@ -151,7 +226,10 @@ export default function OrderActions({
         (item) => !isUntouchedEmptyItem(item)
     );
 
+    const pickupDayChanged = selectedPickupDayId !== pickupDayId;
+
     const hasChanges =
+        pickupDayChanged ||
         items.length !== itemsToSave.length ||
         items.some((originalItem, index) => {
             const editedItem = itemsToSave[index];
@@ -190,6 +268,9 @@ export default function OrderActions({
         setSaveError(null);
         setSaveSuccess(null);
         setEmailWarning(null);
+        setSelectedPickupDayId(pickupDayId);
+        setPickupDayCardOpen(false);
+        setInsufficientStockDay(null);
 
         startEditing(orderId);
         setIsEditing(true);
@@ -197,6 +278,9 @@ export default function OrderActions({
 
     const handleCancelEdit = () => {
         setIsEditing(false);
+        setSelectedPickupDayId(pickupDayId);
+        setPickupDayCardOpen(false);
+        setInsufficientStockDay(null);
         stopEditing();
     };
     const router = useRouter();
@@ -233,6 +317,7 @@ export default function OrderActions({
         const result = await updateOrder({
             orderId,
             items: rpcItems,
+            pickupDayId: selectedPickupDayId,
         });
 
         if (!result.success) {
@@ -247,11 +332,21 @@ export default function OrderActions({
         const changeMessage = oldTotal !== newTotal
             ? `Sikeres módosítás! A rendelés összmennyisége ${oldTotal} db-ról ${newTotal} db-ra változott.`
             : "Sikeres módosítás! A rendelés összmennyisége nem, csak a részletek változtak.";
+        const newPickupDay = pickupDays.find(
+            (day) => day.id === selectedPickupDayId
+        );
+        const pickupDayMessage = pickupDayChanged && newPickupDay
+            ? ` Az átvételi nap ${new Intl.DateTimeFormat("hu-HU", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+            }).format(new Date(newPickupDay.pickup_date))}-re módosult.`
+            : "";
         const emailMessage = result.emailRecipient
             ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
             : "";
 
-        setSaveSuccess(`${changeMessage}${emailMessage}`);
+        setSaveSuccess(`${changeMessage}${pickupDayMessage}${emailMessage}`);
 
         setEmailWarning(result.emailWarning ?? null);
 
@@ -342,6 +437,34 @@ export default function OrderActions({
                 </div>
             )}
 
+            {insufficientStockDay && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
+
+                        <h2 className="text-2xl font-semibold text-gray-800">
+                            Figyelem!
+                        </h2>
+
+                        <p className="mt-4 text-lg leading-7 text-gray-600">
+                            A kiválasztott napon nincs elegendő készlet a rendelés
+                            jelenlegi mennyiségéhez, ezért a rendelés nem
+                            helyezhető át erre a napra.
+                        </p>
+
+                        <div className="mt-8 flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setInsufficientStockDay(null)}
+                                className="rounded-lg border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
+                            >
+                                Mégse
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+            )}
+
             {saveError && !isEditing && (
                 <div className="mb-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
                     <p className="text-center text-base text-red-600">
@@ -418,22 +541,72 @@ export default function OrderActions({
                             Rendelés módosítása
                         </h3>
 
-
-                        {/* Készletinformáció */}
-                        <div className="mt-2 flex items-center gap-2">
-                            <ArchiveBoxIcon
-                                className={`h-5 w-5 ${stockStatus.iconClass}`}
-                            />
-
-                            <p className="text-base font-medium text-gray-700">
-                                {stockStatus.text}
-                            </p>
-                        </div>
+                        {/* Segítő instrukció */}
+                        <p className="mt-1 text-center text-base italic text-gray-600">
+                            A szerkesztéshez kattintson az átvételi napra vagy a
+                            módosítani kívánt tételre.
+                        </p>
 
                     </div>
 
+                    {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel */}
+                    <div className="mb-4 overflow-hidden rounded-xl border border-[rgb(92,113,190)] bg-white">
+                        <div
+                            role="button"
+                            tabIndex={0}
+                            onClick={handleTogglePickupDayCard}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" || event.key === " ") {
+                                    event.preventDefault();
+                                    handleTogglePickupDayCard();
+                                }
+                            }}
+                            className={`
+        relative flex cursor-pointer items-center justify-center gap-2 px-10 py-3
+        ${pickupDayCardOpen ? "border-b border-[rgba(92,113,190,0.25)]" : ""}
+        text-gray-700 transition hover:bg-[rgba(92,113,190,0.06)]
+    `}
+                        >
+                            <div className="text-center">
+                                <span className="block text-lg font-semibold">
+                                    Átvételi nap módosítása
+                                </span>
 
+                                {pickupDayForDisplay && (
+                                    <span className="mt-1 inline-block rounded-md bg-blue-100 px-2.5 py-1 text-base font-normal text-gray-600">
+                                        Jelenlegi választás:{" "}
+                                        <span className="font-semibold">
+                                            {new Intl.DateTimeFormat("hu-HU", {
+                                                month: "long",
+                                                day: "numeric",
+                                            }).format(new Date(pickupDayForDisplay.pickup_date))}
+                                        </span>
+                                        {" "}– {stockStatus.text}
+                                    </span>
+                                )}
+                            </div>
 
+                            <span className="absolute right-4">
+                                {pickupDayCardOpen ? (
+                                    <ChevronDownIcon className="h-5 w-5 shrink-0 text-gray-400" />
+                                ) : (
+                                    <ChevronRightIcon className="h-5 w-5 shrink-0 text-gray-400" />
+                                )}
+                            </span>
+                        </div>
+
+                        {pickupDayCardOpen && (
+                            <div className="bg-white p-4">
+                                <PickupDaySelector
+                                    startDate={seasonStartDate}
+                                    endDate={seasonEndDate}
+                                    pickupDays={pickupDaysForPicker}
+                                    selectedPickupDayId={selectedPickupDayId}
+                                    onSelectPickupDay={handleSelectPickupDay}
+                                />
+                            </div>
+                        )}
+                    </div>
 
                     {/* Tételek szerkesztése */}
                     <ProductSelector
@@ -443,10 +616,13 @@ export default function OrderActions({
                         maxAvailableQuantity={maxAvailableQuantity}
                         resetKey={0}
                         isPickupDaySelected={true}
+                        pickupDate={pickupDayForDisplay?.pickup_date ?? null}
                         initialItems={initialItems}
                         onOrderChangesChange={() => { }}
                         onItemsChange={setEditedItems}
                         onItemEdited={() => { }}
+                        collapseAllSignal={collapseAllSignal}
+                        onItemOpen={() => setPickupDayCardOpen(false)}
                     />
 
                     {saveError && (

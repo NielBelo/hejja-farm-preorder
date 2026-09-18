@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import {
     ChevronRightIcon,
@@ -51,6 +51,8 @@ type ProductSelectorProps = {
     onItemsChange: (items: OrderItem[]) => void;
     onItemEdited: () => void;
     initialItems?: OrderItem[];
+    collapseAllSignal?: number;
+    onItemOpen?: () => void;
 };
 
 const DEFAULT_NOTE = DEFAULT_SIZE_PREFERENCE;
@@ -94,12 +96,28 @@ export default function ProductSelector({
     onItemsChange,
     onItemEdited,
     initialItems,
+    collapseAllSignal,
+    onItemOpen,
 }: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>(() =>
         initialItems && initialItems.length > 0
             ? initialItems.map((item) => ({ ...item, selectedNote: normalizeSizePreference(item.selectedNote) }))
             : [emptyItem(true)]
     );
+
+    const isFirstCollapseAllSignal = useRef(true);
+    useEffect(() => {
+        if (isFirstCollapseAllSignal.current) {
+            isFirstCollapseAllSignal.current = false;
+            return;
+        }
+
+        if (collapseAllSignal === undefined) return;
+
+        setItems((prev) =>
+            prev.map((item) => ({ ...item, collapsed: true, showValidation: false }))
+        );
+    }, [collapseAllSignal]);
 
 
     useEffect(() => {
@@ -282,6 +300,8 @@ export default function ProductSelector({
     const toggleItem = (index: number, canOpen: boolean) => {
         if (!canOpen) return;
 
+        const willOpen = items[index].collapsed;
+
         const openItemIndex = items.findIndex(
             (item, i) => !item.collapsed && i !== index
         );
@@ -321,6 +341,10 @@ export default function ProductSelector({
                         : true,
             }))
         );
+
+        if (willOpen) {
+            onItemOpen?.();
+        }
     };
 
     const getHeaderText = (item: OrderItem, index: number) => {

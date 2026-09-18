@@ -46,6 +46,18 @@ type Order = {
   } | null;
 };
 
+type PickupDay = {
+  id: number;
+  year: number;
+  season: number;
+  serial_number: number;
+  pickup_date: string;
+  planned_stock: number;
+  available_stock: number;
+  _group: number;
+  is_active: boolean;
+};
+
 function formatDate(date: string) {
   return new Intl.DateTimeFormat("hu-HU", {
     year: "numeric",
@@ -146,7 +158,16 @@ export default async function HistoryPage({
     .from("packages")
     .select("id, name, description")
     .order("id");
+
+  const { data: rawPickupDays } = await supabase
+    .from("pickup_days")
+    .select("*")
+    .eq("is_active", true)
+    .order("_group")
+    .order("serial_number");
+
   const orders = (data ?? []) as unknown as Order[];
+  const pickupDays = (rawPickupDays ?? []) as unknown as PickupDay[];
 
   const { data: historyPic } = await supabase
     .from("page_contents")
@@ -214,9 +235,9 @@ export default async function HistoryPage({
                 <span className="mt-[11px] h-1.5 w-1.5 shrink-0 bg-gray-600" />
 
                 <span>
-                  Az átvételi nap utólag nem módosítható.
-                  Másik nap választásához mondja le meglévő
-                  rendelését, majd adjon le új előrendelést.
+                  Módosításkor az átvételi napot is
+                  megváltoztathatja, ha az új napon elegendő
+                  készlet áll rendelkezésre a rendeléséhez.
                 </span>
               </li>
 
@@ -382,6 +403,10 @@ export default async function HistoryPage({
                           products={products ?? []}
                           packages={packages ?? []}
                           availableStock={order.pickup_days?.available_stock ?? 0}
+                          pickupDayId={order.pickup_day_id}
+                          pickupDays={pickupDays}
+                          seasonStartDate={season?.time_window_start}
+                          seasonEndDate={season?.time_window_end}
                         />
                       )}
                     </div>
