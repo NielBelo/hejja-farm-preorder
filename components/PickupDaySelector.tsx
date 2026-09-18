@@ -75,13 +75,13 @@ export default function PickupDaySelector({
 
     return (
         <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-            <h2 className="text-center text-xl font-semibold text-gray-400">
+            <h2 className="text-center text-xl font-semibold text-gray-700">
                 {isOrderingOpen
                     ? "Válasszon átvételi napot!"
                     : "Jelenleg nincs lehetőség előrendelésre!"}
             </h2>
             {!isOrderingOpen && (
-                <p className="text-center text-xl font-semibold text-gray-400">
+                <p className="text-center text-xl font-semibold text-gray-700">
                     A következő előrendelési lehetőségről e-mailben értesítjük.
                 </p>
             )}

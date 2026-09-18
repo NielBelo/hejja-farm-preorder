@@ -404,7 +404,7 @@ export default function PreorderManager({
             </div>
 
             <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                <h2 className="mb-3 text-center text-xl font-semibold text-gray-400">
+                <h2 className="mb-3 text-center text-xl font-semibold text-gray-700">
                     Adja meg a rendelési tétel(eke)t!
                 </h2>
 
@@ -414,6 +414,7 @@ export default function PreorderManager({
                     maxAvailableQuantity={selectedPickupDay?.available_stock ?? null}
                     resetKey={resetKey}
                     isPickupDaySelected={selectedPickupDay !== null}
+                    pickupDate={selectedPickupDay?.pickup_date ?? null}
                     onOrderChangesChange={setHasOrderChanges}
                     onItemsChange={setOrderItems}
                     onItemEdited={() => {
@@ -430,7 +431,7 @@ export default function PreorderManager({
 
                 {validOrderItems.length > 0 &&
                     validOrderItems.some((item) => !item.collapsed) && (
-                        <p className="mb-4 text-center text-base font-medium text-gray-400">
+                        <p className="mb-4 text-center text-base font-medium text-gray-700">
                             A rendelés véglegesítéséhez először fejezze be az összes tételt!
                         </p>
                     )}

@@ -46,6 +46,7 @@ type ProductSelectorProps = {
     maxAvailableQuantity: number | null;
     resetKey: number;
     isPickupDaySelected: boolean;
+    pickupDate?: string | null;
     onOrderChangesChange: (hasChanges: boolean) => void;
     onItemsChange: (items: OrderItem[]) => void;
     onItemEdited: () => void;
@@ -57,6 +58,15 @@ const SIZE_PREFERENCE_LABELS: Record<typeof SIZE_PREFERENCES[number], string> = 
     "Átlagos méret": "Átlagos méret",
     "Átlagostól kisebb méret": "Átlagostól kisebb méret, ha lehet",
     "Átlagostól nagyobb méret": "Átlagostól nagyobb méret, ha lehet",
+};
+
+const formatPickupDate = (date: string) => {
+    const formatted = new Intl.DateTimeFormat("hu-HU", {
+        month: "long",
+        day: "numeric",
+    }).format(new Date(date));
+
+    return `${formatted.charAt(0).toUpperCase()}${formatted.slice(1)}`;
 };
 
 const emptyItem = (collapsed = false): OrderItem => ({
@@ -79,6 +89,7 @@ export default function ProductSelector({
     maxAvailableQuantity,
     resetKey,
     isPickupDaySelected,
+    pickupDate,
     onOrderChangesChange,
     onItemsChange,
     onItemEdited,
@@ -325,18 +336,16 @@ export default function ProductSelector({
     const sizeText = normalizeSizePreference(item.selectedNote);
 
     if (!item.touched && !itemHasContent(item)) {
-        return "Új tétel";
+        return item.collapsed ? "Új tétel" : `${index + 1}. tétel`;
     }
 
     const details = [
         selectedProduct?.name,
         selectedProduct && `${item.quantity} db`,
-        selectedPackage?.name,
+        itemRequiresPackaging(item) && selectedPackage?.name,
         selectedProduct && sizeText,
-        item.note &&
-            (item.note.length > 30
-                ? `${item.note.slice(0, 30)}...`
-                : item.note),
+        pickupDate && formatPickupDate(pickupDate),
+        item.note,
     ].filter(Boolean);
 
     return details.length === 0
@@ -375,6 +384,28 @@ export default function ProductSelector({
                                 ? "Fejezze be a tétel kitöltését! (Hiányzik a csomagolás.)"
                                 : "";
 
+                const isAddNewButton =
+                    index > 0 &&
+                    index === items.length - 1 &&
+                    canOpen &&
+                    item.collapsed &&
+                    !itemHasContent(item);
+
+                const showPickupDayHint = !isPickupDaySelected && index === 0;
+
+                if (isAddNewButton) {
+                    return (
+                        <div key={index} className={`${marginClass} flex justify-center`}>
+                            <button
+                                type="button"
+                                onClick={() => toggleItem(index, canOpen)}
+                                className="rounded-lg border-2 border-[rgb(92,113,190)] px-6 py-2 text-base font-semibold text-[rgb(92,113,190)] transition hover:bg-[rgb(92,113,190)] hover:text-white"
+                            >
+                                + Új tétel hozzáadása
+                            </button>
+                        </div>
+                    );
+                }
 
                 return (
                     <div
@@ -392,7 +423,7 @@ export default function ProductSelector({
 
                                 if (item.collapsed) {
                                     toggleItem(index, canOpen);
-                                } else {
+                                } else if (itemHasContent(item)) {
                                     finishItem(index, "top");
                                 }
                             }}
@@ -404,7 +435,7 @@ export default function ProductSelector({
 
                                     if (item.collapsed) {
                                         toggleItem(index, canOpen);
-                                    } else {
+                                    } else if (itemHasContent(item)) {
                                         finishItem(index, "top");
                                     }
                                 }
@@ -420,8 +451,8 @@ export default function ProductSelector({
                                 }
 `}
                         >
-                            <div className="flex min-w-0 items-center gap-2">
-                                {!itemHasContent(item) ? (
+                            <div className="flex min-w-0 flex-1 items-center gap-2">
+                                {!itemHasContent(item) && item.collapsed ? (
                                     <span className="flex h-6 w-6 shrink-0 items-center justify-center text-2xl font-medium">
                                         +
                                     </span>
@@ -431,12 +462,18 @@ export default function ProductSelector({
                                     <ChevronDownIcon className="h-5 w-5 shrink-0" />
                                 )}
 
-                                <div className="flex min-w-0 items-center gap-2">
-                                    <h2 className="shrink-0 text-lg font-semibold">
+                                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-hidden">
+                                    <h2
+                                        className={
+                                            showPickupDayHint
+                                                ? "shrink-0 text-lg font-semibold"
+                                                : "min-w-0 flex-1 overflow-hidden whitespace-nowrap text-lg font-semibold [mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent_100%)] [-webkit-mask-image:linear-gradient(to_right,black_calc(100%-2rem),transparent_100%)]"
+                                        }
+                                    >
                                         {getHeaderText(item, index)}
                                     </h2>
 
-                                    {!isPickupDaySelected && index === 0 && (
+                                    {showPickupDayHint && (
                                         <span className="truncate text-base font-normal italic opacity-80">
                                             - A rendelési tételek megadásához először válasszon átvételi napot!
                                         </span>
@@ -467,7 +504,7 @@ export default function ProductSelector({
                                         {validationMessage}
                                     </p>
                                 )}
-                                <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
+                                <h3 className="mb-4 text-center text-xl font-semibold text-gray-700">
                                     Válasszon terméket!
                                 </h3>
 
@@ -517,7 +554,7 @@ export default function ProductSelector({
                                 </div>
 
                                 <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-700">
                                         Adja meg a mennyiséget!
                                     </h3>
 
@@ -571,7 +608,7 @@ export default function ProductSelector({
                                     products.find((product) => product.id === item.selectedProductId),
                                     item.quantity,
                                 ) && <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-700">
                                         Válasszon csomagolási módot!
                                     </h3>
 
@@ -608,7 +645,7 @@ export default function ProductSelector({
                                 </div>}
 
                                 <div className="mt-6">
-                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-400">
+                                    <h3 className="mb-4 text-center text-xl font-semibold text-gray-700">
                                         Opcionális megjegyzés a csomaghoz
                                     </h3>
 
