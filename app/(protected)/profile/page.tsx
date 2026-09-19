@@ -50,7 +50,7 @@ export default async function ProfilePage() {
       <div className="mt-8 mb-12 w-full">
         <p className="text-lg leading-7 text-justify text-gray-600">
           <span className="font-medium text-gray-700">
-            Az itt megjelenő adatok a Héjja-Farm rendszerében Önről
+            Az itt megjelenő adatok a Héjja Ökofarm rendszerében Önről
             tárolt személyes és kapcsolattartási adatok.
           </span>{" "}
           Ezeket a felhasználói fiók azonosításához, az előrendelések

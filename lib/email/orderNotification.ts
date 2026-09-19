@@ -1,6 +1,7 @@
 import "server-only";
 
 import { formatOrderWindowEnd } from "@/lib/orderWindow";
+import { getPickupWindowInfo } from "@/lib/pickupInfo";
 
 export type OrderNotificationKind = "created" | "updated";
 
@@ -18,6 +19,10 @@ export type OrderNotificationData = {
     orderNumber: string;
     customerName: string;
     pickupDate: string;
+    pickupTimeStart: string | null;
+    pickupTimeEnd: string | null;
+    localPickupTimeStart: string | null;
+    county: string | null;
     modificationWindowStart: string;
     modificationWindowEnd: string;
     items: OrderNotificationItem[];
@@ -33,22 +38,6 @@ export type OrderNotificationHtmlOptions = {
     logoSrc?: string;
     orderUrl?: string;
 };
-
-function formatPickupDate(value: string) {
-    const dateOnly = value.split("T", 1)[0];
-    const date = new Date(`${dateOnly}T12:00:00Z`);
-
-    if (Number.isNaN(date.getTime())) {
-        return dateOnly;
-    }
-
-    return new Intl.DateTimeFormat("hu-HU", {
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        timeZone: "Europe/Budapest",
-    }).format(date);
-}
 
 function formatItem(item: OrderNotificationItem, index: number) {
     const lines = [
@@ -121,6 +110,13 @@ function buildHtml(
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");
     const orderUrl = options.orderUrl ? escapeHtml(options.orderUrl) : null;
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
+    const pickupWindow = getPickupWindowInfo({
+        pickupDate: data.pickupDate,
+        pickupTimeStart: data.pickupTimeStart,
+        pickupTimeEnd: data.pickupTimeEnd,
+        localPickupTimeStart: data.localPickupTimeStart,
+        county: data.county,
+    });
 
     return `<!doctype html>
 <html lang="hu">
@@ -155,8 +151,10 @@ function buildHtml(
                                     <td style="padding:15px 17px;font-size:14px;line-height:22px;color:#374151;">
                                         <strong style="color:#218856;">Rendelésszám:</strong>
                                         ${escapeHtml(data.orderNumber)}<br>
-                                        <strong style="color:#218856;">Átvétel napja:</strong>
-                                        ${escapeHtml(formatPickupDate(data.pickupDate))}<br>
+                                        <strong style="color:#218856;">Átvétel:</strong>
+                                        ${escapeHtml(pickupWindow.windowLabel)}<br>
+                                        <strong style="color:#218856;">Átvétel helyszíne:</strong>
+                                        ${escapeHtml(pickupWindow.location)}!<br>
                                         <strong style="color:#218856;">Összes mennyiség:</strong>
                                         ${totalQuantity} db
                                     </td>
@@ -223,18 +221,26 @@ export function buildOrderNotification(
 ): OrderNotification {
     const isCreated = data.kind === "created";
     const subject = isCreated
-        ? `Héjja-Farm – rendelés visszaigazolása (${data.orderNumber})`
-        : `Héjja-Farm – rendelés módosítva (${data.orderNumber})`;
+        ? `Héjja Ökofarm – rendelés visszaigazolása (${data.orderNumber})`
+        : `Héjja Ökofarm – rendelés módosítva (${data.orderNumber})`;
     const heading = isCreated
         ? "Rendelését sikeresen rögzítettük."
         : "Rendelésének módosítását sikeresen rögzítettük.";
+    const pickupWindow = getPickupWindowInfo({
+        pickupDate: data.pickupDate,
+        pickupTimeStart: data.pickupTimeStart,
+        pickupTimeEnd: data.pickupTimeEnd,
+        localPickupTimeStart: data.localPickupTimeStart,
+        county: data.county,
+    });
 
     const text = [
         `Kedves ${data.customerName}!`,
         "",
         heading,
         `Rendelésszám: ${data.orderNumber}`,
-        `Átvétel napja: ${formatPickupDate(data.pickupDate)}`,
+        `Átvétel: ${pickupWindow.windowLabel}`,
+        `Átvétel helyszíne: ${pickupWindow.location}!`,
         "",
         "A rendelés tételei:",
         data.items.map(formatItem).join("\n\n"),

@@ -4,6 +4,7 @@ import { buildRegistrationConfirmation } from "@/lib/email/registrationConfirmat
 import { buildRegistrationInvite } from "@/lib/email/registrationInvite";
 import RegisterForm, { RegistrationSuccessMessage } from "@/app/(public)/register/RegisterForm";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import EmailPreviewSwitcher from "./EmailPreviewSwitcher";
 
 const sampleOrderData = {
@@ -12,6 +13,10 @@ const sampleOrderData = {
     orderNumber: "HF-MINTA01",
     customerName: "Dániel",
     pickupDate: "2026-09-19",
+    pickupTimeStart: "17:00",
+    pickupTimeEnd: "18:15",
+    localPickupTimeStart: "16:00",
+    county: null as string | null,
     modificationWindowStart: "2026-09-07T08:00:00+02:00",
     modificationWindowEnd: "2026-09-16T23:59:00+02:00",
     items: [
@@ -46,11 +51,21 @@ export default async function AdminEmailPreviewPage({
     searchParams: Promise<{ template?: string | string[] }>;
 }) {
     const supabase = await createClient();
-    const latestUpdate = await getLatestOrderUpdate(supabase);
+    const [latestUpdate, currentUser] = await Promise.all([
+        getLatestOrderUpdate(supabase),
+        getCurrentUser(),
+    ]);
     const params = await searchParams;
     const rawTemplate = params.template;
     const initialTemplate = Array.isArray(rawTemplate) ? rawTemplate[0] : rawTemplate;
-    const orderData = latestUpdate?.notificationData ?? sampleOrderData;
+    // A megye mindig a bejelentkezett admin valódi profilbeállítása - lásd az
+    // OrderConfirmationSummary "/admin/order-confirmation-preview" előnézetét,
+    // ami ugyanígy jár el, hogy a Békés/nem Békés ág valós adattal
+    // ellenőrizhető legyen, admin által kezelt megyeválasztó nélkül.
+    const orderData = {
+        ...(latestUpdate?.notificationData ?? sampleOrderData),
+        county: currentUser?.county ?? null,
+    };
     const createdOrderEmail = buildOrderNotification({ ...orderData, kind: "created" }, {
         logoSrc: "/images/logo2.png",
         orderUrl: orderData.orderId ? `/history?focusOrder=${orderData.orderId}#order-${orderData.orderId}` : "/history",

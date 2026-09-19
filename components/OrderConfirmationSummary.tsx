@@ -1,6 +1,7 @@
 import { forwardRef } from "react";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { formatOrderWindowEnd } from "@/lib/orderWindow";
+import { getPickupWindowInfo } from "@/lib/pickupInfo";
 
 export type OrderConfirmationItem = {
     productName: string;
@@ -18,6 +19,10 @@ export type OrderConfirmationSummaryProps = {
     seasonEndDate: string;
     emailRecipient?: string;
     emailWarning?: string | null;
+    pickupTimeStart?: string | null;
+    pickupTimeEnd?: string | null;
+    localPickupTimeStart?: string | null;
+    userCounty?: string | null;
 };
 
 // Az előrendelés sikeres leadása után megjelenő visszaigazoló felület.
@@ -34,9 +39,22 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
             seasonEndDate,
             emailRecipient,
             emailWarning,
+            pickupTimeStart,
+            pickupTimeEnd,
+            localPickupTimeStart,
+            userCounty,
         },
         ref
     ) {
+        const { windowLabel: pickupWindowLabel, location: pickupLocation } =
+            getPickupWindowInfo({
+                pickupDate,
+                pickupTimeStart,
+                pickupTimeEnd,
+                localPickupTimeStart,
+                county: userCounty,
+            });
+
         return (
             <div
                 ref={ref}
@@ -64,9 +82,8 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                     </div>
 
                     <div className="text-center">
-                        <span className="inline-block rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
-                            Átvétel:{" "}
-                            {new Date(pickupDate).toLocaleDateString("hu-HU")}
+                        <span className="inline-block whitespace-nowrap rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
+                            Átvétel: {pickupWindowLabel}
                         </span>
                     </div>
 
@@ -127,9 +144,9 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                         )}
                         {" "}Átvétel helyszíne:{" "}
                         <span className="font-semibold text-gray-700">
-                            Hódmezővásárhely, Vámház u. 8/A
+                            {pickupLocation}
                         </span>
-                        {" "}– Albert Garden Kertészeti Áruda parkolójában!
+                        !
                     </p>
                 </div>
             </div>

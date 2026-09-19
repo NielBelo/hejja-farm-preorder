@@ -59,6 +59,9 @@ type Season = {
     id: number;
     time_window_start: string;
     time_window_end: string;
+    pickup_time_start: string | null;
+    pickup_time_end: string | null;
+    local_pickup_time_start: string | null;
 };
 
 
@@ -67,11 +70,13 @@ export default function PreorderManager({
     products,
     packages,
     pickupDays,
+    userCounty,
 }: {
     season: Season;
     products: Product[];
     packages: PackageOption[];
     pickupDays: PickupDay[];
+    userCounty?: string | null;
 }) {
     const [selectedPickupDay, setSelectedPickupDay] = useState<PickupDay | null>(
         null
@@ -292,6 +297,10 @@ export default function PreorderManager({
                     seasonEndDate={season.time_window_end}
                     emailRecipient={lastSubmittedOrder.emailRecipient}
                     emailWarning={emailWarning}
+                    pickupTimeStart={season.pickup_time_start}
+                    pickupTimeEnd={season.pickup_time_end}
+                    localPickupTimeStart={season.local_pickup_time_start}
+                    userCounty={userCounty}
                     items={lastSubmittedOrder.items.map((item) => ({
                         productName: products.find(
                             (product) => product.id === item.selectedProductId

@@ -105,12 +105,12 @@ export async function loadOrderNotificationData(
     const [profileResult, seasonResult] = await Promise.all([
         supabase
             .from("profiles")
-            .select("first_name, last_name, email")
+            .select("first_name, last_name, email, county")
             .eq("id", order.user_id)
             .maybeSingle(),
         supabase
             .from("season_parameters")
-            .select("time_window_start, time_window_end")
+            .select("time_window_start, time_window_end, pickup_time_start, pickup_time_end, local_pickup_time_start")
             .eq("id", order.season_parameter_id)
             .single(),
     ]);
@@ -159,6 +159,10 @@ export async function loadOrderNotificationData(
             orderNumber: order.public_order_number,
             customerName,
             pickupDate,
+            pickupTimeStart: season.pickup_time_start,
+            pickupTimeEnd: season.pickup_time_end,
+            localPickupTimeStart: season.local_pickup_time_start,
+            county: profileResult.data?.county ?? null,
             modificationWindowStart: season.time_window_start,
             modificationWindowEnd: season.time_window_end,
             items: items.map((item) => ({

@@ -475,7 +475,7 @@ export default function ProfileEditor({
                                         text-gray-400
                                     "
                                 >
-                                    Héjja-Farm vásárlói adatlap
+                                    Héjja Ökofarm vásárlói adatlap
                                 </div>
                             </div>
                         </div>
@@ -1230,7 +1230,7 @@ function FarmVerificationMark() {
                             text-gray-700
                         "
                     >
-                        Héjja-Farm
+                        Héjja Ökofarm
                     </div>
 
                     <div

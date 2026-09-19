@@ -21,8 +21,8 @@ export async function POST() {
     try {
         const result = await sendEmail({
             to: recipient,
-            subject: "Héjja-Farm – Resend teszt",
-            text: "Ez egy egyszerű teszt e-mail a Héjja-Farm Cloudflare Workers alkalmazásából.",
+            subject: "Héjja Ökofarm – Resend teszt",
+            text: "Ez egy egyszerű teszt e-mail a Héjja Ökofarm Cloudflare Workers alkalmazásából.",
         });
 
         return Response.json(

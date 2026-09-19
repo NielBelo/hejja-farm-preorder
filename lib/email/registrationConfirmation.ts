@@ -28,7 +28,7 @@ export function buildRegistrationConfirmation(
     data: RegistrationConfirmationData,
     options: RegistrationConfirmationOptions = {},
 ): RegistrationConfirmation {
-    const subject = "Héjja-Farm – erősítsd meg az e-mail-címedet";
+    const subject = "Héjja Ökofarm – erősítsd meg az e-mail-címedet";
     const firstName = escapeHtml(data.firstName);
     const confirmationUrl = escapeHtml(data.confirmationUrl);
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");
@@ -37,7 +37,7 @@ export function buildRegistrationConfirmation(
         `Kedves ${data.firstName}!`,
         "",
         "Már csak egy lépés van hátra.",
-        "A Héjja-Farm fiókod aktiválásához erősítsd meg az e-mail-címedet:",
+        "A Héjja Ökofarm fiókod aktiválásához erősítsd meg az e-mail-címedet:",
         data.confirmationUrl,
         "",
         "Ha nem te kezdeményezted a regisztrációt, nincs további teendőd.",
@@ -58,7 +58,7 @@ export function buildRegistrationConfirmation(
 </head>
 <body style="margin:0;padding:0;background:#f4f7f5;color:#374151;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
-        Erősítsd meg az e-mail-címedet a Héjja-Farm fiókod aktiválásához.
+        Erősítsd meg az e-mail-címedet a Héjja Ökofarm fiókod aktiválásához.
     </div>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f7f5;">
         <tr>
@@ -83,7 +83,7 @@ export function buildRegistrationConfirmation(
                             </h1>
 
                             <p style="margin:0;color:#4b5563;">
-                                A Héjja-Farm fiókod aktiválásához erősítsd meg az e-mail-címedet az alábbi gombbal.
+                                A Héjja Ökofarm fiókod aktiválásához erősítsd meg az e-mail-címedet az alábbi gombbal.
                             </p>
 
                             <div style="padding:30px 0;text-align:center;">

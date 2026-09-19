@@ -1,0 +1,86 @@
+// Az átvételi időpont és helyszín megyétől függő kiválasztása - ugyanazt a
+// szabályt kell alkalmazni a webes rendelés-visszaigazoló ablakban
+// (components/OrderConfirmationSummary.tsx) és a rendelési e-mailekben
+// (lib/email/orderNotification.ts) is, ezért ez a döntési logika és a
+// dátum/idő formázás közös helperben él. Nincs "server-only" jelölés, mert a
+// webes visszaigazolás a böngészőben (kliens oldalon) is felhasználja.
+
+const BEKES_COUNTY = "Békés";
+const BUDAPEST_TIME_ZONE = "Europe/Budapest";
+
+const BEKES_LOCATION =
+    "Kútvölgy Tanya 1132/A, Hódmezővásárhely – Héjja Ökofarm";
+const DEFAULT_LOCATION =
+    "Hódmezővásárhely, Vámház u. 8/A – Albert Garden Kertészeti Áruda parkolójában";
+
+const pickupMonthDayFormatter = new Intl.DateTimeFormat("hu-HU", {
+    month: "long",
+    day: "numeric",
+    timeZone: BUDAPEST_TIME_ZONE,
+});
+
+const pickupWeekdayFormatter = new Intl.DateTimeFormat("hu-HU", {
+    weekday: "long",
+    timeZone: BUDAPEST_TIME_ZONE,
+});
+
+export function isBekesCounty(county?: string | null) {
+    return county?.trim() === BEKES_COUNTY;
+}
+
+// A season_parameters idő oszlopai "HH:MM:SS" formában érkeznek a
+// Supabase-től; a megjelenítéshez "HH:MM" kell.
+function toHoursAndMinutes(value: string) {
+    return value.slice(0, 5);
+}
+
+export type PickupWindowInput = {
+    pickupDate: string;
+    pickupTimeStart?: string | null;
+    pickupTimeEnd?: string | null;
+    localPickupTimeStart?: string | null;
+    county?: string | null;
+};
+
+export type PickupWindowInfo = {
+    /** pl. "október 7. (szerda)" */
+    dateLabel: string;
+    /** pl. "17:00 - 18:15", vagy null, ha nincs elég adat az időtartományhoz */
+    timeRange: string | null;
+    /** dateLabel és timeRange összefűzve, pl. "október 7. (szerda) 17:00 - 18:15" */
+    windowLabel: string;
+    /** a megyének megfelelő átvételi helyszín (felkiáltójel nélkül) */
+    location: string;
+};
+
+export function getPickupWindowInfo({
+    pickupDate,
+    pickupTimeStart,
+    pickupTimeEnd,
+    localPickupTimeStart,
+    county,
+}: PickupWindowInput): PickupWindowInfo {
+    const bekes = isBekesCounty(county);
+
+    // Csak a dátumrésszel dolgozunk, dél (UTC) időponttal, hogy a szerver
+    // saját időzónájától függetlenül mindig a helyes naptári napra essen.
+    const dateOnly = pickupDate.split("T", 1)[0];
+    const date = new Date(`${dateOnly}T12:00:00Z`);
+    const dateLabel = Number.isNaN(date.getTime())
+        ? dateOnly
+        : `${pickupMonthDayFormatter.format(date)} (${pickupWeekdayFormatter.format(date)})`;
+
+    const timeRangeStart = bekes ? localPickupTimeStart : pickupTimeStart;
+    const timeRange = timeRangeStart && pickupTimeEnd
+        ? `${toHoursAndMinutes(timeRangeStart)} - ${toHoursAndMinutes(pickupTimeEnd)}`
+        : null;
+
+    const location = bekes ? BEKES_LOCATION : DEFAULT_LOCATION;
+
+    return {
+        dateLabel,
+        timeRange,
+        windowLabel: timeRange ? `${dateLabel} ${timeRange}` : dateLabel,
+        location,
+    };
+}

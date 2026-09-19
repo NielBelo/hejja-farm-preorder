@@ -76,12 +76,12 @@ export async function getLatestOrderUpdate(
     const [profileResult, seasonResult] = await Promise.all([
         supabase
             .from("profiles")
-            .select("first_name, last_name")
+            .select("first_name, last_name, county")
             .eq("id", order.user_id)
             .maybeSingle(),
         supabase
             .from("season_parameters")
-            .select("time_window_start, time_window_end")
+            .select("time_window_start, time_window_end, pickup_time_start, pickup_time_end, local_pickup_time_start")
             .eq("id", order.season_parameter_id)
             .single(),
     ]);
@@ -122,6 +122,10 @@ export async function getLatestOrderUpdate(
             orderNumber: order.public_order_number,
             customerName,
             pickupDate,
+            pickupTimeStart: seasonResult.data.pickup_time_start,
+            pickupTimeEnd: seasonResult.data.pickup_time_end,
+            localPickupTimeStart: seasonResult.data.local_pickup_time_start,
+            county: profileResult.data?.county ?? null,
             modificationWindowStart: seasonResult.data.time_window_start,
             modificationWindowEnd: seasonResult.data.time_window_end,
             items: version.order_items.map((item) => ({

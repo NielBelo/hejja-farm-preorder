@@ -7,6 +7,7 @@ export type CurrentUser = {
   lastName: string;
   phone: string;
   city: string;
+  county: string;
   isAdmin: boolean;
 };
 
@@ -29,7 +30,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("first_name, last_name, phone, city")
+    .select("first_name, last_name, phone, city, county")
     .eq("id", user.id)
     .single();
 
@@ -44,6 +45,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     lastName: profile.last_name,
     phone: profile.phone,
     city: profile.city,
+    county: profile.county,
     isAdmin: userRole?.role === "admin",
   };
 }

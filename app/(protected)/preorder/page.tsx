@@ -3,9 +3,12 @@ import { supabase } from "@/lib/supabase";
 import PreorderManager from "@/components/PreorderManager";
 import SeasonOrderInfo from "@/components/SeasonOrderInfo";
 import PreorderIntro from "@/components/PreorderIntro";
+import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
 
 export default async function PreorderPage() {
+  const currentUser = await getCurrentUser();
+
   const { data } = await supabase
     .from("page_contents")
     .select("key, content, image_url")
@@ -61,6 +64,7 @@ export default async function PreorderPage() {
         products={products ?? []}
         packages={packages ?? []}
         pickupDays={pickupDays ?? []}
+        userCounty={currentUser?.county ?? null}
       />
     </main>
   );
