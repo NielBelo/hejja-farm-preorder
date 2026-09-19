@@ -13,9 +13,17 @@ const blank = (): SeasonInput => ({
   weightMax: 3,
   orderStart: "",
   orderEnd: "",
+  pickupTimeStart: "",
+  pickupTimeEnd: "",
+  localPickupTimeStart: "",
   pickupDays: [{ date: "", limit: 1 }],
   active: false,
 });
+
+const getYearOptions = () => {
+  const currentYear = new Date().getFullYear();
+  return Array.from({ length: 5 }, (_, i) => currentYear - 1 + i);
+};
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("hu-HU", { dateStyle: "long", timeZone: "Europe/Budapest" }).format(
@@ -79,6 +87,11 @@ function Editor({
   const days = (fn: (d: SeasonInput["pickupDays"][number], i: number) => SeasonInput["pickupDays"][number]) =>
     onChange({ ...value, pickupDays: value.pickupDays.map(fn) });
 
+  // Egy meglévő szezon éve elméletileg kívül eshet az alapértelmezett
+  // tartományon (pl. régebbi szezon szerkesztésekor); ilyenkor a jelenlegi
+  // értéket is felvesszük a listába, hogy a mentés ne cserélje le észrevétlenül.
+  const yearOptions = Array.from(new Set([...getYearOptions(), value.year])).sort((a, b) => a - b);
+
   return (
     <form
       className="mt-6 grid gap-5 sm:grid-cols-2"
@@ -89,7 +102,17 @@ function Editor({
     >
       <label>
         <span className={labelClass}>Év</span>
-        <NumberField min={2000} value={value.year} onChange={(v) => onChange({ ...value, year: v })} />
+        <select
+          value={value.year}
+          onChange={(e) => onChange({ ...value, year: Number(e.target.value) })}
+          className={inputClass}
+        >
+          {yearOptions.map((year) => (
+            <option key={year} value={year}>
+              {year}
+            </option>
+          ))}
+        </select>
       </label>
 
       <label>
@@ -136,6 +159,36 @@ function Editor({
           type="date"
           value={value.orderEnd}
           onChange={(e) => onChange({ ...value, orderEnd: e.target.value })}
+          className={inputClass}
+        />
+      </label>
+
+      <label>
+        <span className={labelClass}>Átvétel kezdete</span>
+        <input
+          type="time"
+          value={value.pickupTimeStart}
+          onChange={(e) => onChange({ ...value, pickupTimeStart: e.target.value })}
+          className={inputClass}
+        />
+      </label>
+
+      <label>
+        <span className={labelClass}>Átvétel vége</span>
+        <input
+          type="time"
+          value={value.pickupTimeEnd}
+          onChange={(e) => onChange({ ...value, pickupTimeEnd: e.target.value })}
+          className={inputClass}
+        />
+      </label>
+
+      <label>
+        <span className={labelClass}>Helyi (tanyasi) átvétel kezdete</span>
+        <input
+          type="time"
+          value={value.localPickupTimeStart}
+          onChange={(e) => onChange({ ...value, localPickupTimeStart: e.target.value })}
           className={inputClass}
         />
       </label>
