@@ -93,6 +93,10 @@ test('shortens package and size descriptions for the compact table', () => {
     assert.equal(summarizeProduct('Egész csirke'), 'Egész');
     assert.equal(summarizePackage('Gyűjtőcsomagolás'), 'Gyűjtő');
     assert.equal(summarizePackage('Egyedi csomagolás'), 'Egyedi');
+    // Az "Egyenként" a jelenlegi élő adatbázis-elnevezés ugyanarra a
+    // csomagolásra, mint a korábbi "Egyedi csomagolás" - ugyanabba a
+    // kategóriába kell esnie.
+    assert.equal(summarizePackage('Egyenként'), 'Egyedi');
     assert.equal(summarizeSize('Átlagostól inkább kisebbet kérek, ha lehet'), 'Kisebb');
     assert.equal(summarizeSize('Átlagostól inkább nagyobbat kérek, ha lehet'), 'Nagyobb');
     assert.equal(summarizeSize('Átlagos méret megfelelő'), 'Átlagos');

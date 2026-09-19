@@ -23,8 +23,17 @@ export function canChoosePackaging(
     return isChoppedChicken(product) && quantity >= 5;
 }
 
+// Az "egyedi" (történeti/eredeti elnevezés) és az "egyenként" (jelenlegi élő
+// adatbázis-elnevezés) egyaránt ugyanazt a csomagolást azonosítja - a
+// packages.name szabadon szerkeszthető admin-mező, a kettő között a
+// tényleges DB-tartalom átnevezés miatt tér el.
+function isIndividualPackagingName(name: string) {
+    const normalized = normalizedName(name);
+    return normalized.includes("egyedi") || normalized.includes("egyenként");
+}
+
 export function findIndividualPackaging(packages: PackagingOption[]) {
-    return packages.find((pack) => normalizedName(pack.name).includes("egyedi"));
+    return packages.find((pack) => isIndividualPackagingName(pack.name));
 }
 
 export function normalizePackageId({

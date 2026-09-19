@@ -124,7 +124,10 @@ export function summarizePackage(name: string | null | undefined) {
     if (!name) return "—";
     const normalized = name.toLocaleLowerCase("hu");
     if (normalized.includes("gyűjt")) return "Gyűjtő";
-    if (normalized.includes("egyedi")) return "Egyedi";
+    // Az "egyedi" a történeti, az "egyenként" a jelenlegi élő adatbázis-
+    // elnevezés ugyanarra a csomagolásra - mindkettő ugyanabba a kategóriába
+    // essen (lásd lib/orderPackaging.ts findIndividualPackaging()).
+    if (normalized.includes("egyedi") || normalized.includes("egyenként")) return "Egyedi";
     return name.replace(/\s*csomagolás\s*/iu, "").trim() || name;
 }
 
