@@ -173,12 +173,12 @@ export default function Navigation({
                 type="button"
                 onClick={() => setEmailMenuOpen((open) => !open)}
                 className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
-                  pathname.startsWith("/admin/email-preview")
+                  pathname.startsWith("/admin/email-preview") || pathname.startsWith("/admin/order-confirmation-preview")
                     ? "text-[rgb(49,171,2)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }`}
               >
-                E-mail
+                Sablonok
                 <svg
                   className={`h-4 w-4 transition-transform ${emailMenuOpen ? "rotate-180" : ""}`}
                   viewBox="0 0 20 20"
@@ -196,15 +196,16 @@ export default function Navigation({
               {emailMenuOpen && (
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                   {[
-                    ["Meghívó", "registration-invite"],
-                    ["Regisztráció", "registration"],
-                    ["Megerősítés", "registration-confirmation"],
-                    ["Új rendelés visszaigazolása", "order-created"],
-                    ["Rendelés módosítása", "order-updated"],
-                  ].map(([label, template]) => (
+                    ["Meghívó", "/admin/email-preview?template=registration-invite"],
+                    ["Regisztráció", "/admin/email-preview?template=registration"],
+                    ["Megerősítés", "/admin/email-preview?template=registration-confirmation"],
+                    ["Visszaigazolás előnézete", "/admin/order-confirmation-preview"],
+                    ["Új rendelés visszaigazolása", "/admin/email-preview?template=order-created"],
+                    ["Rendelés módosítása", "/admin/email-preview?template=order-updated"],
+                  ].map(([label, href]) => (
                     <Link
-                      key={template}
-                      href={`/admin/email-preview?template=${template}`}
+                      key={href}
+                      href={href}
                       onClick={() => setEmailMenuOpen(false)}
                       className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
                     >

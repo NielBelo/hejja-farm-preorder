@@ -4,13 +4,12 @@ import { useEffect, useRef, useState } from "react";
 import CountdownCard from "@/components/CountdownCard";
 import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
+import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
 import { createClient } from "@/lib/supabase/client";
-import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import {
     submitOrder,
     type SubmitOrderItem,
 } from "@/app/(protected)/preorder/actions";
-import { formatOrderWindowEnd } from "@/lib/orderWindow";
 
 type Product = {
     id: number;
@@ -285,113 +284,26 @@ export default function PreorderManager({
                   )}
 
             {lastSubmittedOrder && (
-                <div
+                <OrderConfirmationSummary
                     ref={confirmationRef}
-                    className="mt-4 scroll-mt-24 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-                >
-                    <div className="mb-2 flex justify-center">
-                        <CheckCircleIcon className="h-10 w-10 text-[rgb(49,171,2)]" />
-                    </div>
-                    <h3 className="text-center text-lg font-semibold text-[rgb(49,171,2)]">
-                        Előrendelés sikeresen leadva!
-                    </h3>
-
-                    {emailWarning && (
-                        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-700">
-                            {emailWarning}
-                        </p>
-                    )}
-
-                    <div className="mt-3 grid grid-cols-3 items-center border-b border-gray-200 pb-4 text-sm text-gray-600">
-                        <div className="text-left">
-                            Rendelésszám:{" "}
-                            <span className="font-semibold text-gray-700">
-                                #{lastSubmittedOrder.orderNumber}
-                            </span>
-                        </div>
-
-                        <div className="text-center">
-                            <span className="inline-block rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
-                                Átvétel:{" "}
-                                {new Date(
-                                    lastSubmittedOrder.pickupDay.pickup_date
-                                ).toLocaleDateString("hu-HU")}
-                            </span>
-                        </div>
-
-                        <div className="text-right">
-                            Rögzítés időpontja:{" "}
-                            <span className="font-semibold text-gray-700">
-                                {new Intl.DateTimeFormat("hu-HU", {
-                                    dateStyle: "short",
-                                    timeStyle: "short",
-                                }).format(lastSubmittedOrder.submittedAt)}
-                            </span>
-                        </div>
-                    </div>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                        {lastSubmittedOrder.items.map((item, index) => {
-                            const product = products.find(
-                                (product) => product.id === item.selectedProductId
-                            );
-
-                            const packageOption = packages.find(
-                                (packageOption) => packageOption.id === item.selectedPackageId
-                            );
-
-                            return (
-                                <div
-                                    key={index}
-                                    className="rounded-lg border border-[rgba(92,113,190,0.35)] bg-[rgba(92,113,190,0.07)] p-3 text-base text-gray-700"
-                                >
-                                    <p className="font-semibold text-[rgb(55,75,150)]">
-                                        {index + 1}. tétel: {product?.name}
-                                    </p>
-
-                                    <p className="mt-1">
-                                        {item.quantity} db · Csomagolás: {packageOption?.name} · Méret: {item.selectedNote}
-                                    </p>
-
-                                    {item.note && (
-                                        <p className="mt-1 text-gray-600">
-                                            Megjegyzés: {item.note}
-                                        </p>
-                                    )}
-                                </div>
-                            );
-                        })}
-                    </div>
-
-                    <div className="mt-5 border-t border-gray-200 pt-5 text-center text-base leading-6 text-gray-600">
-                        <p>
-                            Korábban leadott rendeléseit az{" "}
-                            <span className="font-semibold text-gray-700">
-                                Előzmények
-                            </span>{" "}
-                            oldalon tekintheti meg. Rendelése az előrendelési időszak végéig,{" "}
-                            <span className="font-semibold text-gray-700">
-                                {formatOrderWindowEnd(season.time_window_end)}
-                            </span>
-                            -ig módosítható vagy törölhető.
-                            {lastSubmittedOrder.emailRecipient && (
-                                <> A(z){" "}
-                                <span className="font-semibold text-gray-700">
-                                    {lastSubmittedOrder.emailRecipient}
-                                </span>{" "}
-                                e-mail-címre visszaigazolást küldtünk, és a
-                                rendelés átvétele előtt egy nappal újabb
-                                automatikus emlékeztetőt fog kapni.
-                                </>
-                            )}
-                            {" "}Átvétel helyszíne:{" "}
-                            <span className="font-semibold text-gray-700">
-                                Hódmezővásárhely, Vámház u. 8/A
-                            </span>
-                            {" "}– Albert Garden Kertészeti Áruda parkolójában!
-                        </p>
-                    </div>
-                </div>
+                    orderNumber={lastSubmittedOrder.orderNumber}
+                    pickupDate={lastSubmittedOrder.pickupDay.pickup_date}
+                    submittedAt={lastSubmittedOrder.submittedAt}
+                    seasonEndDate={season.time_window_end}
+                    emailRecipient={lastSubmittedOrder.emailRecipient}
+                    emailWarning={emailWarning}
+                    items={lastSubmittedOrder.items.map((item) => ({
+                        productName: products.find(
+                            (product) => product.id === item.selectedProductId
+                        )?.name ?? "",
+                        packageName: packages.find(
+                            (packageOption) => packageOption.id === item.selectedPackageId
+                        )?.name ?? "",
+                        quantity: item.quantity,
+                        sizePreference: item.selectedNote,
+                        note: item.note,
+                    }))}
+                />
             )}
 
             <div className="mx-auto mt-6 mb-4 flex w-full max-w-4xl items-center gap-4">
