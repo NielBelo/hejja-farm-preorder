@@ -4,11 +4,20 @@ const fs = require('node:fs');
 const path = require('node:path');
 const ts = require('typescript');
 
-const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, '../lib/pickupSheet.ts'), 'utf8'), {
-    compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
-}).outputText;
-const sheetModule = { exports: {} };
-new Function('exports', compiled)(sheetModule.exports);
+function load(relativePath, imports = {}) {
+    const compiled = ts.transpileModule(fs.readFileSync(path.join(__dirname, relativePath), 'utf8'), {
+        compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const exports = {};
+    new Function('exports', 'require', compiled)(exports, (name) => {
+        if (!(name in imports)) throw new Error(`Unexpected import: ${name}`);
+        return imports[name];
+    });
+    return exports;
+}
+
+const sizePreferencesModule = load('../lib/sizePreferences.ts');
+const sheetModule = { exports: load('../lib/pickupSheet.ts', { '@/lib/sizePreferences': sizePreferencesModule }) };
 const {
     formatPhoneNumber,
     formatPickupDate,
@@ -17,9 +26,11 @@ const {
     getPickupDateOptions,
     normalizePickupDate,
     sortPickupOrders,
+    summarizeCustomerSizePreferenceGroups,
     summarizePackage,
     summarizePickupOrders,
     summarizePickupStock,
+    summarizePrintPackage,
     summarizeProduct,
     summarizeSize,
 } = sheetModule.exports;
@@ -143,6 +154,45 @@ test('summarizes used and available pickup stock as a 100 percent split', () => 
         availableCount: 100,
         usedPercentage: 0,
         availablePercentage: 100,
+    });
+});
+
+test('shows only the collector packaging in the printed pickup sheet, everything else stays blank', () => {
+    assert.equal(summarizePrintPackage('Gyűjtőcsomagolás'), 'Gyűjtő');
+    assert.equal(summarizePrintPackage('Egyedi csomagolás'), '');
+    assert.equal(summarizePrintPackage('Egyenként'), '');
+    assert.equal(summarizePrintPackage(null), '');
+});
+
+test('groups whole orders by the customer size preference set in the admin profile, ignoring per-item size preference', () => {
+    const orders = [
+        {
+            ...order(1, 'Kiss Anna', '2026-09-27', 'R-1'),
+            specialSizePreference: 'larger',
+            items: [
+                { quantity: 6, products: { name: 'Egész csirke' }, size_preference: 'Átlagostól inkább kisebbet kérek, ha lehet' },
+                { quantity: 4, products: { name: 'Darabolt csirke' }, size_preference: 'Átlagos méret megfelelő' },
+            ],
+        },
+        {
+            ...order(2, 'Nagy Béla', '2026-09-27', 'R-2'),
+            specialSizePreference: 'smaller',
+            items: [
+                { quantity: 3, products: { name: 'Egész csirke' }, size_preference: 'Átlagostól inkább nagyobbat kérek, ha lehet' },
+            ],
+        },
+        {
+            ...order(3, 'Tóth Pál', '2026-09-27', 'R-3'),
+            specialSizePreference: null,
+            items: [
+                { quantity: 9, products: { name: 'Egész csirke' } },
+            ],
+        },
+    ];
+
+    assert.deepEqual(summarizeCustomerSizePreferenceGroups(orders), {
+        larger: { total: 10, whole: 6, chopped: 4 },
+        smaller: { total: 3, whole: 3, chopped: 0 },
     });
 });
 

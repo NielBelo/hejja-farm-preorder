@@ -131,6 +131,12 @@ export function summarizePackage(name: string | null | undefined) {
     return name.replace(/\s*csomagolás\s*/iu, "").trim() || name;
 }
 
+export function summarizePrintPackage(name: string | null | undefined) {
+    if (!name) return "";
+    const normalized = name.toLocaleLowerCase("hu");
+    return normalized.includes("gyűjt") ? "Gyűjtő" : "";
+}
+
 export function summarizeProduct(name: string | null | undefined) {
     if (!name) return "—";
     const normalized = name.toLocaleLowerCase("hu");
@@ -194,4 +200,34 @@ export function getPickupDistributions(orders: PickupSheetOrder[]) {
             (item) => summarizeSize(item.size_preference)
         ),
     };
+}
+
+export type CustomerSizePreferenceStat = {
+    total: number;
+    whole: number;
+    chopped: number;
+};
+
+// A vásárló admin oldalon beállított "Nagyobb/Kisebb méret preferáció"
+// (profiles.special_size_preference) alapján csoportosítja a TELJES
+// rendeléseket - a rendelési tételek saját size_preference mezője itt
+// szándékosan figyelmen kívül marad.
+export function summarizeCustomerSizePreferenceGroups(orders: PickupSheetOrder[]) {
+    const makeStat = (): CustomerSizePreferenceStat => ({ total: 0, whole: 0, chopped: 0 });
+    const groups = { larger: makeStat(), smaller: makeStat() };
+
+    for (const order of orders) {
+        const preference = order.specialSizePreference;
+        if (preference !== "larger" && preference !== "smaller") continue;
+
+        const stat = groups[preference];
+        for (const item of order.items) {
+            stat.total += item.quantity;
+            const product = summarizeProduct(item.products?.name);
+            if (product === "Egész") stat.whole += item.quantity;
+            else if (product === "Darab") stat.chopped += item.quantity;
+        }
+    }
+
+    return groups;
 }

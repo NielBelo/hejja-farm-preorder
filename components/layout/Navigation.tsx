@@ -133,7 +133,7 @@ export default function Navigation({
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
                   {[
                     ["Szerkesztés", "/admin/orders"],
-                    ["Átvétel", "/admin/pickup"],
+                    ["Napi lista", "/admin/pickup"],
                     ["Szezonok", "/admin/seasons"],
                   ].map(([label, href]) => (
                     <Link

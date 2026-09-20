@@ -6,9 +6,10 @@ import {
     formatPhoneNumber,
     getInitialPickupDate,
     getPickupDistributions,
-    summarizePackage,
+    summarizeCustomerSizePreferenceGroups,
     summarizePickupOrders,
     summarizePickupStock,
+    summarizePrintPackage,
     summarizeProduct,
     summarizeSize,
     type PickupDateOption,
@@ -125,10 +126,10 @@ function DistributionChart({
     entries: PickupDistributionEntry[];
 }) {
     return (
-        <section className="h-full rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
-            <h2 className="text-center text-xs font-semibold text-gray-700">{title}</h2>
+        <section className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
+            <h2 className="text-center text-sm font-semibold text-gray-700">{title}</h2>
             {entries.length === 0 ? (
-                <p className="py-4 text-center text-xs text-gray-400">Nincs adat</p>
+                <p className="py-4 text-center text-sm text-gray-400">Nincs adat</p>
             ) : (
                 <div className="mt-3">
                     <div className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200" aria-label={`${title}, 100 százalékos halmozott diagram`}>
@@ -148,7 +149,7 @@ function DistributionChart({
 
                     <div className="mt-3 space-y-1.5">
                     {entries.map((entry, index) => (
-                        <div key={entry.label} className="flex items-center justify-between gap-2 text-[11px] leading-tight text-gray-600">
+                        <div key={entry.label} className="flex items-center justify-between gap-2 text-xs leading-tight text-gray-600">
                             <span className="flex min-w-0 items-center gap-1.5 font-medium">
                                 <span
                                     aria-hidden="true"
@@ -196,15 +197,26 @@ export default function PickupSheet({
     const distributions = useMemo(() => getPickupDistributions(visibleOrders), [visibleOrders]);
     const wholeChickenCount = distributions.products.find((entry) => entry.label === "Egész")?.quantity ?? 0;
     const choppedChickenCount = distributions.products.find((entry) => entry.label === "Darab")?.quantity ?? 0;
-    const printSummaryLabel = `${summary.chickenCount} csirke (${wholeChickenCount} egész · ${choppedChickenCount} darabolt) · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
+    const printSummaryLabel = `Összesítés: ${summary.chickenCount} csirke (${wholeChickenCount} egész · ${choppedChickenCount} darabolt) · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
+    const sizePreferenceStats = useMemo(
+        () => summarizeCustomerSizePreferenceGroups(visibleOrders),
+        [visibleOrders]
+    );
+    // A "|" körüli térköz nem sorolható fel közönséges szóközökkel, mert a
+    // nyomtatási fejléc "white-space: pre-line" szabálya összevonja az
+    // egymást követő szóközöket - ezért nem törhető szóközt (U+00A0) kell
+    // használni, ami ezt a szabályt nem érinti.
+    const printSizeStatsLabel = `Speciális: 🟢 ${sizePreferenceStats.larger.total} csirke (${sizePreferenceStats.larger.whole} egész · ${sizePreferenceStats.larger.chopped} darabolt)   |   🔴 ${sizePreferenceStats.smaller.total} csirke (${sizePreferenceStats.smaller.whole} egész · ${sizePreferenceStats.smaller.chopped} darabolt)`;
 
     useEffect(() => {
         const root = document.documentElement;
         const previousDate = root.style.getPropertyValue("--pickup-print-date");
         const previousSummary = root.style.getPropertyValue("--pickup-print-summary");
+        const previousSizeStats = root.style.getPropertyValue("--pickup-print-size-stats");
 
         root.style.setProperty("--pickup-print-date", JSON.stringify(activeDateLabel));
         root.style.setProperty("--pickup-print-summary", JSON.stringify(printSummaryLabel));
+        root.style.setProperty("--pickup-print-size-stats", JSON.stringify(printSizeStatsLabel));
 
         return () => {
             if (previousDate) root.style.setProperty("--pickup-print-date", previousDate);
@@ -212,8 +224,11 @@ export default function PickupSheet({
 
             if (previousSummary) root.style.setProperty("--pickup-print-summary", previousSummary);
             else root.style.removeProperty("--pickup-print-summary");
+
+            if (previousSizeStats) root.style.setProperty("--pickup-print-size-stats", previousSizeStats);
+            else root.style.removeProperty("--pickup-print-size-stats");
         };
-    }, [activeDateLabel, printSummaryLabel]);
+    }, [activeDateLabel, printSummaryLabel, printSizeStatsLabel]);
 
     return (
         <div className="pickup-print-page">
@@ -237,27 +252,9 @@ export default function PickupSheet({
                     </button>
                 </div>
 
-                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-5">
-                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
-                        <h2 className="text-center text-xs font-semibold text-gray-700">Napi összesítés</h2>
-                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.customerCount}</strong>
-                                <span className="text-[11px]">vevő</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.orderCount}</strong>
-                                <span className="text-[11px]">rendelés</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-lg font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
-                                <span className="text-[11px]">tétel</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
-                        <h2 className="text-center text-xs font-semibold text-gray-700">Napi készlet</h2>
+                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
+                        <h2 className="text-center text-sm font-semibold text-gray-700">Napi készlet</h2>
                         <div className="mt-3">
                             <div
                                 className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200"
@@ -277,7 +274,7 @@ export default function PickupSheet({
                                     />
                                 )}
                             </div>
-                            <div className="mt-3 space-y-1.5 text-[11px] leading-tight text-gray-600">
+                            <div className="mt-3 space-y-1.5 text-xs leading-tight text-gray-600">
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="flex items-center gap-1.5 font-medium">
                                         <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
@@ -303,6 +300,62 @@ export default function PickupSheet({
                     <DistributionChart title="Terméktípusok eloszlása" entries={distributions.products} />
                     <DistributionChart title="Csomagolástípusok eloszlása" entries={distributions.packages} />
                     <DistributionChart title="Méret eloszlása" entries={distributions.sizes} />
+                </div>
+
+                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-3">
+                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
+                        <h2 className="text-center text-sm font-semibold text-gray-700">Napi összesítés</h2>
+                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.customerCount}</strong>
+                                <span className="text-xs">vevő</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.orderCount}</strong>
+                                <span className="text-xs">rendelés</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
+                                <span className="text-xs">tétel</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
+                        <h2 className="text-center text-sm font-semibold text-gray-700">🟢 Nagyobb méretigény</h2>
+                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.total}</strong>
+                                <span className="text-xs">csirke</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.whole}</strong>
+                                <span className="text-xs">egész</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.chopped}</strong>
+                                <span className="text-xs">darabolt</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
+                        <h2 className="text-center text-sm font-semibold text-gray-700">🔴 Kisebb méretigény</h2>
+                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.total}</strong>
+                                <span className="text-xs">csirke</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.whole}</strong>
+                                <span className="text-xs">egész</span>
+                            </div>
+                            <div className="px-1">
+                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.chopped}</strong>
+                                <span className="text-xs">darabolt</span>
+                            </div>
+                        </div>
+                    </section>
                 </div>
 
                 <div className="mx-auto mt-6 flex w-full max-w-4xl items-center gap-4">
@@ -345,10 +398,11 @@ export default function PickupSheet({
                         </thead>
                         {visibleOrders.map((order, orderIndex) => {
                             const rows = order.items.length > 0 ? order.items : [null];
-                            const hasSpecialSize = order.specialSizePreference === "smaller" || order.specialSizePreference === "larger";
-                            const rowBackground = hasSpecialSize
-                                ? "bg-red-100"
-                                : orderIndex % 2 === 0 ? "bg-white" : "bg-gray-200";
+                            const rowBackground = order.specialSizePreference === "larger"
+                                ? "bg-green-100"
+                                : order.specialSizePreference === "smaller"
+                                    ? "bg-red-100"
+                                    : orderIndex % 2 === 0 ? "bg-white" : "bg-gray-200";
                             return (
                                 <tbody key={order.id} className="break-inside-avoid">
                                     {rows.map((item, itemIndex) => (
@@ -368,7 +422,7 @@ export default function PickupSheet({
                                                 <td className="border border-black px-1.5 py-0.5 text-center">{itemIndex + 1}.</td>
                                                 <td className="break-words border border-black px-1.5 py-0.5 font-medium">{summarizeProduct(item?.products?.name)}</td>
                                                 <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{item ? `${item.quantity} db` : "—"}</td>
-                                                <td className="break-words border border-black px-1.5 py-0.5">{summarizePackage(item?.packages?.name)}</td>
+                                                <td className="break-words border border-black px-1.5 py-0.5">{summarizePrintPackage(item?.packages?.name)}</td>
                                                 <td className="break-words border border-black px-1.5 py-0.5">{summarizeSize(item?.size_preference)}</td>
                                                 <td className="max-w-52 break-words border border-black px-1.5 py-0.5">{item?.note || "—"}</td>
                                                 <td className="border border-black px-1 py-0.5 text-center align-middle">
