@@ -360,6 +360,24 @@ export default function AdminOrderCard({
         );
 
     // ------------------------------------------------------------
+    // Miért nem menthető most - a korábban néma, letiltott gomb helyett
+    // konkrét, látható indoklás, hogy ne kelljen találgatni.
+    // ------------------------------------------------------------
+    const saveBlockReason = isCancelled
+        ? null
+        : itemsToSave.length === 0
+            ? "Adjon meg legalább egy tételt a mentéshez."
+            : itemsToSave.some((item) => !item.collapsed)
+                ? "Fejezze be és csukja össze a szerkesztett tételt a mentéshez."
+                : itemsToSave.some(
+                    (item) => item.selectedProductId === null || item.selectedPackageId === null
+                )
+                    ? "Válasszon terméket és csomagolást minden tételhez."
+                    : !hasChanges
+                        ? "Még nem történt tényleges módosítás a mentéshez."
+                        : null;
+
+    // ------------------------------------------------------------
     // ProductSelector callbackek
     // ------------------------------------------------------------
     const handleOrderChangesChange = useCallback(
@@ -1127,6 +1145,12 @@ export default function AdminOrderCard({
                             {saveError && (
                                 <p className="mt-4 text-sm text-red-600">
                                     {saveError}
+                                </p>
+                            )}
+
+                            {!canSave && !isSaving && saveBlockReason && (
+                                <p className="mt-4 text-sm text-gray-500">
+                                    {saveBlockReason}
                                 </p>
                             )}
 

@@ -442,6 +442,7 @@ export default function ProductSelector({
                         <div
                             role="button"
                             tabIndex={canOpen ? 0 : -1}
+                            title={canOpen ? undefined : "Előbb fejezze be az előző tételt (termék és csomagolás kiválasztásával)!"}
                             onClick={() => {
                                 if (!canOpen) return;
 
