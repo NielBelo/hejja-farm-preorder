@@ -407,13 +407,14 @@ function Editor({
           Átvételi napok
           <InfoTip>
             <p>
-              Átvételi nap csak akkor törölhető, ha ahhoz még nem érkezett rendelés. Ha már van rá rendelés, törlés
-              helyett inaktiválja azt - a meglévő rendelések ettől nem vesznek el.
+              Átvételi nap csak akkor törölhető, ha ahhoz sem aktív, sem lemondott rendelés nem tartozik. Ha már
+              tartozik hozzá rendelés, az átvételi nap nem törölhető, csak inaktiválható. A korábban leadott
+              rendelések ettől nem vesznek el.
             </p>
             {value.active && (
               <p className="mt-1.5">
-                Az inaktív átvételi napra új rendelés nem adható le, és a meglévő rendelések nem módosíthatók. A
-                korábban leadott rendelések megmaradnak.
+                Inaktív átvételi napra új rendelés nem adható le, a meglévő rendelések pedig nem módosíthatók. A
+                korábban leadott rendelések továbbra is megmaradnak.
               </p>
             )}
           </InfoTip>
@@ -732,7 +733,7 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
 
                         <div className="flex items-start gap-2 rounded-lg bg-gray-50 p-2.5 text-xs text-gray-500">
                           <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                          <span>Csak olyan szezon törölhető, amelyre még nem érkezett rendelés.</span>
+                          <span>Csak olyan szezon törölhető, amelyhez sem aktív, sem lemondott rendelés nem tartozik.</span>
                         </div>
 
                         {confirmDeleteId === s.id && (
