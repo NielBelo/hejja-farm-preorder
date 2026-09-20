@@ -146,10 +146,10 @@ function OrderStatsCard({ orderCount, reservedQuantity }: { orderCount: number; 
   return (
     <div
       className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 shadow-sm"
-      title="Ehhez az átvételi naphoz már van rendelés, ezért nem törölhető. Deaktiválja törlés helyett."
+      title="Ehhez az átvételi naphoz tartozott rendelés, ezért a rendelési előzmény megőrzése miatt nem törölhető. Deaktiválja törlés helyett."
     >
       <span className="font-semibold text-gray-800">{orderCount}</span>
-      <span>rendelés</span>
+      <span>aktív rendelés</span>
       <span className="text-gray-300">·</span>
       <span className="font-semibold text-gray-800">{reservedQuantity}</span>
       <span>db csirke</span>
@@ -445,8 +445,8 @@ function Editor({
                 />
               )}
 
-              {d.orderCount ? (
-                <OrderStatsCard orderCount={d.orderCount} reservedQuantity={d.reservedQuantity ?? 0} />
+              {d.hasOrderHistory ? (
+                <OrderStatsCard orderCount={d.orderCount ?? 0} reservedQuantity={d.reservedQuantity ?? 0} />
               ) : (
                 <button
                   type="button"
@@ -625,7 +625,10 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
             const activeDaysCount = s.pickupDays.filter((d) => d.active !== false).length;
             const totalOrders = s.pickupDays.reduce((sum, d) => sum + (d.orderCount ?? 0), 0);
             const totalReserved = s.pickupDays.reduce((sum, d) => sum + (d.reservedQuantity ?? 0), 0);
-            const canDelete = totalOrders === 0;
+            // A törlés a rendelési előzmény megőrzése miatt bármilyen (akár
+            // lemondott) rendelést figyelembe vesz, nem csak az aktív
+            // (submitted) foglalásokat tükröző totalOrders statisztikát.
+            const canDelete = !s.pickupDays.some((d) => d.hasOrderHistory);
 
             return (
               <article key={s.id} className={cardHighlightClass(expanded)}>

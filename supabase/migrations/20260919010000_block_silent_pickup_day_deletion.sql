@@ -48,15 +48,20 @@ begin
 
   -- Olyan nap, amit a form már nem tartalmaz, de van hozzá rendelés: ezt a
   -- delete lent úgysem törölné, ezért itt, a mentés elején egyértelmű
-  -- hibaüzenettel elutasítjuk, ahelyett hogy csendben megtartanánk. Lemondott
-  -- (cancelled) rendelés nem számít aktív foglalásnak, ezért nem blokkolja a
-  -- törlést - csak a jelenleg is érvényes (submitted) rendelés.
+  -- hibaüzenettel elutasítjuk, ahelyett hogy csendben megtartanánk. Ez a
+  -- fizikai törlési védelem a rendelés STÁTUSZÁTÓL FÜGGETLENÜL érvényes -
+  -- egy lemondott (cancelled) rendelés már nem aktív foglalás, de továbbra
+  -- is történeti adat, aminek a hozzá tartozó átvételi naphoz/szezonhoz
+  -- kötése nem veszhet el egy törléssel. (A statisztikákban, lásd
+  -- app/(protected)/admin/seasons/page.tsx, ezzel szemben csak a submitted
+  -- rendelések számítanak aktív foglalásnak - ez egy külön, tudatosan más
+  -- szabály.)
   if v_id is not null then
     select string_agg(to_char(p.pickup_date, 'YYYY.MM.DD'), ', ' order by p.pickup_date)
     into v_blocked_dates
     from public.pickup_days p
     where p.season_parameter_id = v_id
-      and exists (select 1 from public.orders o where o.pickup_day_id = p.id and o.status = 'submitted')
+      and exists (select 1 from public.orders o where o.pickup_day_id = p.id)
       and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
 
     if v_blocked_dates is not null then
@@ -90,10 +95,12 @@ begin
       returning id into v_season_id;
   end if;
   -- Kivett átvételi napok törlése; a fenti ellenőrzés miatt ide már csak
-  -- olyan napok jutnak el, amelyekhez nem tartozik érvényes (submitted)
-  -- rendelés - egy kizárólag lemondott rendelésekkel rendelkező nap törölhető.
+  -- olyan napok jutnak el, amelyekhez soha nem tartozott semmilyen
+  -- (submitted vagy cancelled) rendelés - a rendelési előzmény megőrzése
+  -- érdekében egy már valaha megrendelt nap fizikailag nem törölhető,
+  -- csak inaktiválható.
   delete from public.pickup_days p where p.season_parameter_id = v_season_id
-    and not exists (select 1 from public.orders o where o.pickup_day_id = p.id and o.status = 'submitted')
+    and not exists (select 1 from public.orders o where o.pickup_day_id = p.id)
     and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
   for v_day in select * from jsonb_array_elements(v_days) loop
     v_date := (v_day->>'date')::date; v_limit := (v_day->>'limit')::integer;

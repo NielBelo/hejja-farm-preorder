@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
-export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; orderCount?: number; reservedQuantity?: number };
+export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; orderCount?: number; reservedQuantity?: number; hasOrderHistory?: boolean };
 export type SeasonInput = { id?: string; year: number; type: "Tavasz" | "Ősz"; price: number; weightMin: number; weightMax: number; orderStart: string; orderEnd: string; pickupTimeStart: string; pickupTimeEnd: string; localPickupTimeStart: string; pickupDays: PickupDay[]; active: boolean };
 
 export async function saveSeason(input: SeasonInput) {
