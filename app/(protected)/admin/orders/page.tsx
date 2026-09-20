@@ -29,12 +29,15 @@ export default async function AdminOrdersPage() {
             .from("packages")
             .select("id, name, description")
             .order("name"),
-        // Ugyanaz a lista, mint amit az Előzmények oldal az átvételi nap
-        // módosításához felkínál: csak az aktív szezon átvételi napjai.
+        // Admin számára minden átvételi nap (aktív és inaktív is) megjelenik -
+        // az admin bármely rendelést bármely napra áthelyezhet, illetve az
+        // adott rendelés jelenlegi (esetleg inaktív) napjának is szerepelnie
+        // kell a listában, különben a "jelenlegi választás" megjelenítése és
+        // a nap szerinti keresés hibásan üresre futna. Az Előzmények oldal
+        // ezzel szemben szándékosan csak az aktív napokat kínálja fel.
         supabase
             .from("pickup_days")
             .select("*")
-            .eq("is_active", true)
             .order("_group")
             .order("serial_number"),
     ]);

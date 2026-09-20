@@ -38,6 +38,7 @@ type Order = {
     id: number;
     pickup_date: string;
     available_stock: number;
+    is_active: boolean;
   } | null;
   current_version: {
     id: number;
@@ -107,7 +108,8 @@ export default async function HistoryPage({
             pickup_days (
     id,
     pickup_date,
-    available_stock
+    available_stock,
+    is_active
 ),
             current_version:order_versions!orders_current_version_id_fkey (
                 id,
@@ -405,6 +407,7 @@ export default async function HistoryPage({
                           availableStock={order.pickup_days?.available_stock ?? 0}
                           pickupDayId={order.pickup_day_id}
                           pickupDays={pickupDays}
+                          isPickupDayActive={order.pickup_days?.is_active ?? true}
                           seasonStartDate={season?.time_window_start}
                           seasonEndDate={season?.time_window_end}
                         />

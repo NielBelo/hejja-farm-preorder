@@ -58,6 +58,7 @@ type OrderActionsProps = {
     pickupDays: PickupDay[];
     seasonStartDate?: string | null;
     seasonEndDate?: string | null;
+    isPickupDayActive?: boolean;
 };
 
 export default function OrderActions({
@@ -71,6 +72,7 @@ export default function OrderActions({
     pickupDays,
     seasonStartDate,
     seasonEndDate,
+    isPickupDayActive = true,
 }: OrderActionsProps) {
     const [isEditing, setIsEditing] = useState(false);
     const {
@@ -205,7 +207,7 @@ export default function OrderActions({
 
 
     const handleEdit = () => {
-        if (anotherOrderIsEditing) {
+        if (anotherOrderIsEditing || !isPickupDayActive) {
             return;
         }
 
@@ -399,18 +401,27 @@ export default function OrderActions({
                 </div>
             )}
 
+            {!isPickupDayActive && !isEditing && (
+                <div className="mb-3 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-center text-sm text-gray-500">
+                        Az átvételi nap jelenleg inaktív, ezért a rendelés nem módosítható. A rendelés változatlanul
+                        megmarad.
+                    </p>
+                </div>
+            )}
+
             {/* Normál műveleti gombok */}
             {!isEditing && (
                 <div className="flex flex-wrap justify-end gap-3">
                     <button
                         type="button"
                         onClick={handleEdit}
-                        disabled={anotherOrderIsEditing}
+                        disabled={anotherOrderIsEditing || !isPickupDayActive}
                         className={`
         rounded-lg border border-gray-300
         px-5 py-3 text-base font-semibold
         transition-colors
-        ${anotherOrderIsEditing
+        ${anotherOrderIsEditing || !isPickupDayActive
                                 ? "cursor-not-allowed bg-gray-100 text-gray-300"
                                 : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                             }
