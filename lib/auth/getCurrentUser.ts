@@ -9,6 +9,7 @@ export type CurrentUser = {
   city: string;
   county: string;
   isAdmin: boolean;
+  specialSizePreference: "smaller" | "larger" | null;
 };
 
 export async function getCurrentUser(): Promise<CurrentUser | null> {
@@ -30,7 +31,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("first_name, last_name, phone, city, county")
+    .select("first_name, last_name, phone, city, county, special_size_preference")
     .eq("id", user.id)
     .single();
 
@@ -47,5 +48,6 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     city: profile.city,
     county: profile.county,
     isAdmin: userRole?.role === "admin",
+    specialSizePreference: profile.special_size_preference ?? null,
   };
 }

@@ -22,6 +22,7 @@ export default function PickupDaySelector({
     startDate,
     endDate,
     bypassWindow = false,
+    blockedPickupDayIds = [],
 }: {
     pickupDays: PickupDay[];
     selectedPickupDayId: number | null;
@@ -31,10 +32,17 @@ export default function PickupDaySelector({
     // Admin szerkesztésnél a rendelési időablak nem korlátozza a módosítást,
     // ugyanúgy, ahogy a tételek szerkesztése sem admin esetén.
     bypassWindow?: boolean;
+    // Azok a nap id-k, amelyeken már más vásárlónak van rendelése ugyanazzal
+    // a méretpreferenciával, mint a jelenlegi felhasználóé - ez egy rejtett
+    // belső szabály, ezért ezek a napok egyszerűen nem szerepelnek a
+    // felkínált napok között (nem jelenik meg disabled kártya vagy
+    // magyarázó szöveg hozzájuk).
+    blockedPickupDayIds?: number[];
 }) {
     const isWindowOpen = useOrderWindow(startDate, endDate);
     const isOrderingOpen = bypassWindow || isWindowOpen;
-    const displayedPickupDays = [...pickupDays]
+    const displayedPickupDays = pickupDays
+        .filter((day) => !blockedPickupDayIds.includes(day.id))
         .sort(
             (first, second) =>
                 new Date(first.pickup_date).getTime() -
@@ -100,16 +108,15 @@ export default function PickupDaySelector({
                         aria-label={`${number}. nap – jelenleg nem elérhető`}
                         className="relative flex h-[168px] cursor-not-allowed flex-col items-stretch justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-left"
                     >
-                        <div className="pr-10">
-                            <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                                {number}. nap
-                            </p>
+                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
+                            {number}. nap
+                        </p>
+                        <div className="flex flex-1 items-center justify-center">
+                            <NoSymbolIcon
+                                aria-hidden="true"
+                                className="h-12 w-12 text-gray-400"
+                            />
                         </div>
-                        <NoSymbolIcon
-                            aria-hidden="true"
-                            className="absolute right-3 top-3 h-8 w-8 text-gray-400"
-                        />
-                        <div className="mx-auto mt-2 w-4/5 border-t-2 border-black" aria-hidden="true" />
                     </button>
                 )) : displayedPickupDays.map((day) => {
                     const selected = selectedPickupDayId === day.id;
@@ -144,14 +151,12 @@ export default function PickupDaySelector({
                                     {day.serial_number}. nap
                                 </p>
 
-                                <p className="mt-1 text-xl font-bold leading-7 text-gray-700">
-                                    <span className="block whitespace-nowrap">
-                                        {formatMonth(day.pickup_date)}
-                                    </span>
+                                <p className="mt-1 whitespace-nowrap text-xl font-bold leading-7 text-gray-700">
+                                    {formatMonth(day.pickup_date)} {formatDay(day.pickup_date)}.
                                 </p>
 
                                 <p className="text-base font-semibold capitalize text-gray-600">
-                                    {formatDay(day.pickup_date)}. – {formatWeekday(day.pickup_date)}
+                                    {formatWeekday(day.pickup_date)}
                                 </p>
                             </div>
 

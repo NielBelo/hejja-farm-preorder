@@ -64,6 +64,10 @@ type Season = {
     local_pickup_time_start: string | null;
 };
 
+type SizePreferenceLock = {
+    pickup_day_id: number;
+    preference: "smaller" | "larger";
+};
 
 export default function PreorderManager({
     season,
@@ -71,12 +75,16 @@ export default function PreorderManager({
     packages,
     pickupDays,
     userCounty,
+    userSizePreference = null,
+    sizePreferenceLocks = [],
 }: {
     season: Season;
     products: Product[];
     packages: PackageOption[];
     pickupDays: PickupDay[];
     userCounty?: string | null;
+    userSizePreference?: "smaller" | "larger" | null;
+    sizePreferenceLocks?: SizePreferenceLock[];
 }) {
     const [selectedPickupDay, setSelectedPickupDay] = useState<PickupDay | null>(
         null
@@ -84,6 +92,15 @@ export default function PreorderManager({
 
     const [currentPickupDays, setCurrentPickupDays] =
         useState<PickupDay[]>(pickupDays);
+
+    const [currentSizePreferenceLocks, setCurrentSizePreferenceLocks] =
+        useState<SizePreferenceLock[]>(sizePreferenceLocks);
+
+    const blockedPickupDayIds = userSizePreference
+        ? currentSizePreferenceLocks
+              .filter((lock) => lock.preference === userSizePreference)
+              .map((lock) => lock.pickup_day_id)
+        : [];
 
     const handlePickupDayChange = (day: PickupDay) => {
         if (
@@ -177,6 +194,17 @@ export default function PreorderManager({
                 setSelectedPickupDay(updatedSelectedDay);
             }
         }
+
+        const { data: locks, error: locksError } = await supabase.rpc(
+            "get_size_preference_locks"
+        );
+
+        if (locksError) {
+            console.error("Méretpreferencia-korlátok frissítési hiba:", locksError);
+            return;
+        }
+
+        setCurrentSizePreferenceLocks(locks ?? []);
     };
 
 
@@ -332,6 +360,7 @@ export default function PreorderManager({
                     pickupDays={currentPickupDays}
                     selectedPickupDayId={selectedPickupDay?.id ?? null}
                     onSelectPickupDay={handlePickupDayChange}
+                    blockedPickupDayIds={blockedPickupDayIds}
                 />
             </div>
 

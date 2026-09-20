@@ -4,10 +4,16 @@ import PreorderManager from "@/components/PreorderManager";
 import SeasonOrderInfo from "@/components/SeasonOrderInfo";
 import PreorderIntro from "@/components/PreorderIntro";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
+import { createClient } from "@/lib/supabase/server";
 
 
 export default async function PreorderPage() {
   const currentUser = await getCurrentUser();
+
+  const authedSupabase = await createClient();
+  const { data: sizePreferenceLocks } = await authedSupabase.rpc(
+    "get_size_preference_locks"
+  );
 
   const { data } = await supabase
     .from("page_contents")
@@ -65,6 +71,8 @@ export default async function PreorderPage() {
         packages={packages ?? []}
         pickupDays={pickupDays ?? []}
         userCounty={currentUser?.county ?? null}
+        userSizePreference={currentUser?.specialSizePreference ?? null}
+        sizePreferenceLocks={sizePreferenceLocks ?? []}
       />
     </main>
   );
