@@ -31,6 +31,39 @@ function getCalendarDate(value: string) {
     return year && month && day ? `${year}-${month}-${day}` : null;
 }
 
+function getBudapestOffset(calendarDate: string) {
+    const offsetPart = new Intl.DateTimeFormat("en-US", {
+        timeZone: BUDAPEST_TIME_ZONE,
+        timeZoneName: "longOffset",
+    }).formatToParts(new Date(`${calendarDate}T12:00:00Z`))
+        .find((part) => part.type === "timeZoneName")
+        ?.value;
+    const offset = offsetPart?.replace("GMT", "");
+
+    return offset && /^[+-]\d{2}:\d{2}$/.test(offset) ? offset : null;
+}
+
+export function getOrderWindowStart(startDate?: string | null) {
+    if (!startDate) {
+        return null;
+    }
+
+    const calendarDate = getCalendarDate(startDate);
+
+    if (!calendarDate) {
+        return null;
+    }
+
+    const offset = getBudapestOffset(calendarDate);
+
+    if (!offset) {
+        return null;
+    }
+
+    const start = new Date(`${calendarDate}T00:00:00.000${offset}`);
+    return Number.isNaN(start.getTime()) ? null : start;
+}
+
 export function getOrderWindowEnd(endDate?: string | null) {
     if (!endDate) {
         return null;
@@ -42,15 +75,9 @@ export function getOrderWindowEnd(endDate?: string | null) {
         return null;
     }
 
-    const offsetPart = new Intl.DateTimeFormat("en-US", {
-        timeZone: BUDAPEST_TIME_ZONE,
-        timeZoneName: "longOffset",
-    }).formatToParts(new Date(`${calendarDate}T12:00:00Z`))
-        .find((part) => part.type === "timeZoneName")
-        ?.value;
-    const offset = offsetPart?.replace("GMT", "");
+    const offset = getBudapestOffset(calendarDate);
 
-    if (!offset || !/^[+-]\d{2}:\d{2}$/.test(offset)) {
+    if (!offset) {
         return null;
     }
 
