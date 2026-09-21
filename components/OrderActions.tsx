@@ -8,6 +8,8 @@ import { useRouter } from "next/navigation";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
+import { BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
+import { getBacsKiskunPickupRangeInfo } from "@/lib/pickupInfo";
 import {
     updateOrder,
     type UpdateOrderItem,
@@ -53,8 +55,11 @@ type OrderActionsProps = {
     items: ExistingOrderItem[];
     products: Product[];
     packages: PackageOption[];
-    availableStock: number;
+    availableStock: number | null;
     pickupDayId: number;
+    pickupDate: string;
+    /** A rendeléshez tartozó átvételi nap fajtája - 'dunavecse' esetén a nap sosem módosítható, és nincs normál készletkorlát (lásd lib/countyGroups.ts). */
+    pickupDayKind?: "normal" | "dunavecse";
     pickupDays: PickupDay[];
     seasonStartDate?: string | null;
     seasonEndDate?: string | null;
@@ -69,11 +74,14 @@ export default function OrderActions({
     packages,
     availableStock,
     pickupDayId,
+    pickupDate,
+    pickupDayKind = "normal",
     pickupDays,
     seasonStartDate,
     seasonEndDate,
     isPickupDayActive = true,
 }: OrderActionsProps) {
+    const isDunavecse = pickupDayKind === "dunavecse";
     const [isEditing, setIsEditing] = useState(false);
     const {
         editingOrderId,
@@ -131,8 +139,13 @@ export default function OrderActions({
         0
     );
 
-    const maxAvailableQuantity =
-        availableStock + originalQuantity;
+    // A DUNAVECSE technikai napnak nincs normál készletkorlátja (a mezője is
+    // NULL az adatbázisban) - ugyanazt a "nincs napspecifikus felső korlát"
+    // null-t adjuk át a ProductSelectornak, mint amit az még napválasztás
+    // előtt is kap.
+    const maxAvailableQuantity = isDunavecse
+        ? null
+        : (availableStock ?? 0) + originalQuantity;
 
     // Ugyanaz az összegzés, mint a PreorderManager napváltás-ellenőrzésénél:
     // az összes szerkesztett tétel mennyiségét számoljuk.
@@ -284,11 +297,19 @@ export default function OrderActions({
                 day: "numeric",
             }).format(new Date(newPickupDay.pickup_date))}-re módosult.`
             : "";
+        // Bács-Kiskun (DUNAVECSE) rendelésnél az átvételi nap sosem
+        // módosulhat (lásd fent, a kártya megjelenítését is kihagyjuk), ezért
+        // itt a szezon "vágási napjából" számolt kétnapos dátumtartományt
+        // adjuk hozzá, hogy a visszaigazolás ne maradjon üres az átvételre
+        // vonatkozóan.
+        const bacsKiskunMessage = isDunavecse
+            ? ` Átvételi nap: ${getBacsKiskunPickupRangeInfo(pickupDate).rangeLabel}.`
+            : "";
         const emailMessage = result.emailRecipient
             ? ` A visszaigazolást elküldtük a(z) ${result.emailRecipient} e-mail-címre.`
             : "";
 
-        setSaveSuccess(`${changeMessage}${pickupDayMessage}${emailMessage}`);
+        setSaveSuccess(`${changeMessage}${pickupDayMessage}${bacsKiskunMessage}${emailMessage}`);
 
         setEmailWarning(result.emailWarning ?? null);
 
@@ -466,25 +487,30 @@ export default function OrderActions({
 
                         {/* Segítő instrukció */}
                         <p className="mt-1 text-center text-base italic text-gray-600">
-                            A szerkesztéshez kattintson az átvételi napra vagy a
-                            módosítani kívánt tételre.
+                            {isDunavecse
+                                ? "A szerkesztéshez kattintson a módosítani kívánt tételre."
+                                : "A szerkesztéshez kattintson az átvételi napra vagy a módosítani kívánt tételre."}
                         </p>
 
                     </div>
 
-                    {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel */}
-                    <PickupDayChangeCard
-                        isOpen={pickupDayCardOpen}
-                        onToggle={handleTogglePickupDayCard}
-                        pickupDaysForPicker={pickupDaysForPicker}
-                        selectedPickupDayId={selectedPickupDayId}
-                        pickupDayForDisplay={pickupDayForDisplay}
-                        onSelectPickupDay={handleSelectPickupDay}
-                        seasonStartDate={seasonStartDate}
-                        seasonEndDate={seasonEndDate}
-                        insufficientStockDay={insufficientStockDay}
-                        onDismissInsufficientStock={dismissInsufficientStock}
-                    />
+                    {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel.
+                        DUNAVECSE (Bács-Kiskun) rendelésnél az átvételi nap sosem
+                        módosítható, ezért ez a kártya náluk meg sem jelenik. */}
+                    {!isDunavecse && (
+                        <PickupDayChangeCard
+                            isOpen={pickupDayCardOpen}
+                            onToggle={handleTogglePickupDayCard}
+                            pickupDaysForPicker={pickupDaysForPicker}
+                            selectedPickupDayId={selectedPickupDayId}
+                            pickupDayForDisplay={pickupDayForDisplay}
+                            onSelectPickupDay={handleSelectPickupDay}
+                            seasonStartDate={seasonStartDate}
+                            seasonEndDate={seasonEndDate}
+                            insufficientStockDay={insufficientStockDay}
+                            onDismissInsufficientStock={dismissInsufficientStock}
+                        />
+                    )}
 
                     {/* Tételek szerkesztése */}
                     <ProductSelector
@@ -494,7 +520,8 @@ export default function OrderActions({
                         maxAvailableQuantity={maxAvailableQuantity}
                         resetKey={0}
                         isPickupDaySelected={true}
-                        pickupDate={pickupDayForDisplay?.pickup_date ?? null}
+                        pickupDate={pickupDayForDisplay?.pickup_date ?? pickupDate}
+                        noteLabel={isDunavecse ? BACS_KISKUN_NOTE_LABEL : undefined}
                         initialItems={initialItems}
                         onOrderChangesChange={() => { }}
                         onItemsChange={setEditedItems}

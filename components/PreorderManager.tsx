@@ -6,6 +6,8 @@ import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
 import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
 import { createClient } from "@/lib/supabase/client";
+import { getCountyGroup, BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
+import { getBacsKiskunPickupRangeInfo } from "@/lib/pickupInfo";
 import {
     submitOrder,
     type SubmitOrderItem,
@@ -30,9 +32,15 @@ type PickupDay = {
     season: number;
     serial_number: number;
     pickup_date: string;
-    planned_stock: number;
-    available_stock: number;
+    planned_stock: number | null;
+    available_stock: number | null;
     _group: number;
+    is_active: boolean;
+};
+
+type DunavecseDay = {
+    id: number;
+    pickup_date: string;
     is_active: boolean;
 };
 
@@ -74,6 +82,7 @@ export default function PreorderManager({
     products,
     packages,
     pickupDays,
+    dunavecseDay = null,
     userCounty,
     userSizePreference = null,
     sizePreferenceLocks = [],
@@ -82,16 +91,52 @@ export default function PreorderManager({
     products: Product[];
     packages: PackageOption[];
     pickupDays: PickupDay[];
+    dunavecseDay?: DunavecseDay | null;
     userCounty?: string | null;
     userSizePreference?: "smaller" | "larger" | null;
     sizePreferenceLocks?: SizePreferenceLock[];
 }) {
+    // A vármegye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
+    // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun vármegyei
+    // vásárlónál nincs átvételi nap választás: a rendelés automatikusan a
+    // szezon DUNAVECSE napjához kerül, amit itt egy PickupDay-alakú
+    // "virtuális" objektumként kezelünk, hogy a meglévő ProductSelector/
+    // OrderConfirmationSummary logika (maxAvailableQuantity, pickupDate stb.)
+    // változtatás nélkül újrahasználható legyen.
+    const isBacsKiskun = getCountyGroup(userCounty) === "bacsKiskun";
+
     const [selectedPickupDay, setSelectedPickupDay] = useState<PickupDay | null>(
         null
     );
 
     const [currentPickupDays, setCurrentPickupDays] =
         useState<PickupDay[]>(pickupDays);
+
+    const [currentDunavecseDay, setCurrentDunavecseDay] =
+        useState<DunavecseDay | null>(dunavecseDay);
+
+    const dunavecsePickupDay: PickupDay | null = currentDunavecseDay
+        ? {
+            id: currentDunavecseDay.id,
+            year: 0,
+            season: 0,
+            serial_number: 0,
+            pickup_date: currentDunavecseDay.pickup_date,
+            planned_stock: null,
+            available_stock: null,
+            _group: 0,
+            is_active: currentDunavecseDay.is_active,
+        }
+        : null;
+
+    // Bács-Kiskun vármegyei vásárlónál nincs napválasztás: a ténylegesen
+    // "aktívan kezelt" nap az aktív DUNAVECSE nap, minden más vásárlónál a
+    // kézzel kiválasztott nap. Ezt render közben származtatjuk (nem
+    // effektussal szinkronizáljuk state-be), hogy ne legyen felesleges,
+    // kaszkádoló renderelés.
+    const displayPickupDay: PickupDay | null = isBacsKiskun
+        ? (dunavecsePickupDay?.is_active ? dunavecsePickupDay : null)
+        : selectedPickupDay;
 
     const [currentSizePreferenceLocks, setCurrentSizePreferenceLocks] =
         useState<SizePreferenceLock[]>(sizePreferenceLocks);
@@ -117,7 +162,7 @@ export default function PreorderManager({
                 0
             );
 
-            if (requiredQuantity > day.available_stock) {
+            if (requiredQuantity > (day.available_stock ?? 0)) {
                 setPendingPickupDay(day);
                 setShowDayChangeModal(true);
                 return;
@@ -177,6 +222,7 @@ export default function PreorderManager({
             .from("pickup_days")
             .select("*")
             .eq("is_active", true)
+            .eq("kind", "normal")
             .order("_group")
             .order("serial_number");
 
@@ -187,7 +233,7 @@ export default function PreorderManager({
 
         setCurrentPickupDays(data);
 
-        if (selectedPickupDay) {
+        if (selectedPickupDay && !isBacsKiskun) {
             const updatedSelectedDay = data.find(
                 (day) => day.id === selectedPickupDay.id
             );
@@ -195,6 +241,17 @@ export default function PreorderManager({
             if (updatedSelectedDay) {
                 setSelectedPickupDay(updatedSelectedDay);
             }
+        }
+
+        if (season?.id) {
+            const { data: dunavecse } = await supabase
+                .from("pickup_days")
+                .select("id, pickup_date, is_active")
+                .eq("season_parameter_id", season.id)
+                .eq("kind", "dunavecse")
+                .maybeSingle();
+
+            setCurrentDunavecseDay(dunavecse ?? null);
         }
 
         const { data: locks, error: locksError } = await supabase.rpc(
@@ -211,7 +268,14 @@ export default function PreorderManager({
 
 
     const handleFinalizeOrder = async () => {
-        if (!selectedPickupDay) {
+        if (isBacsKiskun) {
+            if (!dunavecsePickupDay?.is_active) {
+                setSubmitError(
+                    "A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun vármegyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort."
+                );
+                return;
+            }
+        } else if (!selectedPickupDay) {
             setSubmitError("Válasszon átvételi napot a rendelés véglegesítéséhez!");
             return;
         }
@@ -231,6 +295,11 @@ export default function PreorderManager({
             return;
         }
 
+        if (!displayPickupDay) {
+            setSubmitError("Válasszon átvételi napot a rendelés véglegesítéséhez!");
+            return;
+        }
+
         setSubmitError(null);
         setEmailWarning(null);
 
@@ -244,7 +313,7 @@ export default function PreorderManager({
 
         const result = await submitOrder({
             seasonParameterId: season.id,
-            pickupDayId: selectedPickupDay.id,
+            pickupDayId: displayPickupDay.id,
             items: rpcItems,
         });
 
@@ -257,7 +326,7 @@ export default function PreorderManager({
 
         setLastSubmittedOrder({
             orderNumber: result.orderNumber,
-            pickupDay: selectedPickupDay,
+            pickupDay: displayPickupDay,
             items: validOrderItems.map((item) => ({ ...item })),
             submittedAt: new Date(),
             emailRecipient: result.emailRecipient,
@@ -356,14 +425,31 @@ export default function PreorderManager({
             </div>
 
             <div ref={pickupDaySectionRef} className="scroll-mt-24">
-                <PickupDaySelector
-                    startDate={season?.time_window_start}
-                    endDate={season?.time_window_end}
-                    pickupDays={currentPickupDays}
-                    selectedPickupDayId={selectedPickupDay?.id ?? null}
-                    onSelectPickupDay={handlePickupDayChange}
-                    blockedPickupDayIds={blockedPickupDayIds}
-                />
+                {isBacsKiskun ? (
+                    <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+                        {dunavecsePickupDay?.is_active ? (
+                            <p className="text-center text-lg font-semibold text-gray-700">
+                                Vágási nap:{" "}
+                                <span className="text-[rgb(49,171,2)]">
+                                    {getBacsKiskunPickupRangeInfo(dunavecsePickupDay.pickup_date).cuttingDayLabel}
+                                </span>
+                            </p>
+                        ) : (
+                            <p className="text-center text-lg font-semibold text-gray-700">
+                                A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun vármegyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort.
+                            </p>
+                        )}
+                    </section>
+                ) : (
+                    <PickupDaySelector
+                        startDate={season?.time_window_start}
+                        endDate={season?.time_window_end}
+                        pickupDays={currentPickupDays}
+                        selectedPickupDayId={selectedPickupDay?.id ?? null}
+                        onSelectPickupDay={handlePickupDayChange}
+                        blockedPickupDayIds={blockedPickupDayIds}
+                    />
+                )}
             </div>
 
             <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
@@ -374,10 +460,11 @@ export default function PreorderManager({
                 <ProductSelector
                     products={products}
                     packages={packages}
-                    maxAvailableQuantity={selectedPickupDay?.available_stock ?? null}
+                    maxAvailableQuantity={displayPickupDay?.available_stock ?? null}
                     resetKey={resetKey}
-                    isPickupDaySelected={selectedPickupDay !== null}
-                    pickupDate={selectedPickupDay?.pickup_date ?? null}
+                    isPickupDaySelected={displayPickupDay !== null}
+                    pickupDate={displayPickupDay?.pickup_date ?? null}
+                    noteLabel={isBacsKiskun ? BACS_KISKUN_NOTE_LABEL : undefined}
                     onOrderChangesChange={setHasOrderChanges}
                     onItemsChange={setOrderItems}
                     onItemEdited={() => {
@@ -389,7 +476,7 @@ export default function PreorderManager({
 
 
 
-            {selectedPickupDay && (
+            {displayPickupDay && (
             <div className="mt-10 pt-8">
 
                 {validOrderItems.length > 0 &&

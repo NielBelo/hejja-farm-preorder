@@ -25,7 +25,8 @@ const orderSelect = `
         pickup_date,
         serial_number,
         available_stock,
-        planned_stock
+        planned_stock,
+        kind
     ),
 
     order_versions!orders_current_version_id_fkey (

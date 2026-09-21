@@ -10,9 +10,21 @@ import {
   TrashIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { deleteSeason, saveSeason, type SeasonInput } from "@/app/(protected)/admin/seasons/actions";
+import { deleteSeason, saveSeason, setDunavecsePickupDayActive, type SeasonInput } from "@/app/(protected)/admin/seasons/actions";
 
-type Season = SeasonInput & { id: string; created_at: string };
+// A DUNAVECSE (Bács-Kiskun) technikai nap - a normál pickupDays listától
+// külön, mert nem szerkeszthető/törölhető a form-on keresztül, csak
+// aktiválható/deaktiválható. Korlátlan kapacitású, ezért nincs limit/
+// reservedQuantity mezője.
+type DunavecseInfo = {
+  id: number;
+  date: string;
+  active: boolean;
+  orderCount: number;
+  hasOrderHistory: boolean;
+};
+
+type Season = SeasonInput & { id: string; created_at: string; dunavecse: DunavecseInfo | null };
 
 const blank = (): SeasonInput => ({
   year: new Date().getFullYear(),
@@ -524,6 +536,16 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [dunavecseTogglingId, setDunavecseTogglingId] = useState<number | null>(null);
+  const [dunavecseError, setDunavecseError] = useState<string | null>(null);
+
+  const toggleDunavecseActive = async (dunavecse: DunavecseInfo) => {
+    setDunavecseTogglingId(dunavecse.id);
+    setDunavecseError(null);
+    const r = await setDunavecsePickupDayActive(dunavecse.id, !dunavecse.active);
+    if (!r.success) setDunavecseError(r.error);
+    setDunavecseTogglingId(null);
+  };
 
   const closeEditor = () => {
     setOpen(false);
@@ -628,8 +650,10 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
             const totalReserved = s.pickupDays.reduce((sum, d) => sum + (d.reservedQuantity ?? 0), 0);
             // A törlés a rendelési előzmény megőrzése miatt bármilyen (akár
             // lemondott) rendelést figyelembe vesz, nem csak az aktív
-            // (submitted) foglalásokat tükröző totalOrders statisztikát.
-            const canDelete = !s.pickupDays.some((d) => d.hasOrderHistory);
+            // (submitted) foglalásokat tükröző totalOrders statisztikát - ez
+            // a DUNAVECSE napra is vonatkozik, hiszen a szezon törlése a
+            // hozzá tartozó DUNAVECSE napot is törölné.
+            const canDelete = !s.pickupDays.some((d) => d.hasOrderHistory) && !s.dunavecse?.hasOrderHistory;
 
             return (
               <article key={s.id} className={cardHighlightClass(expanded)}>
@@ -708,6 +732,51 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                             })}
                           </div>
                         </div>
+
+                        {s.dunavecse && (
+                          <div>
+                            <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              DUNAVECSE (Bács-Kiskun, technikai nap)
+                              <InfoTip>
+                                <p>
+                                  A Bács-Kiskun vármegyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem
+                                  szerkeszthető és nem törölhető, csak aktiválható/deaktiválható. Kapacitása korlátlan,
+                                  nincs napi limitje.
+                                </p>
+                                <p className="mt-1.5">
+                                  Deaktiváláskor a Bács-Kiskun vármegyei vásárlók nem tudnak új rendelést leadni erre a
+                                  szezonra, de a már leadott rendeléseik változatlanul megmaradnak.
+                                </p>
+                              </InfoTip>
+                            </p>
+                            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+                              <div className="min-w-0">
+                                <p className="truncate text-sm font-medium text-gray-700">
+                                  Vágási nap: {s.dunavecse.date ? formatDate(s.dunavecse.date) : "–"}
+                                </p>
+                                <p className="text-xs text-gray-500">
+                                  Korlátlan kapacitás
+                                  {s.dunavecse.orderCount ? ` · ${s.dunavecse.orderCount} rendelés` : ""}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                disabled={dunavecseTogglingId === s.dunavecse.id}
+                                onClick={() => toggleDunavecseActive(s.dunavecse!)}
+                                className={statusBadgeClass(s.dunavecse.active) + " cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"}
+                              >
+                                {dunavecseTogglingId === s.dunavecse.id
+                                  ? "…"
+                                  : s.dunavecse.active
+                                    ? <><CheckCircleIcon className="h-4 w-4" />Aktív</>
+                                    : <><XCircleIcon className="h-4 w-4" />Inaktív</>}
+                              </button>
+                            </div>
+                            {dunavecseError && (
+                              <p className="mt-1.5 text-xs font-medium text-red-700">{dunavecseError}</p>
+                            )}
+                          </div>
+                        )}
 
                         <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
                           <button

@@ -34,6 +34,34 @@ export async function saveSeason(input: SeasonInput) {
   }
 }
 
+// A DUNAVECSE (Bács-Kiskun) technikai nap aktiválása/deaktiválása -
+// ugyanazt az admin_set_pickup_day_active RPC-t használja, mint bármely más
+// átvételi nap egyedi ki-/bekapcsolása; a DUNAVECSE napot ez a nap-kezelő
+// nem különbözteti meg, mert a jogosultsági és aktivitási szabályok
+// egyformák. Deaktiválás bármikor lehetséges, aktiváláshoz a szezonnak
+// aktívnak kell lennie (lásd az RPC definícióját).
+export async function setDunavecsePickupDayActive(id: number, active: boolean) {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false as const, error: "A módosításhoz jelentkezzen be újra." };
+    const { data: role } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
+    if (!role) return { success: false as const, error: "Adminisztrátori jogosultság szükséges." };
+    const { error } = await supabase.rpc("admin_set_pickup_day_active", { target_id: id, is_active: active });
+    if (error) return { success: false as const, error: error.message || "A DUNAVECSE nap módosítása sikertelen." };
+    try { revalidatePath("/admin/seasons"); revalidatePath("/preorder"); } catch (revalidateError) {
+      console.error("DUNAVECSE nap revalidálási hiba:", revalidateError);
+    }
+    return { success: true as const };
+  } catch (unexpectedError) {
+    console.error("DUNAVECSE nap módosítási hiba:", unexpectedError);
+    return {
+      success: false as const,
+      error: unexpectedError instanceof Error ? unexpectedError.message : "A DUNAVECSE nap módosítása váratlan hiba miatt sikertelen.",
+    };
+  }
+}
+
 export async function deleteSeason(id: string) {
   try {
     const supabase = await createClient();

@@ -1,10 +1,10 @@
 -- Futtatandó a Supabase SQL Editorban a felület használata előtt.
--- A meglévő update_order(p_order_id, p_items) függvény cseréje egy harmadik,
--- opcionális p_pickup_day_id paraméterrel bővített változatra.
---
--- Az eredeti 2 paraméteres szignatúrát a Postgres külön overloadként kezelné
--- egy sima CREATE OR REPLACE mellett, ezért előbb explicit módon eldobjuk,
--- majd a jogosultságokat (amik a DROP-pal elvesznek) a végén visszaadjuk.
+-- A meglévő update_order(p_order_id, p_items, p_pickup_day_id) függvény
+-- cseréje: DUNAVECSE (Bács-Kiskun) rendelésnél az átvételi nap sosem
+-- módosítható, és sem normál készletellenőrzés, sem -korrekció nem
+-- történik; normál rendelésnél a DUNAVECSE nap soha nem választható
+-- célként. Lásd:
+-- supabase/migrations/20260921010000_bacskiskun_dunavecse.sql
 --
 -- Napváltás nélkül (p_pickup_day_id = NULL vagy a jelenlegi nappal egyezik)
 -- a viselkedés bitre ugyanaz, mint korábban: csak a mennyiségi különbség
@@ -35,7 +35,9 @@ declare
     v_order_user_id uuid;
     v_season_parameter_id bigint;
     v_old_pickup_day_id bigint;
+    v_old_pickup_kind text;
     v_new_pickup_day_id bigint;
+    v_new_pickup_kind text;
     v_current_version_id bigint;
     v_public_order_number text;
     v_order_status text;
@@ -135,7 +137,18 @@ begin
             'A módosítandó rendelés nem létezik.';
     end if;
 
-    v_new_pickup_day_id := coalesce(p_pickup_day_id, v_old_pickup_day_id);
+    select kind into v_old_pickup_kind
+    from public.pickup_days
+    where id = v_old_pickup_day_id;
+
+    -- DUNAVECSE rendelésnél az átvételi nap sosem módosítható - a kliens
+    -- által esetlegesen küldött p_pickup_day_id-t figyelmen kívül hagyjuk,
+    -- ezzel sem a vásárló, sem az admin nem tudja (akár véletlenül sem)
+    -- másik napra áthelyezni.
+    v_new_pickup_day_id := case
+        when v_old_pickup_kind = 'dunavecse' then v_old_pickup_day_id
+        else coalesce(p_pickup_day_id, v_old_pickup_day_id)
+    end;
     v_pickup_day_changed := v_new_pickup_day_id <> v_old_pickup_day_id;
 
 
@@ -177,6 +190,8 @@ begin
     -- Napváltás esetén mindkét érintett napot zároljuk, mindig a
     -- kisebb id-jű sorral kezdve, hogy két párhuzamos, egymással
     -- ellentétes irányú napváltás ne okozzon holtpontot (deadlock).
+    -- DUNAVECSE rendelésnél v_pickup_day_changed a fenti lépés miatt
+    -- mindig false, ezért ez mindig a "nincs napváltás" ágon fut le.
     ------------------------------------------------------------
     if not v_pickup_day_changed then
 
@@ -204,8 +219,8 @@ begin
                 'A rendeléshez tartozó átvételi nap nem létezik.';
         end if;
 
-        select available_stock, pickup_date
-        into v_new_available_stock, v_new_pickup_date
+        select available_stock, pickup_date, kind
+        into v_new_available_stock, v_new_pickup_date, v_new_pickup_kind
         from public.pickup_days
         where id = v_new_pickup_day_id
         for update;
@@ -215,10 +230,15 @@ begin
                 'A kiválasztott új átvételi nap nem létezik.';
         end if;
 
+        if v_new_pickup_kind = 'dunavecse' then
+            raise exception
+                'A DUNAVECSE technikai nap nem választható átvételi napként.';
+        end if;
+
     else
 
-        select available_stock, pickup_date
-        into v_new_available_stock, v_new_pickup_date
+        select available_stock, pickup_date, kind
+        into v_new_available_stock, v_new_pickup_date, v_new_pickup_kind
         from public.pickup_days
         where id = v_new_pickup_day_id
         for update;
@@ -226,6 +246,11 @@ begin
         if not found then
             raise exception
                 'A kiválasztott új átvételi nap nem létezik.';
+        end if;
+
+        if v_new_pickup_kind = 'dunavecse' then
+            raise exception
+                'A DUNAVECSE technikai nap nem választható átvételi napként.';
         end if;
 
         select available_stock, pickup_date
@@ -318,12 +343,18 @@ begin
     ------------------------------------------------------------
     -- 13. Készlet ellenőrzése
     --
-    -- Azonos napon maradva csak a mennyiségi növekményre van szükség
-    -- (a meglévő foglalás a helyén marad). Napváltáskor a teljes új
-    -- mennyiségre van szükség az új napon, hiszen ott a rendelésnek
-    -- jelenleg semmilyen foglalása nincs.
+    -- A DUNAVECSE technikai napra nem vonatkozik semmilyen
+    -- készletellenőrzés - a kapacitása korlátlan. Azonos (normál) napon
+    -- maradva csak a mennyiségi növekményre van szükség (a meglévő
+    -- foglalás a helyén marad). Napváltáskor a teljes új mennyiségre van
+    -- szükség az új napon, hiszen ott a rendelésnek jelenleg semmilyen
+    -- foglalása nincs.
     ------------------------------------------------------------
-    if not v_pickup_day_changed then
+    if v_old_pickup_kind = 'dunavecse' then
+
+        null;
+
+    elsif not v_pickup_day_changed then
 
         v_quantity_difference := v_new_total_quantity - v_old_total_quantity;
 
@@ -412,8 +443,15 @@ begin
 
     ------------------------------------------------------------
     -- 18. Készlet korrigálása
+    --
+    -- A DUNAVECSE technikai nap kapacitása korlátlan, ezért ide sosem
+    -- kerül készletkorrekció.
     ------------------------------------------------------------
-    if not v_pickup_day_changed then
+    if v_old_pickup_kind = 'dunavecse' then
+
+        null;
+
+    elsif not v_pickup_day_changed then
 
         update public.pickup_days
         set available_stock = available_stock - v_quantity_difference

@@ -53,6 +53,8 @@ type ProductSelectorProps = {
     initialItems?: OrderItem[];
     collapseAllSignal?: number;
     onItemOpen?: () => void;
+    /** Bács-Kiskun vármegyei vásárlóknál a megjegyzés-mező fölötti szöveg speciális - lásd lib/countyGroups.ts BACS_KISKUN_NOTE_LABEL. */
+    noteLabel?: string;
 };
 
 const DEFAULT_NOTE = DEFAULT_SIZE_PREFERENCE;
@@ -98,6 +100,7 @@ export default function ProductSelector({
     initialItems,
     collapseAllSignal,
     onItemOpen,
+    noteLabel = "Opcionális megjegyzés a csomaghoz",
 }: ProductSelectorProps) {
     const [items, setItems] = useState<OrderItem[]>(() =>
         initialItems && initialItems.length > 0
@@ -638,7 +641,9 @@ export default function ProductSelector({
                                     </h3>
 
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        {packages.map((pack) => {
+                                        {[...packages]
+                                            .sort((a, b) => a.name.localeCompare(b.name, "hu-HU"))
+                                            .map((pack) => {
                                             const selected = item.selectedPackageId === pack.id;
 
                                             return (
@@ -671,7 +676,7 @@ export default function ProductSelector({
 
                                 <div className="mt-6">
                                     <h3 className="mb-4 text-center text-xl font-semibold text-gray-700">
-                                        Opcionális megjegyzés a csomaghoz
+                                        {noteLabel}
                                     </h3>
 
                                     <div className="grid gap-4 md:grid-cols-2">

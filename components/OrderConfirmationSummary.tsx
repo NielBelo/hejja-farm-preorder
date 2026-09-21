@@ -1,7 +1,8 @@
 import { forwardRef } from "react";
 import { CheckCircleIcon } from "@heroicons/react/24/outline";
 import { formatOrderWindowEnd } from "@/lib/orderWindow";
-import { getPickupWindowInfo } from "@/lib/pickupInfo";
+import { getBacsKiskunPickupRangeInfo, getPickupWindowInfo } from "@/lib/pickupInfo";
+import { getCountyGroup } from "@/lib/countyGroups";
 
 export type OrderConfirmationItem = {
     productName: string;
@@ -46,6 +47,13 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
         },
         ref
     ) {
+        // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/
+        // idejük: helyette a szezon "vágási napjából" (ugyanaz a dátum, mint
+        // amit a Bács-Kiskun vásárló az előrendelő oldalon lát) számolt
+        // kétnapos dátumtartomány jelenik meg, és a T-1 automatikus
+        // emlékeztetőre utaló mondat sem jelenhet meg náluk (nincs átvételi
+        // időpont, amire emlékeztetni lehetne).
+        const isBacsKiskun = getCountyGroup(userCounty) === "bacsKiskun";
         const { windowLabel: pickupWindowLabel, location: pickupLocation } =
             getPickupWindowInfo({
                 pickupDate,
@@ -54,6 +62,9 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                 localPickupTimeStart,
                 county: userCounty,
             });
+        const bacsKiskunRange = isBacsKiskun
+            ? getBacsKiskunPickupRangeInfo(pickupDate)
+            : null;
 
         return (
             <div
@@ -83,7 +94,9 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
 
                     <div className="text-center">
                         <span className="inline-block whitespace-nowrap rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
-                            Átvétel: {pickupWindowLabel}
+                            {isBacsKiskun
+                                ? `Átvételi nap: ${bacsKiskunRange?.rangeLabel}`
+                                : `Átvétel: ${pickupWindowLabel}`}
                         </span>
                     </div>
 
@@ -137,16 +150,22 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                             <span className="font-semibold text-gray-700">
                                 {emailRecipient}
                             </span>{" "}
-                            e-mail-címre visszaigazolást küldtünk, és a
-                            rendelés átvétele előtt egy nappal újabb
-                            automatikus emlékeztetőt fog kapni.
+                            e-mail-címre visszaigazolást küldtünk
+                            {isBacsKiskun
+                                ? "."
+                                : <>, és a rendelés átvétele előtt egy nappal
+                                újabb automatikus emlékeztetőt fog kapni.</>}
                             </>
                         )}
-                        {" "}Átvétel helyszíne:{" "}
-                        <span className="font-semibold text-gray-700">
-                            {pickupLocation}
-                        </span>
-                        !
+                        {!isBacsKiskun && (
+                            <>
+                                {" "}Átvétel helyszíne:{" "}
+                                <span className="font-semibold text-gray-700">
+                                    {pickupLocation}
+                                </span>
+                                !
+                            </>
+                        )}
                     </p>
                 </div>
             </div>

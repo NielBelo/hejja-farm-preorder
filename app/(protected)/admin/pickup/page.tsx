@@ -39,10 +39,19 @@ export default async function AdminPickupPage() {
                 )
             `)
             .eq("status", "submitted"),
+        // A DUNAVECSE technikai nap kapacitása korlátlan (planned_stock/
+        // available_stock NULL) - ha bekerülne ebbe a listába, torzítaná a
+        // napi készlet %-os megjelenítését (lásd lib/pickupSheet.ts
+        // getPickupDateOptions/summarizePickupStock). A hozzá tartozó
+        // rendelések ettől függetlenül továbbra is megjelennek a listában,
+        // hiszen a DUNAVECSE nap pickup_date-je mindig megegyezik a szezon
+        // utolsó normál napjával - ugyanazon a napon jelennek meg, mint a
+        // normál rendelések.
         supabase
             .from("pickup_days")
             .select("pickup_date, planned_stock, available_stock")
             .eq("is_active", true)
+            .eq("kind", "normal")
             .order("pickup_date", { ascending: true }),
     ]);
 

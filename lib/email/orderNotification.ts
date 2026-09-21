@@ -1,7 +1,8 @@
 import "server-only";
 
 import { formatOrderWindowEnd } from "@/lib/orderWindow";
-import { getPickupWindowInfo } from "@/lib/pickupInfo";
+import { getBacsKiskunPickupRangeInfo, getPickupWindowInfo } from "@/lib/pickupInfo";
+import { getCountyGroup } from "@/lib/countyGroups";
 
 export type OrderNotificationKind = "created" | "updated";
 
@@ -110,13 +111,22 @@ function buildHtml(
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");
     const orderUrl = options.orderUrl ? escapeHtml(options.orderUrl) : null;
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-    const pickupWindow = getPickupWindowInfo({
-        pickupDate: data.pickupDate,
-        pickupTimeStart: data.pickupTimeStart,
-        pickupTimeEnd: data.pickupTimeEnd,
-        localPickupTimeStart: data.localPickupTimeStart,
-        county: data.county,
-    });
+    // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
+    // helyette a "vágási nap" + az azt követő nap alkotta kétnapos
+    // dátumtartomány jelenik meg, "Átvétel"/"Átvétel helyszíne" sorok nélkül.
+    const isBacsKiskun = getCountyGroup(data.county) === "bacsKiskun";
+    const pickupWindow = isBacsKiskun
+        ? null
+        : getPickupWindowInfo({
+            pickupDate: data.pickupDate,
+            pickupTimeStart: data.pickupTimeStart,
+            pickupTimeEnd: data.pickupTimeEnd,
+            localPickupTimeStart: data.localPickupTimeStart,
+            county: data.county,
+        });
+    const bacsKiskunRange = isBacsKiskun
+        ? getBacsKiskunPickupRangeInfo(data.pickupDate)
+        : null;
 
     return `<!doctype html>
 <html lang="hu">
@@ -151,10 +161,13 @@ function buildHtml(
                                     <td style="padding:15px 17px;font-size:14px;line-height:22px;color:#374151;">
                                         <strong style="color:#218856;">Rendelésszám:</strong>
                                         ${escapeHtml(data.orderNumber)}<br>
+                                        ${isBacsKiskun && bacsKiskunRange ? `
+                                        <strong style="color:#218856;">Átvételi nap:</strong>
+                                        ${escapeHtml(bacsKiskunRange.rangeLabel)}<br>` : `
                                         <strong style="color:#218856;">Átvétel:</strong>
-                                        ${escapeHtml(pickupWindow.windowLabel)}<br>
+                                        ${escapeHtml(pickupWindow!.windowLabel)}<br>
                                         <strong style="color:#218856;">Átvétel helyszíne:</strong>
-                                        ${escapeHtml(pickupWindow.location)}!<br>
+                                        ${escapeHtml(pickupWindow!.location)}!<br>`}
                                         <strong style="color:#218856;">Összes mennyiség:</strong>
                                         ${totalQuantity} db
                                     </td>
@@ -226,21 +239,28 @@ export function buildOrderNotification(
     const heading = isCreated
         ? "Rendelését sikeresen rögzítettük."
         : "Rendelésének módosítását sikeresen rögzítettük.";
-    const pickupWindow = getPickupWindowInfo({
-        pickupDate: data.pickupDate,
-        pickupTimeStart: data.pickupTimeStart,
-        pickupTimeEnd: data.pickupTimeEnd,
-        localPickupTimeStart: data.localPickupTimeStart,
-        county: data.county,
-    });
+    const isBacsKiskun = getCountyGroup(data.county) === "bacsKiskun";
+    const pickupWindow = isBacsKiskun
+        ? null
+        : getPickupWindowInfo({
+            pickupDate: data.pickupDate,
+            pickupTimeStart: data.pickupTimeStart,
+            pickupTimeEnd: data.pickupTimeEnd,
+            localPickupTimeStart: data.localPickupTimeStart,
+            county: data.county,
+        });
+    const bacsKiskunRange = isBacsKiskun
+        ? getBacsKiskunPickupRangeInfo(data.pickupDate)
+        : null;
 
     const text = [
         `Kedves ${data.customerName}!`,
         "",
         heading,
         `Rendelésszám: ${data.orderNumber}`,
-        `Átvétel: ${pickupWindow.windowLabel}`,
-        `Átvétel helyszíne: ${pickupWindow.location}!`,
+        ...(isBacsKiskun && bacsKiskunRange
+            ? [`Átvételi nap: ${bacsKiskunRange.rangeLabel}`]
+            : [`Átvétel: ${pickupWindow!.windowLabel}`, `Átvétel helyszíne: ${pickupWindow!.location}!`]),
         "",
         "A rendelés tételei:",
         data.items.map(formatItem).join("\n\n"),

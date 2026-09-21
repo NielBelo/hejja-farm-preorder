@@ -4,8 +4,13 @@
 // (lib/email/orderNotification.ts) is, ezért ez a döntési logika és a
 // dátum/idő formázás közös helperben él. Nincs "server-only" jelölés, mert a
 // webes visszaigazolás a böngészőben (kliens oldalon) is felhasználja.
+//
+// A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük (lásd
+// getBacsKiskunPickupRangeInfo lent) - ezt a getPickupWindowInfo hívói döntik
+// el a lib/countyGroups helperrel, ez a függvény csak a Békés/egyéb
+// megkülönböztetést végzi.
+import { isBekesCounty } from "@/lib/countyGroups";
 
-const BEKES_COUNTY = "Békés";
 const BUDAPEST_TIME_ZONE = "Europe/Budapest";
 
 const BEKES_LOCATION =
@@ -24,9 +29,7 @@ const pickupWeekdayFormatter = new Intl.DateTimeFormat("hu-HU", {
     timeZone: BUDAPEST_TIME_ZONE,
 });
 
-export function isBekesCounty(county?: string | null) {
-    return county?.trim() === BEKES_COUNTY;
-}
+export { isBekesCounty, isBacsKiskunCounty } from "@/lib/countyGroups";
 
 // A season_parameters idő oszlopai "HH:MM:SS" formában érkeznek a
 // Supabase-től; a megjelenítéshez "HH:MM" kell.
@@ -90,5 +93,45 @@ export function getPickupWindowInfo({
         timeRange,
         windowLabel: timeRange ? `${dateLabel} ${timeRange}` : dateLabel,
         location,
+    };
+}
+
+export type BacsKiskunPickupRangeInfo = {
+    /** a "vágási nap", pl. "október 6." - ugyanaz, mint a /preorder oldalon */
+    cuttingDayLabel: string;
+    /** kétnapos dátumtartomány, pl. "október 6. – 7." vagy "október 31. – november 1." */
+    rangeLabel: string;
+};
+
+// A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
+// helyette a szezon utolsó normál átvételi napja ("vágási nap") és az azt
+// követő naptári nap alkotta kétnapos dátumtartomány jelenik meg. A
+// hónap-/évváltást valódi dátumművelettel (setUTCDate), nem szöveges
+// számösszeadással kezeljük.
+export function getBacsKiskunPickupRangeInfo(
+    cuttingDate: string,
+): BacsKiskunPickupRangeInfo {
+    const dateOnly = cuttingDate.split("T", 1)[0];
+    const start = new Date(`${dateOnly}T12:00:00Z`);
+
+    if (Number.isNaN(start.getTime())) {
+        return { cuttingDayLabel: dateOnly, rangeLabel: dateOnly };
+    }
+
+    const end = new Date(start);
+    end.setUTCDate(end.getUTCDate() + 1);
+
+    const cuttingDayLabel = pickupMonthDayFormatter.format(start);
+    const sameMonth =
+        start.getUTCFullYear() === end.getUTCFullYear() &&
+        start.getUTCMonth() === end.getUTCMonth();
+
+    const rangeEndLabel = sameMonth
+        ? `${end.getUTCDate()}.`
+        : pickupMonthDayFormatter.format(end);
+
+    return {
+        cuttingDayLabel,
+        rangeLabel: `${cuttingDayLabel} – ${rangeEndLabel}`,
     };
 }

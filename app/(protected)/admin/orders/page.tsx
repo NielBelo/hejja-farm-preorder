@@ -29,15 +29,20 @@ export default async function AdminOrdersPage() {
             .from("packages")
             .select("id, name, description")
             .order("name"),
-        // Admin számára minden átvételi nap (aktív és inaktív is) megjelenik -
-        // az admin bármely rendelést bármely napra áthelyezhet, illetve az
-        // adott rendelés jelenlegi (esetleg inaktív) napjának is szerepelnie
-        // kell a listában, különben a "jelenlegi választás" megjelenítése és
-        // a nap szerinti keresés hibásan üresre futna. Az Előzmények oldal
-        // ezzel szemben szándékosan csak az aktív napokat kínálja fel.
+        // Admin számára minden NORMÁL átvételi nap (aktív és inaktív is)
+        // megjelenik - az admin bármely rendelést bármely normál napra
+        // áthelyezhet, illetve az adott rendelés jelenlegi (esetleg inaktív)
+        // napjának is szerepelnie kell a listában, különben a "jelenlegi
+        // választás" megjelenítése és a nap szerinti keresés hibásan üresre
+        // futna. Az Előzmények oldal ezzel szemben szándékosan csak az aktív
+        // napokat kínálja fel. A DUNAVECSE technikai nap ebből a listából
+        // szándékosan kimarad: DUNAVECSE rendelésnél az átvételi nap sosem
+        // módosítható (lásd components/admin/AdminOrderCard.tsx), és normál
+        // rendelés sem helyezhető át rá.
         supabase
             .from("pickup_days")
             .select("*")
+            .eq("kind", "normal")
             .order("_group")
             .order("serial_number"),
     ]);

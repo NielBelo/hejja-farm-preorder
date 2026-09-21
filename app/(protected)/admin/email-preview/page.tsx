@@ -7,11 +7,12 @@ import { createClient } from "@/lib/supabase/server";
 import { getActiveSeasonPickupTimes } from "@/lib/activeSeasonPickupTimes";
 import EmailPreviewSwitcher from "./EmailPreviewSwitcher";
 
-// A két megyeág mintaadata a rendelés-e-mailekhez - ugyanabból a megye-alapú
-// döntésből (lib/pickupInfo, buildOrderNotification-on keresztül) származik,
-// mint éles rendelésnél.
+// A három megyeág mintaadata a rendelés-e-mailekhez - ugyanabból a
+// megye-alapú döntésből (lib/pickupInfo, lib/countyGroups,
+// buildOrderNotification-on keresztül) származik, mint éles rendelésnél.
 const BEKES_SAMPLE_COUNTY = "Békés";
 const NON_BEKES_SAMPLE_COUNTY = "Csongrád-Csanád";
+const BACS_KISKUN_SAMPLE_COUNTY = "Bács-Kiskun";
 const NO_ACTIVE_SEASON_MESSAGE =
     "Nincs jelenleg aktív szezon beállítva, és korábbi rendelésmódosítás sem érhető el mintaadatként, ezért az átvételi időpontot tartalmazó e-mail előnézete nem elérhető. Állítson be aktív szezont a Szezonok oldalon, majd térjen vissza ide.";
 
@@ -65,6 +66,24 @@ export default async function AdminEmailPreviewPage({
         getLatestOrderUpdate(supabase),
         getActiveSeasonPickupTimes(supabase),
     ]);
+
+    // A Bács-Kiskun (DUNAVECSE) mintaváltozat a jelenleg aktív szezon valós
+    // "vágási napját" mutatja, ha van - lásd az order-confirmation-preview
+    // oldal azonos logikáját.
+    const { data: activeSeasonRow } = await supabase
+        .from("season_parameters")
+        .select("id")
+        .eq("is_active", true)
+        .maybeSingle();
+    const { data: dunavecseDay } = activeSeasonRow
+        ? await supabase
+            .from("pickup_days")
+            .select("pickup_date")
+            .eq("season_parameter_id", activeSeasonRow.id)
+            .eq("kind", "dunavecse")
+            .maybeSingle()
+        : { data: null };
+
     const params = await searchParams;
     const rawTemplate = params.template;
     const initialTemplate = Array.isArray(rawTemplate) ? rawTemplate[0] : rawTemplate;
@@ -88,17 +107,30 @@ export default async function AdminEmailPreviewPage({
         : "/history";
     const orderDataBekes = orderDataBase ? { ...orderDataBase, county: BEKES_SAMPLE_COUNTY } : null;
     const orderDataVarosi = orderDataBase ? { ...orderDataBase, county: NON_BEKES_SAMPLE_COUNTY } : null;
+    const orderDataBacsKiskun = orderDataBase
+        ? {
+            ...orderDataBase,
+            county: BACS_KISKUN_SAMPLE_COUNTY,
+            pickupDate: dunavecseDay?.pickup_date ?? orderDataBase.pickupDate,
+        }
+        : null;
     const createdOrderEmailBekes = orderDataBekes
         ? buildOrderNotification({ ...orderDataBekes, kind: "created" }, { logoSrc: "/images/logo2.png", orderUrl })
         : null;
     const createdOrderEmailVarosi = orderDataVarosi
         ? buildOrderNotification({ ...orderDataVarosi, kind: "created" }, { logoSrc: "/images/logo2.png", orderUrl })
         : null;
+    const createdOrderEmailBacsKiskun = orderDataBacsKiskun
+        ? buildOrderNotification({ ...orderDataBacsKiskun, kind: "created" }, { logoSrc: "/images/logo2.png", orderUrl })
+        : null;
     const updatedOrderEmailBekes = orderDataBekes
         ? buildOrderNotification({ ...orderDataBekes, kind: "updated" }, { logoSrc: "/images/logo2.png", orderUrl })
         : null;
     const updatedOrderEmailVarosi = orderDataVarosi
         ? buildOrderNotification({ ...orderDataVarosi, kind: "updated" }, { logoSrc: "/images/logo2.png", orderUrl })
+        : null;
+    const updatedOrderEmailBacsKiskun = orderDataBacsKiskun
+        ? buildOrderNotification({ ...orderDataBacsKiskun, kind: "updated" }, { logoSrc: "/images/logo2.png", orderUrl })
         : null;
     const registrationEmail = buildRegistrationConfirmation({
         firstName: "Dániel",
@@ -132,22 +164,24 @@ export default async function AdminEmailPreviewPage({
             iframeTitle: "Regisztrációs meghívó e-mail",
             height: 850,
         },
-        "order-created": (createdOrderEmailBekes && createdOrderEmailVarosi) ? {
+        "order-created": (createdOrderEmailBekes && createdOrderEmailVarosi && createdOrderEmailBacsKiskun) ? {
             subject: createdOrderEmailBekes.subject,
             variants: [
                 { label: "Tanyasi átvétel (Békés megyei vásárló)", html: createdOrderEmailBekes.html },
                 { label: "Városi átvétel (más megyei vásárló)", html: createdOrderEmailVarosi.html },
+                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: createdOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Új rendelés visszaigazoló e-mail",
             height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
         } : {
             unavailableMessage: NO_ACTIVE_SEASON_MESSAGE,
         },
-        "order-updated": (updatedOrderEmailBekes && updatedOrderEmailVarosi) ? {
+        "order-updated": (updatedOrderEmailBekes && updatedOrderEmailVarosi && updatedOrderEmailBacsKiskun) ? {
             subject: updatedOrderEmailBekes.subject,
             variants: [
                 { label: "Tanyasi átvétel (Békés megyei vásárló)", html: updatedOrderEmailBekes.html },
                 { label: "Városi átvétel (más megyei vásárló)", html: updatedOrderEmailVarosi.html },
+                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: updatedOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Rendelésmódosító e-mail",
             modifiedAt: latestUpdate?.modifiedAt,

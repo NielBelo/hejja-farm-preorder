@@ -8,8 +8,8 @@ export type PickupDay = {
     season: number;
     serial_number: number;
     pickup_date: string;
-    planned_stock: number;
-    available_stock: number;
+    planned_stock: number | null;
+    available_stock: number | null;
     _group: number;
     is_active: boolean;
 };
@@ -38,7 +38,7 @@ export function usePickupDayChange({
     // a készlethez, enélkül a saját napja tűnne tévesen betelt(ebb)nek.
     const pickupDaysForPicker = pickupDays.map((day) =>
         day.id === pickupDayId
-            ? { ...day, available_stock: day.available_stock + originalQuantity }
+            ? { ...day, available_stock: (day.available_stock ?? 0) + originalQuantity }
             : day
     );
 
@@ -59,7 +59,7 @@ export function usePickupDayChange({
     const handleSelectPickupDay = (day: PickupDay) => {
         if (day.id === selectedPickupDayId) return;
 
-        if (requiredQuantity > day.available_stock) {
+        if (requiredQuantity > (day.available_stock ?? 0)) {
             setInsufficientStockDay(day);
             return;
         }

@@ -34,12 +34,24 @@ export default async function PreorderPage() {
     .from("packages")
     .select("id, name, description");
 
+  // A DUNAVECSE technikai nap sosem szerepelhet a normál napválasztóban
+  // (ott csak kind = 'normal' napok jelenhetnek meg) - a Bács-Kiskun
+  // vármegyei vásárlók automatikus "vágási nap" kártyáját külön, a
+  // pickup_days.kind = 'dunavecse' sorból töltjük.
   const { data: pickupDays } = await supabase
     .from("pickup_days")
     .select("*")
     .eq("is_active", true)
+    .eq("kind", "normal")
     .order("_group")
     .order("serial_number");
+
+  const { data: dunavecseDay } = await supabase
+    .from("pickup_days")
+    .select("id, pickup_date, is_active")
+    .eq("season_parameter_id", season?.id ?? -1)
+    .eq("kind", "dunavecse")
+    .maybeSingle();
 
   const orderInfo1 = data?.find((item) => item.key === "order_info1");
   const orderInfo2 = data?.find((item) => item.key === "order_info2");
@@ -70,6 +82,7 @@ export default async function PreorderPage() {
         products={products ?? []}
         packages={packages ?? []}
         pickupDays={pickupDays ?? []}
+        dunavecseDay={dunavecseDay ?? null}
         userCounty={currentUser?.county ?? null}
         userSizePreference={currentUser?.specialSizePreference ?? null}
         sizePreferenceLocks={sizePreferenceLocks ?? []}

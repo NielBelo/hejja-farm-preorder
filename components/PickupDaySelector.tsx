@@ -9,8 +9,8 @@ type PickupDay = {
     season: number;
     serial_number: number;
     pickup_date: string;
-    planned_stock: number;
-    available_stock: number;
+    planned_stock: number | null;
+    available_stock: number | null;
     _group: number;
     is_active: boolean;
 };
@@ -117,8 +117,8 @@ export default function PickupDaySelector({
                     </button>
                 )) : displayedPickupDays.map((day) => {
                     const selected = selectedPickupDayId === day.id;
-                    const status = getStatus(day.available_stock);
-                    const isFull = day.available_stock <= 0;
+                    const status = getStatus(day.available_stock ?? 0);
+                    const isFull = (day.available_stock ?? 0) <= 0;
                     const cardBorderClass = selected
                         ? "border-[rgb(49,171,2)]"
                         : "border-[rgba(7,109,143,0.2)]";

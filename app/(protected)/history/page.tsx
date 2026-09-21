@@ -37,8 +37,9 @@ type Order = {
   pickup_days: {
     id: number;
     pickup_date: string;
-    available_stock: number;
+    available_stock: number | null;
     is_active: boolean;
+    kind: "normal" | "dunavecse";
   } | null;
   current_version: {
     id: number;
@@ -109,7 +110,8 @@ export default async function HistoryPage({
     id,
     pickup_date,
     available_stock,
-    is_active
+    is_active,
+    kind
 ),
             current_version:order_versions!orders_current_version_id_fkey (
                 id,
@@ -161,10 +163,14 @@ export default async function HistoryPage({
     .select("id, name, description")
     .order("id");
 
+  // A DUNAVECSE technikai nap sosem szerepelhet az "Átvételi nap módosítása"
+  // napválasztóban - sem normál, sem DUNAVECSE rendelésnél nem lehet erre
+  // átváltani (lásd components/OrderActions.tsx).
   const { data: rawPickupDays } = await supabase
     .from("pickup_days")
     .select("*")
     .eq("is_active", true)
+    .eq("kind", "normal")
     .order("_group")
     .order("serial_number");
 
@@ -406,6 +412,8 @@ export default async function HistoryPage({
                           packages={packages ?? []}
                           availableStock={order.pickup_days?.available_stock ?? 0}
                           pickupDayId={order.pickup_day_id}
+                          pickupDate={order.pickup_days?.pickup_date ?? ""}
+                          pickupDayKind={order.pickup_days?.kind ?? "normal"}
                           pickupDays={pickupDays}
                           isPickupDayActive={order.pickup_days?.is_active ?? true}
                           seasonStartDate={season?.time_window_start}

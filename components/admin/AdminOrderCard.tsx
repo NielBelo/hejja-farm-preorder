@@ -20,6 +20,7 @@ import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
 import { updateAdminOrder } from "@/app/(protected)/admin/orders/actions";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
+import { BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
 
 type Product = {
     id: number;
@@ -87,8 +88,9 @@ type AdminPickupDay = {
     season: string | null;
     pickup_date: string;
     serial_number: number;
-    available_stock: number;
-    planned_stock: number;
+    available_stock: number | null;
+    planned_stock: number | null;
+    kind: "normal" | "dunavecse";
 };
 
 type AdminProfile = {
@@ -236,6 +238,13 @@ export default function AdminOrderCard({
     );
 
     // ------------------------------------------------------------
+    // DUNAVECSE (Bács-Kiskun) technikai nap felismerése - lásd
+    // lib/countyGroups.ts. Ilyen rendelésnél nincs normál készletkorlát, és
+    // az átvételi nap sosem módosítható.
+    // ------------------------------------------------------------
+    const isDunavecse = order.pickup_days.kind === "dunavecse";
+
+    // ------------------------------------------------------------
     // Szerkeszthető maximális mennyiség
     // ------------------------------------------------------------
     const originalQuantity = items.reduce(
@@ -243,12 +252,17 @@ export default function AdminOrderCard({
         0
     );
 
-    const maxAvailableQuantity =
-        order.pickup_days.available_stock +
-        originalQuantity;
+    const maxAvailableQuantity = isDunavecse
+        ? null
+        : (order.pickup_days.available_stock ?? 0) + originalQuantity;
 
     const stockStatus =
-        maxAvailableQuantity <= 0
+        maxAvailableQuantity === null
+            ? {
+                text: "Korlátlan (DUNAVECSE technikai nap)",
+                iconClass: "text-[rgb(49,171,2)]",
+            }
+            : maxAvailableQuantity <= 0
             ? {
                 text: "Előrendelés betelt!",
                 iconClass: "text-red-500",
@@ -1089,18 +1103,23 @@ export default function AdminOrderCard({
                                 </div>
                             </div>
 
-                            {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel */}
-                            <PickupDayChangeCard
-                                isOpen={pickupDayCardOpen}
-                                onToggle={handleTogglePickupDayCard}
-                                pickupDaysForPicker={pickupDaysForPicker}
-                                selectedPickupDayId={selectedPickupDayId}
-                                pickupDayForDisplay={pickupDayForDisplay}
-                                onSelectPickupDay={handleSelectPickupDay}
-                                bypassWindow
-                                insufficientStockDay={insufficientStockDay}
-                                onDismissInsufficientStock={dismissInsufficientStock}
-                            />
+                            {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel.
+                                DUNAVECSE (Bács-Kiskun) rendelésnél az átvételi nap sosem
+                                módosítható, ezért ez a kártya náluk meg sem jelenik - így
+                                véletlenül sem kerülhet normál napra egy ilyen rendelés. */}
+                            {!isDunavecse && (
+                                <PickupDayChangeCard
+                                    isOpen={pickupDayCardOpen}
+                                    onToggle={handleTogglePickupDayCard}
+                                    pickupDaysForPicker={pickupDaysForPicker}
+                                    selectedPickupDayId={selectedPickupDayId}
+                                    pickupDayForDisplay={pickupDayForDisplay}
+                                    onSelectPickupDay={handleSelectPickupDay}
+                                    bypassWindow
+                                    insufficientStockDay={insufficientStockDay}
+                                    onDismissInsufficientStock={dismissInsufficientStock}
+                                />
+                            )}
 
                             <ProductSelector
                                 orderId={
@@ -1120,7 +1139,10 @@ export default function AdminOrderCard({
                                     true
                                 }
                                 pickupDate={
-                                    pickupDayForDisplay?.pickup_date ?? null
+                                    pickupDayForDisplay?.pickup_date ?? order.pickup_days.pickup_date
+                                }
+                                noteLabel={
+                                    isDunavecse ? BACS_KISKUN_NOTE_LABEL : undefined
                                 }
                                 initialItems={
                                     initialItems

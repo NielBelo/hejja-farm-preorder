@@ -29,16 +29,37 @@ const sampleOrderConfirmation = {
     ],
 };
 
-// A két megyeág mintaadata - a helyszín és az átvételi időpont is ugyanabból
-// a megye-alapú döntésből (lib/pickupInfo) származik, mint éles rendelésnél.
+// A három megyeág mintaadata - a helyszín/időpont, illetve a Bács-Kiskun
+// esetén megjelenő kétnapos dátumtartomány is ugyanabból a megye-alapú
+// döntésből (lib/pickupInfo, lib/countyGroups) származik, mint éles
+// rendelésnél.
 const countyVariants = [
     { label: "Tanyasi átvétel (Békés megyei vásárló)", county: "Békés" },
     { label: "Városi átvétel (más megyei vásárló)", county: "Csongrád-Csanád" },
+    { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", county: "Bács-Kiskun" },
 ];
 
 export default async function AdminOrderConfirmationPreviewPage() {
     const supabase = await createClient();
     const activeSeason = await getActiveSeasonPickupTimes(supabase);
+
+    // A Bács-Kiskun (DUNAVECSE) mintaváltozat a jelenleg aktív szezon valós
+    // "vágási napját" (a DUNAVECSE nap pickup_date-jét, ami mindig a szezon
+    // utolsó normál átvételi napjával egyezik) mutatja, ne egy elavult,
+    // hardcode-olt dátumot.
+    const { data: activeSeasonRow } = await supabase
+        .from("season_parameters")
+        .select("id")
+        .eq("is_active", true)
+        .maybeSingle();
+    const { data: dunavecseDay } = activeSeasonRow
+        ? await supabase
+            .from("pickup_days")
+            .select("pickup_date")
+            .eq("season_parameter_id", activeSeasonRow.id)
+            .eq("kind", "dunavecse")
+            .maybeSingle()
+        : { data: null };
 
     return (
         <div className="mx-auto w-full max-w-5xl">
@@ -52,9 +73,10 @@ export default async function AdminOrderConfirmationPreviewPage() {
                 </div>
                 <p className="mx-auto mt-2.5 max-w-4xl text-base leading-7 text-gray-600 italic">
                     A vásárló ezt a felületet látja közvetlenül az előrendelés sikeres
-                    leadása után, az Előrendelés oldalon. Az alábbi két változat a
-                    Békés megyei (tanyasi) és a más megyei (városi) átvételt mutatja,
-                    a jelenleg aktív szezon átvételi időpontjaival.
+                    leadása után, az Előrendelés oldalon. Az alábbi három változat a
+                    Békés megyei (tanyasi), a más megyei (városi) és a Bács-Kiskun
+                    megyei (DUNAVECSE) átvételt mutatja, a jelenleg aktív szezon
+                    átvételi időpontjaival.
                 </p>
             </div>
 
@@ -76,6 +98,11 @@ export default async function AdminOrderConfirmationPreviewPage() {
                         <div className="bg-[#f4f7f5] p-3 sm:p-6">
                             <OrderConfirmationSummary
                                 {...sampleOrderConfirmation}
+                                pickupDate={
+                                    county === "Bács-Kiskun" && dunavecseDay?.pickup_date
+                                        ? dunavecseDay.pickup_date
+                                        : sampleOrderConfirmation.pickupDate
+                                }
                                 pickupTimeStart={activeSeason.pickupTimeStart}
                                 pickupTimeEnd={activeSeason.pickupTimeEnd}
                                 localPickupTimeStart={activeSeason.localPickupTimeStart}
