@@ -1,6 +1,12 @@
 import PickupSheet from "@/components/admin/PickupSheet";
 import { createClient } from "@/lib/supabase/server";
 import {
+    buildAdminSeasonOptions,
+    getDefaultAdminSeason,
+    getPickupSeason,
+    type PickupDaySeasonRow,
+} from "@/lib/adminOrderFilters";
+import {
     getPickupDateOptions,
     normalizePickupDate,
     sortPickupOrders,
@@ -13,7 +19,7 @@ type RawOrder = {
     id: number;
     public_order_number: string;
     user_id: string;
-    pickup_days: { pickup_date: string } | null;
+    pickup_days: { pickup_date: string; kind: string; year: number; season: string | null } | null;
     current_version: { order_items: PickupSheetItem[] } | null;
 };
 
@@ -26,7 +32,7 @@ export default async function AdminPickupPage() {
                 id,
                 public_order_number,
                 user_id,
-                pickup_days!orders_pickup_day_id_fkey!inner (pickup_date),
+                pickup_days!orders_pickup_day_id_fkey!inner (pickup_date, kind, year, season),
                 current_version:order_versions!orders_current_version_id_fkey (
                     order_items (
                         id,
@@ -39,19 +45,24 @@ export default async function AdminPickupPage() {
                 )
             `)
             .eq("status", "submitted"),
-        // A DUNAVECSE technikai nap kapacitása korlátlan (planned_stock/
-        // available_stock NULL) - ha bekerülne ebbe a listába, torzítaná a
-        // napi készlet %-os megjelenítését (lásd lib/pickupSheet.ts
-        // getPickupDateOptions/summarizePickupStock). A hozzá tartozó
-        // rendelések ettől függetlenül továbbra is megjelennek a listában,
-        // hiszen a DUNAVECSE nap pickup_date-je mindig megegyezik a szezon
-        // utolsó normál napjával - ugyanazon a napon jelennek meg, mint a
-        // normál rendelések.
+        // Szándékosan NINCS .eq("is_active", true) vagy szezonszűrés: az
+        // admin a korábbi (nem aktív) szezonok átvételi napjait is vissza
+        // tudja nézni a szezonválasztóval, ugyanúgy, ahogy az
+        // app/(protected)/admin/orders/page.tsx is minden NORMÁL napot
+        // (aktívat és inaktívat is) betölt. A DUNAVECSE technikai nap is
+        // szerepel ebben a listában (nincs .eq("kind", "normal") szűrés),
+        // hogy az admin átvételi nap választójában külön napként
+        // megjelenhessen és kiválasztható legyen - lásd lib/pickupSheet.ts
+        // getPickupDateOptions(). A DUNAVECSE nap pickup_date-je mindig
+        // megegyezik a szezon utolsó normál napjával, de kind='dunavecse'
+        // miatt a getPickupDateOptions ettől függetlenül külön opcióként
+        // kezeli, nem olvasztja össze a normál nappal. Korlátlan kapacitása
+        // miatt (planned_stock/available_stock NULL) a napi készlet %-os
+        // megjelenítése erre a napra nem értelmezhető - ezt a PickupSheet
+        // komponens kezeli.
         supabase
             .from("pickup_days")
-            .select("pickup_date, planned_stock, available_stock")
-            .eq("is_active", true)
-            .eq("kind", "normal")
+            .select("id, year, season, pickup_date, planned_stock, available_stock, kind, is_active")
             .order("pickup_date", { ascending: true }),
     ]);
 
@@ -77,6 +88,8 @@ export default async function AdminPickupPage() {
             public_order_number: order.public_order_number,
             user_id: order.user_id,
             pickupDate: normalizePickupDate(order.pickup_days?.pickup_date ?? ""),
+            pickupKind: order.pickup_days?.kind === "dunavecse" ? "dunavecse" : "normal",
+            pickupSeasonValue: getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value,
             customerName: [profile?.last_name, profile?.first_name]
                 .filter(Boolean).join(" ").trim() || "Ismeretlen vásárló",
             phone: profile?.phone ?? "—",
@@ -84,20 +97,33 @@ export default async function AdminPickupPage() {
             specialSizePreference: profile?.special_size_preference ?? null,
         };
     }));
-    const pickupDates = getPickupDateOptions(
-        (pickupDaysResult.data ?? []) as PickupSheetPickupDay[]
+    const pickupDays = (pickupDaysResult.data ?? []) as PickupSheetPickupDay[];
+    const pickupDates = getPickupDateOptions(pickupDays);
+    // Ugyanaz a bevett szezon-helper (lásd lib/adminOrderData.ts
+    // getAdminSeasonOptions/lib/adminOrderFilters.ts), amit az
+    // /admin/orders oldal is használ: year+season alapján csoportosít,
+    // és a legutóbbi aktív (ennek hiányában a legutóbbi) szezont adja
+    // alapértelmezettnek.
+    const seasonOptions = buildAdminSeasonOptions(
+        (pickupDaysResult.data ?? []) as PickupDaySeasonRow[]
     );
+    const defaultSeason = getDefaultAdminSeason(seasonOptions);
 
     return (
         <div className="mx-auto w-full max-w-5xl">
             <div className="print-hidden px-4 text-center sm:px-6">
                 <p className="mx-auto mt-2.5 max-w-4xl text-base leading-7 text-gray-600 italic">
-                    <span className="block">Válassza ki az átvételi napot az aktív előrendelések, valamint az aznapi mennyiségek és eloszlások áttekintéséhez.</span>
+                    <span className="block">Válassza ki a szezont és az átvételi napot az adott napi előrendelések, valamint az aznapi mennyiségek és eloszlások áttekintéséhez.</span>
                     <span className="mt-0.5 block">Az előkészített átvételi listát közvetlenül kinyomtathatja vagy PDF-ként mentheti.</span>
                 </p>
             </div>
             <div className="mt-6 print:mt-0">
-                <PickupSheet orders={orders} pickupDates={pickupDates} />
+                <PickupSheet
+                    orders={orders}
+                    pickupDates={pickupDates}
+                    seasonOptions={seasonOptions.map(({ value, label }) => ({ value, label }))}
+                    initialSeason={defaultSeason?.value ?? ""}
+                />
             </div>
         </div>
     );

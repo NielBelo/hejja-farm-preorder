@@ -36,4 +36,4 @@ export function isBacsKiskunCounty(county?: string | null) {
 // hozzá tartozó szöveg speciális ennél a csoportnál (mind az előrendelő
 // oldalon, mind a saját rendelés utólagos módosításakor).
 export const BACS_KISKUN_NOTE_LABEL =
-    "Ha valaki jár erre aki a szállítást meg tudja oldani, kérjük a megjegyzés rovatba ezt jelezze! Egyébként mi szállítjuk házhoz előre egyeztetett időpontban.";
+    "Ha valaki jár erre, aki a szállítást meg tudja oldani, kérjük a megjegyzés rovatba ezt jelezze! Egyébként mi szállítjuk házhoz előre egyeztetett időpontban.";

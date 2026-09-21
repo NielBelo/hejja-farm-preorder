@@ -1,3 +1,4 @@
+import { getPickupSeason } from "@/lib/adminOrderFilters";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
 
 export type PickupSheetItem = {
@@ -14,6 +15,18 @@ export type PickupSheetOrder = {
     public_order_number: string;
     user_id: string;
     pickupDate: string;
+    // A DUNAVECSE (Bács-Kiskun) technikai nap ugyanazon a naptári napon van,
+    // mint a szezon utolsó NORMÁL átvételi napja (lásd
+    // supabase/migrations/20260921010000_bacskiskun_dunavecse.sql) - emiatt
+    // a hozzá tartozó rendeléseket a puszta pickupDate nem tudja
+    // megkülönböztetni a normál naptól, ehhez kell ez a mező is.
+    pickupKind: "normal" | "dunavecse";
+    // Két különböző szezon átvételi napjai elméletileg ugyanarra a naptári
+    // dátumra eshetnek - lib/adminOrderFilters.ts getPickupSeason()
+    // szezonazonosítója (lásd lib/adminOrderData.ts, ahol a szezonszűrés
+    // már ma is ugyanezt a helpert használja) különbözteti meg őket, hogy
+    // ilyenkor se keveredjenek össze.
+    pickupSeasonValue: string;
     customerName: string;
     phone: string;
     items: PickupSheetItem[];
@@ -24,11 +37,22 @@ export type PickupSheetPickupDay = {
     pickup_date: string;
     planned_stock: number | null;
     available_stock: number | null;
+    kind?: string | null;
+    year?: number | null;
+    season?: string | null;
 };
 
 export type PickupDateOption = {
     value: string;
     label: string;
+    // A visibleOrders szűréséhez (lásd PickupSheet.tsx) - a naptári nap, a
+    // fajta (kind) és a szezon együtt azonosítja egyértelműen az átvételi
+    // napot, mert a DUNAVECSE nap dátuma megegyezhet egy normál nap
+    // dátumával, és (elvben) két különböző szezon is tartalmazhat azonos
+    // dátumú napot.
+    date: string;
+    kind: "normal" | "dunavecse";
+    seasonValue: string;
     plannedStock: number;
     availableStock: number;
 };
@@ -65,29 +89,55 @@ export function sortPickupOrders(orders: PickupSheetOrder[]) {
 }
 
 export function getPickupDateOptions(pickupDays: PickupSheetPickupDay[]) {
-    const dates = new Map<string, Pick<PickupDateOption, "plannedStock" | "availableStock">>();
+    // A "value" szándékosan nem maga a dátum, hanem a szezon és a fajta
+    // (kind) is részt vesz benne - lásd a PickupDateOption.date kommentjét
+    // arról, hogy ugyanaz a dátum elvben több szezonhoz/fajtához is
+    // tartozhat.
+    const options = new Map<string, PickupDateOption>();
 
     for (const pickupDay of pickupDays) {
-        const value = normalizePickupDate(pickupDay.pickup_date);
-        if (value && !dates.has(value)) {
-            dates.set(value, {
-                plannedStock: pickupDay.planned_stock ?? 0,
-                availableStock: pickupDay.available_stock ?? 0,
-            });
-        }
+        const date = normalizePickupDate(pickupDay.pickup_date);
+        if (!date) continue;
+
+        const kind: PickupDateOption["kind"] = pickupDay.kind === "dunavecse" ? "dunavecse" : "normal";
+        const seasonValue = getPickupSeason(pickupDay.year, pickupDay.season).value;
+        const value = kind === "dunavecse" ? `${seasonValue}:dunavecse:${date}` : `${seasonValue}:${date}`;
+        if (options.has(value)) continue;
+
+        options.set(value, {
+            value,
+            date,
+            kind,
+            seasonValue,
+            label: kind === "dunavecse"
+                ? `${formatPickupDate(date)} – DUNAVECSE (Bács-Kiskun)`
+                : formatPickupDate(date),
+            plannedStock: pickupDay.planned_stock ?? 0,
+            availableStock: pickupDay.available_stock ?? 0,
+        });
     }
 
-    return [...dates.entries()]
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([value, stock]) => ({
-            value,
-            label: formatPickupDate(value),
-            ...stock,
-        }));
+    return [...options.values()].sort((left, right) => (
+        left.date.localeCompare(right.date)
+        || (left.kind === right.kind ? 0 : left.kind === "normal" ? -1 : 1)
+    ));
 }
 
-export function getInitialPickupDate(dates: string[], today: string) {
-    return dates.find((date) => date >= today) ?? dates.at(-1) ?? "";
+// A `dates` bemenet a getPickupDateOptions() már dátum szerint rendezett
+// kimenete. A cél dátum (a legközelebbi jövőbeli, vagy ennek hiányában a
+// legutolsó múltbeli) meghatározása után, ha arra a napra normál ÉS
+// DUNAVECSE opció is tartozik, mindig a normál napot választjuk
+// alapértelmezettként - a DUNAVECSE technikai napot az adminnak
+// tudatosan, kézzel kell kiválasztania.
+export function getInitialPickupDate(
+    dates: Pick<PickupDateOption, "value" | "date" | "kind">[],
+    today: string
+) {
+    const targetDate = dates.find((date) => date.date >= today)?.date ?? dates.at(-1)?.date;
+    if (targetDate === undefined) return "";
+
+    const candidates = dates.filter((date) => date.date === targetDate);
+    return (candidates.find((date) => date.kind === "normal") ?? candidates[0]).value;
 }
 
 export function summarizePickupOrders(orders: PickupSheetOrder[]) {

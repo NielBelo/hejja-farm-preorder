@@ -24,13 +24,22 @@ const percentageFormatter = new Intl.NumberFormat("hu-HU", {
     maximumFractionDigits: 1,
 });
 
-function PickupDateDropdown({
-    dates,
+type SelectOption = { value: string; label: string };
+
+// Közös lenyíló választó a szezon- és az átvételinap-választóhoz (lásd
+// PickupSheet lent) - ugyanaz a megjelenés/viselkedés, csak a felkínált
+// opciók és a feliratok különböznek.
+function SelectDropdown({
+    ariaLabel,
+    emptyLabel,
+    options,
     value,
     disabled,
     onChange,
 }: {
-    dates: PickupDateOption[];
+    ariaLabel: string;
+    emptyLabel: string;
+    options: SelectOption[];
     value: string;
     disabled: boolean;
     onChange: (value: string) => void;
@@ -40,7 +49,7 @@ function PickupDateDropdown({
     const trigger = useRef<HTMLButtonElement>(null);
     const id = useId();
     const expanded = open && !disabled;
-    const selectedLabel = dates.find((date) => date.value === value)?.label ?? "Nincs választható nap";
+    const selectedLabel = options.find((option) => option.value === value)?.label ?? emptyLabel;
 
     useEffect(() => {
         if (!expanded) return;
@@ -70,7 +79,7 @@ function PickupDateDropdown({
                 ref={trigger}
                 type="button"
                 disabled={disabled}
-                aria-label={`Átvételi nap: ${selectedLabel}`}
+                aria-label={`${ariaLabel}: ${selectedLabel}`}
                 aria-haspopup="listbox"
                 aria-expanded={expanded}
                 aria-controls={`${id}-options`}
@@ -86,19 +95,19 @@ function PickupDateDropdown({
                 <div
                     id={`${id}-options`}
                     role="listbox"
-                    aria-label="Átvételi nap"
+                    aria-label={ariaLabel}
                     className="absolute top-full right-0 left-0 z-40 mt-2 max-h-64 overflow-y-auto rounded-lg border border-gray-300 bg-white p-1.5"
                 >
-                    {dates.map((date) => {
-                        const selected = date.value === value;
+                    {options.map((option) => {
+                        const selected = option.value === value;
                         return (
                             <button
-                                key={date.value}
+                                key={option.value}
                                 type="button"
                                 role="option"
                                 aria-selected={selected}
                                 onClick={() => {
-                                    onChange(date.value);
+                                    onChange(option.value);
                                     setOpen(false);
                                     trigger.current?.focus();
                                 }}
@@ -107,7 +116,7 @@ function PickupDateDropdown({
                                     : "text-gray-700 hover:bg-gray-100"
                                 }`}
                             >
-                                <span>{date.label}</span>
+                                <span>{option.label}</span>
                                 <CheckIcon aria-hidden="true" className={`h-4 w-4 shrink-0 ${selected ? "text-gray-700" : "invisible"}`} />
                             </button>
                         );
@@ -173,22 +182,51 @@ function DistributionChart({
 export default function PickupSheet({
     orders,
     pickupDates,
+    seasonOptions,
+    initialSeason,
 }: {
     orders: PickupSheetOrder[];
     pickupDates: PickupDateOption[];
+    seasonOptions: SelectOption[];
+    initialSeason: string;
 }) {
     const today = useCurrentBudapestDate();
+    const [selectedSeason, setSelectedSeason] = useState("");
     const [selectedDate, setSelectedDate] = useState("");
-    const activeDate = selectedDate || getInitialPickupDate(
-        pickupDates.map((date) => date.value),
-        today
+    const activeSeason = selectedSeason || initialSeason;
+    // A második (átvételinap-) választó kizárólag a kiválasztott szezon
+    // napjait kínálja fel - lásd lib/pickupSheet.ts PickupDateOption.date
+    // kommentjét arról, hogy a seasonValue miért szükséges a helyes
+    // szűréshez.
+    const pickupDatesForSeason = useMemo(
+        () => pickupDates.filter((date) => date.seasonValue === activeSeason),
+        [pickupDates, activeSeason]
     );
-    const activeDateLabel = pickupDates.find((date) => date.value === activeDate)?.label ?? "";
-    const activePickupDate = pickupDates.find((date) => date.value === activeDate);
+    const activeDate = selectedDate || getInitialPickupDate(pickupDatesForSeason, today);
+    const activeDateLabel = pickupDatesForSeason.find((date) => date.value === activeDate)?.label ?? "";
+    const activePickupDate = pickupDatesForSeason.find((date) => date.value === activeDate);
+    // A DUNAVECSE nap dátuma megegyezhet egy normál nap dátumával, két
+    // különböző szezon pedig (elvben) azonos dátumú napot is tartalmazhat
+    // (lásd lib/pickupSheet.ts PickupDateOption.date kommentjét) - ezért a
+    // puszta dátum-egyezés önmagában nem elég a szűréshez, a kind-nak és a
+    // szezonnak is egyeznie kell.
     const visibleOrders = useMemo(
-        () => orders.filter((order) => order.pickupDate === activeDate),
-        [orders, activeDate]
+        () => orders.filter((order) => (
+            order.pickupDate === activePickupDate?.date
+            && order.pickupKind === (activePickupDate?.kind ?? "normal")
+            && order.pickupSeasonValue === activeSeason
+        )),
+        [orders, activePickupDate, activeSeason]
     );
+
+    // Szezonváltáskor az előzőleg kézzel kiválasztott nap (ha volt) egy
+    // másik szezonhoz tartozhat - ilyenkor töröljük, hogy az új szezon
+    // saját alapértelmezett napja (getInitialPickupDate) választódjon ki,
+    // ne maradjon egy érvénytelen/idegen szezonbeli érték.
+    const handleSeasonChange = (season: string) => {
+        setSelectedSeason(season);
+        setSelectedDate("");
+    };
     const summary = useMemo(() => summarizePickupOrders(visibleOrders), [visibleOrders]);
     const stock = summarizePickupStock(
         activePickupDate?.plannedStock ?? 0,
@@ -233,13 +271,32 @@ export default function PickupSheet({
     return (
         <div className="pickup-print-page">
             <div className="print-hidden mb-3">
-                <div className="flex items-end justify-between gap-4 border-b-2 border-gray-600 pb-3">
-                    <PickupDateDropdown
-                        dates={pickupDates}
-                        value={activeDate}
-                        disabled={pickupDates.length === 0}
-                        onChange={setSelectedDate}
-                    />
+                <div className="flex flex-col gap-4 border-b-2 border-gray-600 pb-3 sm:flex-row sm:items-end sm:justify-between">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+                        <div className="min-w-0">
+                            <span className="mb-1 block text-xs font-semibold text-gray-500">Szezon</span>
+                            <SelectDropdown
+                                ariaLabel="Szezon"
+                                emptyLabel="Nincs választható szezon"
+                                options={seasonOptions}
+                                value={activeSeason}
+                                disabled={seasonOptions.length === 0}
+                                onChange={handleSeasonChange}
+                            />
+                        </div>
+
+                        <div className="min-w-0">
+                            <span className="mb-1 block text-xs font-semibold text-gray-500">Átvételi nap</span>
+                            <SelectDropdown
+                                ariaLabel="Átvételi nap"
+                                emptyLabel="Nincs választható nap"
+                                options={pickupDatesForSeason}
+                                value={activeDate}
+                                disabled={pickupDatesForSeason.length === 0}
+                                onChange={setSelectedDate}
+                            />
+                        </div>
+                    </div>
 
                     <button
                         type="button"
@@ -255,46 +312,52 @@ export default function PickupSheet({
                 <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
                         <h2 className="text-center text-sm font-semibold text-gray-700">Napi készlet</h2>
-                        <div className="mt-3">
-                            <div
-                                className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200"
-                                aria-label={`Napi készlet: ${stock.usedCount} csirke lefoglalva, ${stock.availableCount} csirke elérhető, napi limit ${stock.capacity} csirke`}
-                                title={`${stock.usedCount} lefoglalt · ${stock.availableCount} elérhető · ${stock.capacity} napi limit`}
-                            >
-                                {stock.usedCount > 0 && (
-                                    <div
-                                        className="h-full border-r border-white bg-slate-500"
-                                        style={{ width: `${stock.usedPercentage}%` }}
-                                    />
-                                )}
-                                {stock.availableCount > 0 && (
-                                    <div
-                                        className="h-full bg-slate-200"
-                                        style={{ width: `${stock.availablePercentage}%` }}
-                                    />
-                                )}
+                        {activePickupDate?.kind === "dunavecse" ? (
+                            <p className="mt-3 py-4 text-center text-sm text-gray-500">
+                                Korlátlan (DUNAVECSE technikai nap)
+                            </p>
+                        ) : (
+                            <div className="mt-3">
+                                <div
+                                    className="flex h-4 w-full overflow-hidden rounded-full bg-gray-200"
+                                    aria-label={`Napi készlet: ${stock.usedCount} csirke lefoglalva, ${stock.availableCount} csirke elérhető, napi limit ${stock.capacity} csirke`}
+                                    title={`${stock.usedCount} lefoglalt · ${stock.availableCount} elérhető · ${stock.capacity} napi limit`}
+                                >
+                                    {stock.usedCount > 0 && (
+                                        <div
+                                            className="h-full border-r border-white bg-slate-500"
+                                            style={{ width: `${stock.usedPercentage}%` }}
+                                        />
+                                    )}
+                                    {stock.availableCount > 0 && (
+                                        <div
+                                            className="h-full bg-slate-200"
+                                            style={{ width: `${stock.availablePercentage}%` }}
+                                        />
+                                    )}
+                                </div>
+                                <div className="mt-3 space-y-1.5 text-xs leading-tight text-gray-600">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
+                                            Lefoglalt
+                                        </span>
+                                        <span className="tabular-nums text-gray-500">{stock.usedCount} db</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-200 ring-1 ring-gray-300" />
+                                            Elérhető
+                                        </span>
+                                        <span className="tabular-nums text-gray-500">{stock.availableCount} db</span>
+                                    </div>
+                                    <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-1.5">
+                                        <span className="font-medium">Napi limit</span>
+                                        <span className="tabular-nums text-gray-500">{stock.capacity} db</span>
+                                    </div>
+                                </div>
                             </div>
-                            <div className="mt-3 space-y-1.5 text-xs leading-tight text-gray-600">
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="flex items-center gap-1.5 font-medium">
-                                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
-                                        Lefoglalt
-                                    </span>
-                                    <span className="tabular-nums text-gray-500">{stock.usedCount} db</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                    <span className="flex items-center gap-1.5 font-medium">
-                                        <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-200 ring-1 ring-gray-300" />
-                                        Elérhető
-                                    </span>
-                                    <span className="tabular-nums text-gray-500">{stock.availableCount} db</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-1.5">
-                                    <span className="font-medium">Napi limit</span>
-                                    <span className="tabular-nums text-gray-500">{stock.capacity} db</span>
-                                </div>
-                            </div>
-                        </div>
+                        )}
                     </section>
 
                     <DistributionChart title="Terméktípusok eloszlása" entries={distributions.products} />

@@ -17,7 +17,17 @@ function load(relativePath, imports = {}) {
 }
 
 const sizePreferencesModule = load('../lib/sizePreferences.ts');
-const sheetModule = { exports: load('../lib/pickupSheet.ts', { '@/lib/sizePreferences': sizePreferencesModule }) };
+// A lib/adminOrderFilters.ts csak típust importál (import type ... from
+// "@/components/admin/AdminOrderCard") - a TypeScript ezt mindig eltávolítja
+// fordításkor, így futásidőben nincs szüksége require()-stubra.
+const adminOrderFiltersModule = load('../lib/adminOrderFilters.ts');
+const { getPickupSeason } = adminOrderFiltersModule;
+const sheetModule = {
+    exports: load('../lib/pickupSheet.ts', {
+        '@/lib/sizePreferences': sizePreferencesModule,
+        '@/lib/adminOrderFilters': adminOrderFiltersModule,
+    }),
+};
 const {
     formatPhoneNumber,
     formatPickupDate,
@@ -40,10 +50,13 @@ const order = (id, name, pickupDate, publicOrderNumber) => ({
     user_id: `user-${id}`, phone: '+36301234567', items: [],
 });
 
-const pickupDay = (pickupDate, plannedStock = 150, availableStock = 120) => ({
+const pickupDay = (pickupDate, plannedStock = 150, availableStock = 120, kind = 'normal', year = 2026, season = 'Ősz') => ({
     pickup_date: pickupDate,
     planned_stock: plannedStock,
     available_stock: availableStock,
+    kind,
+    year,
+    season,
 });
 
 test('normalizes database timestamps without changing the calendar day', () => {
@@ -62,15 +75,22 @@ test('deduplicates and sorts pickup dates', () => {
         pickupDay('2026-09-27T00:00:00', 150, 120),
         pickupDay('2026-09-27T00:00:00', 150, 120),
     ];
+    const season = getPickupSeason(2026, 'Ősz').value;
     assert.deepEqual(getPickupDateOptions(pickupDays), [
         {
-            value: '2026-09-27',
+            value: `${season}:2026-09-27`,
+            date: '2026-09-27',
+            kind: 'normal',
+            seasonValue: season,
             label: '2026. szeptember 27., vasárnap',
             plannedStock: 150,
             availableStock: 120,
         },
         {
-            value: '2026-10-04',
+            value: `${season}:2026-10-04`,
+            date: '2026-10-04',
+            kind: 'normal',
+            seasonValue: season,
             label: '2026. október 4., vasárnap',
             plannedStock: 200,
             availableStock: 180,
@@ -78,8 +98,53 @@ test('deduplicates and sorts pickup dates', () => {
     ]);
 });
 
-test('selects the nearest upcoming date, or the latest past date', () => {
-    const dates = ['2026-08-30', '2026-09-06', '2026-09-13'];
+test('keeps the DUNAVECSE technical pickup day as a separate, selectable option even when it shares its date with a normal pickup day', () => {
+    const pickupDays = [
+        pickupDay('2026-09-27', 150, 120, 'normal'),
+        pickupDay('2026-09-27', null, null, 'dunavecse'),
+    ];
+    const season = getPickupSeason(2026, 'Ősz').value;
+    assert.deepEqual(getPickupDateOptions(pickupDays), [
+        {
+            value: `${season}:2026-09-27`,
+            date: '2026-09-27',
+            kind: 'normal',
+            seasonValue: season,
+            label: '2026. szeptember 27., vasárnap',
+            plannedStock: 150,
+            availableStock: 120,
+        },
+        {
+            value: `${season}:dunavecse:2026-09-27`,
+            date: '2026-09-27',
+            kind: 'dunavecse',
+            seasonValue: season,
+            label: '2026. szeptember 27., vasárnap – DUNAVECSE (Bács-Kiskun)',
+            plannedStock: 0,
+            availableStock: 0,
+        },
+    ]);
+});
+
+test('keeps two different seasons\' same-date pickup days as separate options, instead of merging them', () => {
+    const pickupDays = [
+        pickupDay('2026-09-27', 150, 120, 'normal', 2025, 'Ősz'),
+        pickupDay('2026-09-27', 200, 180, 'normal', 2026, 'Ősz'),
+    ];
+    const options = getPickupDateOptions(pickupDays);
+    assert.equal(options.length, 2);
+    assert.notEqual(options[0].value, options[1].value);
+    assert.notEqual(options[0].seasonValue, options[1].seasonValue);
+    assert.deepEqual(options.map((option) => option.plannedStock).sort(), [150, 200]);
+});
+
+test('selects the nearest upcoming date, or the latest past date, preferring the normal day over a same-date DUNAVECSE day', () => {
+    const dates = [
+        { value: '2026-08-30', date: '2026-08-30', kind: 'normal' },
+        { value: '2026-09-06', date: '2026-09-06', kind: 'normal' },
+        { value: '2026-09-13', date: '2026-09-13', kind: 'normal' },
+        { value: 'dunavecse-2026-09-13', date: '2026-09-13', kind: 'dunavecse' },
+    ];
     assert.equal(getInitialPickupDate(dates, '2026-09-02'), '2026-09-06');
     assert.equal(getInitialPickupDate(dates, '2026-09-20'), '2026-09-13');
     assert.equal(getInitialPickupDate([], '2026-09-02'), '');
