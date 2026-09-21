@@ -28,11 +28,26 @@ export const accountStatusLabels = {
     registered: "Regisztrált",
 };
 
+export const specialNeedLabels = {
+    smaller: "Kisebb méret preferáció",
+    larger: "Nagyobb méret preferáció",
+    oroshazi: "Orosházi kiszállítás",
+    none: "Nincs speciális igény",
+};
+
 export function accountName(account: AdminAccount) {
     return [account.last_name, account.first_name].filter(Boolean).join(" ") || account.email || "Név nélküli fiók";
 }
 
-export function filterAccounts(accounts: AdminAccount[], search: string, statuses: string[], roles: string[], counties: string[]) {
+export function accountSpecialNeeds(account: AdminAccount): (keyof typeof specialNeedLabels)[] {
+    const needs: (keyof typeof specialNeedLabels)[] = [];
+    if (account.special_size_preference === "smaller") needs.push("smaller");
+    if (account.special_size_preference === "larger") needs.push("larger");
+    if (account.oroshazi_delivery) needs.push("oroshazi");
+    return needs.length ? needs : ["none"];
+}
+
+export function filterAccounts(accounts: AdminAccount[], search: string, statuses: string[], roles: string[], counties: string[], specialNeeds: string[]) {
     const normalize = (value: string) => value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("hu");
     const terms = normalize(search).trim().split(/\s+/).filter(Boolean);
     return accounts.filter((account) => {
@@ -40,6 +55,7 @@ export function filterAccounts(accounts: AdminAccount[], search: string, statuse
         return terms.every((term) => text.includes(term))
             && (!statuses.length || statuses.includes(account.status))
             && (!roles.length || roles.includes(account.role))
-            && (!counties.length || counties.includes(account.county || "__missing"));
+            && (!counties.length || counties.includes(account.county || "__missing"))
+            && (!specialNeeds.length || accountSpecialNeeds(account).some((need) => specialNeeds.includes(need)));
     });
 }

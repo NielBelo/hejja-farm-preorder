@@ -4,9 +4,9 @@ import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
 import { deleteAdminAccount, deleteAdminInvite } from "@/app/(protected)/admin/accounts/actions";
 import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
-import { ArrowsPointingInIcon, ArrowsPointingOutIcon, ChevronDownIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { ArrowsPointingInIcon, ArrowsPointingOutIcon, CheckBadgeIcon, ChevronDownIcon, DocumentCheckIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PaperAirplaneIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
-import { accountName, accountStatusLabels, filterAccounts, type AdminAccount } from "@/lib/adminAccountData";
+import { accountName, accountStatusLabels, filterAccounts, specialNeedLabels, type AdminAccount } from "@/lib/adminAccountData";
 
 const dateFormatter = new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Budapest" });
 function date(value: string | null) {
@@ -17,17 +17,16 @@ function roleLabel(role: string) {
 }
 function accountBadge(account: AdminAccount) {
     if (account.status !== "registered") {
-        return {
-            label: accountStatusLabels[account.status],
-            className: account.status === "invited" ? "bg-blue-50 text-blue-700" : "bg-amber-50 text-amber-700",
-        };
+        return { label: accountStatusLabels[account.status], className: "bg-gray-100 text-gray-600" };
     }
     if (account.is_superadmin) return { label: "Szuper adminisztrátor", className: "bg-violet-50 text-violet-700" };
     if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-violet-50 text-violet-700" };
-    return { label: "Vásárló", className: "bg-green-50 text-green-700" };
+    return { label: "Vásárló", className: "bg-blue-50 text-blue-700" };
 }
-function Field({ label, value }: { label: string; value: string | null }) {
-    return <div className="min-w-0"><dt className="text-xs text-gray-500">{label}</dt><dd className="break-words text-sm font-medium text-gray-800">{value || "Nincs megadva"}</dd></div>;
+function sizePreferenceBadge(preference: AdminAccount["special_size_preference"]) {
+    if (preference === "larger") return { label: "Nagyobb méret", className: "bg-green-100 text-green-800" };
+    if (preference === "smaller") return { label: "Kisebb méret", className: "bg-red-100 text-red-800" };
+    return null;
 }
 function ProfileField({ label, value, icon: Icon }: {
     label: string;
@@ -45,9 +44,20 @@ function ProfileField({ label, value, icon: Icon }: {
     </div>;
 }
 function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof TruckIcon }) {
-    return <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm ${enabled ? "bg-white text-gray-800 ring-1 ring-slate-200" : "bg-slate-100/60 text-gray-500"}`}>
+    return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-500"}`}>
         <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(49,171,2)]" : "text-gray-400"}`} />
         <span>{label}</span><span className="ml-auto text-xs font-medium">{enabled ? "Aktív" : "Nincs"}</span>
+    </div>;
+}
+function TimelineStep({ label, value, done, icon: Icon }: { label: string; value: string; done: boolean; icon: typeof PaperAirplaneIcon }) {
+    return <div className="flex min-w-0 flex-1 items-start gap-2.5">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${done ? "bg-[rgb(49,171,2)] text-white" : "bg-gray-200 text-gray-400"}`}>
+            <Icon aria-hidden="true" className="h-4 w-4" />
+        </span>
+        <div className="min-w-0 pt-0.5">
+            <dt className={`text-xs font-medium ${done ? "text-gray-600" : "text-gray-400"}`}>{label}</dt>
+            <dd className={`break-words text-sm font-medium ${done ? "text-gray-800" : "text-gray-400"}`}>{value}</dd>
+        </div>
     </div>;
 }
 
@@ -62,12 +72,13 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
     const [statuses, setStatuses] = useState<string[]>([]);
     const [roles, setRoles] = useState<string[]>([]);
     const [counties, setCounties] = useState<string[]>([]);
+    const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
     const [openId, setOpenId] = useState<string | null>(null);
     const [confirmingAccount, setConfirmingAccount] = useState<AdminAccount | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const filtered = filterAccounts(accounts, search, statuses, roles, counties);
-    const selectionCount = statuses.length + roles.length + counties.length + (search.trim() ? 1 : 0);
+    const filtered = filterAccounts(accounts, search, statuses, roles, counties, specialNeeds);
+    const selectionCount = statuses.length + roles.length + counties.length + specialNeeds.length + (search.trim() ? 1 : 0);
     const countyOptions = [...new Set(accounts.map((account) => account.county || "__missing"))]
         .sort((a, b) => a.localeCompare(b, "hu"))
         .map((value) => ({ value, label: value === "__missing" ? "Nincs megadva" : value }));
@@ -79,12 +90,12 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                     <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />Felhasználók szűrése
                     {selectionCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectionCount}</span>}
                 </h2>
-                <button type="button" disabled={!selectionCount || editing} onClick={() => { setSearch(""); setStatuses([]); setRoles([]); setCounties([]); setOpenId(null); }}
+                <button type="button" disabled={!selectionCount || editing} onClick={() => { setSearch(""); setStatuses([]); setRoles([]); setCounties([]); setSpecialNeeds([]); setOpenId(null); }}
                     className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
                     <XMarkIcon aria-hidden="true" className="h-4 w-4" />Szűrők törlése
                 </button>
             </div>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <label className="block text-sm font-medium text-zinc-700">Keresés
                     <input type="search" disabled={editing} value={search} onChange={(event) => { setSearch(event.target.value); setOpenId(null); }} placeholder="Név, e-mail, telefon, település…"
                         className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-blue-400" />
@@ -92,6 +103,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                 <OrderFilterDropdown label="Állapot" options={Object.entries(accountStatusLabels).map(([value, label]) => ({ value, label }))} selected={statuses} disabled={editing} onChange={(values) => { setStatuses(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Vármegye" options={countyOptions} selected={counties} disabled={editing} onChange={(values) => { setCounties(values); setOpenId(null); }} />
+                <OrderFilterDropdown label="Speciális igény" options={Object.entries(specialNeedLabels).map(([value, label]) => ({ value, label }))} selected={specialNeeds} disabled={editing} onChange={(values) => { setSpecialNeeds(values); setOpenId(null); }} />
             </div>
             <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
                 <p role="status" aria-live="polite"><span className="font-semibold text-zinc-700">{filtered.length}</span> / {accounts.length} fiók és meghívott</p>
@@ -112,6 +124,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
             const open = openId === account.id;
             const panelId = `account-${encodeURIComponent(account.id)}`;
             const badge = accountBadge(account);
+            const sizeBadge = sizePreferenceBadge(account.special_size_preference);
             return <article key={account.id} className={`overflow-hidden rounded-xl bg-white shadow-sm transition-all ${open ? "border-2 border-blue-400 ring-2 ring-blue-100" : "border border-gray-200"}`}>
                 <h2><button type="button" disabled={editing} aria-expanded={open} aria-controls={panelId} onClick={() => setOpenId(open ? null : account.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/70 focus-visible:outline-blue-400">
                     <UserCircleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-gray-400" />
@@ -119,6 +132,10 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         <span className="flex flex-wrap items-center gap-2">
                             <span className="break-words font-semibold text-gray-800">{accountName(account)}</span>
                             <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
+                            {sizeBadge && <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${sizeBadge.className}`}>{sizeBadge.label}</span>}
+                            {account.oroshazi_delivery && <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                                <TruckIcon aria-hidden="true" className="h-3.5 w-3.5" />Orosházi kiszállítás
+                            </span>}
                         </span>
                         <span className="mt-1.5 block break-words text-sm text-gray-500">{[account.email, account.county, account.city].filter(Boolean).join(" · ")}</span>
                     </span>
@@ -153,12 +170,28 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             </div>
                         </section>}
                         <section className="border-t border-gray-100 pt-3">
-                            <h3 className="mb-2 text-sm font-semibold text-gray-700">Regisztráció és adatkezelés</h3>
-                            <dl className="grid gap-x-5 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
-                                <Field label={sentDates.length > 1 ? "Regisztrációs token legutóbbi kiküldése" : "Regisztrációs token kiküldése"} value={date(sentDates[0] ?? null)} />
-                                <Field label="Regisztráció" value={account.user_id ? date(account.registered_at) : "Még nem regisztrált"} />
-                                <Field label="E-mail megerősítése" value={date(account.email_confirmed_at)} />
-                                <Field label="Adatkezelési tájékoztató" value={privacyVersions.length ? `Elfogadta · ${privacyVersions.join(", ")}` : "Nincs rögzített elfogadás"} />
+                            <h3 className="mb-3 text-sm font-semibold text-gray-700">Regisztráció és adatkezelés</h3>
+                            <div className="rounded-lg border border-gray-100 bg-gray-50/60 p-3.5">
+                                <p className="mb-3 text-xs font-medium text-gray-400">Regisztrációs folyamat</p>
+                                <dl className="flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-0">
+                                    {[
+                                        { label: sentDates.length > 1 ? "Regisztrációs token legutóbbi kiküldése" : "Regisztrációs token kiküldése", value: date(sentDates[0] ?? null), done: Boolean(sentDates[0]), icon: PaperAirplaneIcon },
+                                        { label: "Regisztráció", value: account.user_id ? date(account.registered_at) : "Még nem regisztrált", done: Boolean(account.user_id), icon: UserPlusIcon },
+                                        { label: "E-mail megerősítése", value: date(account.email_confirmed_at), done: Boolean(account.email_confirmed_at), icon: CheckBadgeIcon },
+                                    ].flatMap((step, index, steps) => [
+                                        <TimelineStep key={`step-${index}`} {...step} />,
+                                        index < steps.length - 1 ? <div key={`divider-${index}`} aria-hidden="true" className="hidden h-px flex-1 self-start bg-gray-200 sm:mt-3.5 sm:block" /> : null,
+                                    ])}
+                                </dl>
+                            </div>
+                            <dl className="mt-3 rounded-lg border border-gray-100 px-3.5 py-3">
+                                <div className="flex items-start gap-2.5">
+                                    <DocumentCheckIcon aria-hidden="true" className={`mt-0.5 h-5 w-5 shrink-0 ${privacyVersions.length ? "text-[rgb(49,171,2)]" : "text-gray-300"}`} />
+                                    <div className="min-w-0">
+                                        <dt className="text-xs font-medium text-gray-500">Adatkezelési tájékoztató</dt>
+                                        <dd className="break-words text-sm font-medium text-gray-800">{privacyVersions.length ? `Elfogadta · ${privacyVersions.join(", ")}` : "Nincs rögzített elfogadás"}</dd>
+                                    </div>
+                                </div>
                             </dl>
                         </section>
                         {savedId === account.id && <p role="status" className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">A személyes adatok módosítása sikeres.</p>}

@@ -13,6 +13,10 @@ const counties = [
     "Pest", "Somogy", "Szabolcs-Szatmár-Bereg", "Tolna", "Vas", "Veszprém", "Zala",
 ];
 
+function privilegeCardClass(checked: boolean) {
+    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${checked ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(49,171,2)] hover:bg-gray-50"}`;
+}
+
 function CountySelect({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
@@ -110,24 +114,24 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
                 {account.is_superadmin ? (
                     <p className="flex items-center gap-2 text-sm text-violet-700"><ShieldCheckIcon aria-hidden="true" className="h-5 w-5" />Superadmin · A védett jogosultság nem módosítható.</p>
                 ) : (
-                    <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm font-medium text-gray-700 ring-1 ring-slate-200">
+                    <label className={`${privilegeCardClass(form.role === "admin")} font-medium`}>
                         <input type="checkbox" checked={form.role === "admin"} onChange={(event) => setForm((current) => ({ ...current, role: event.target.checked ? "admin" : "user" }))}
                             className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
                         <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />Adminisztrátori jog
                     </label>
                 )}
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
+                        <label className={privilegeCardClass(form.special_size_preference === "smaller")}>
                             <input type="checkbox" checked={form.special_size_preference === "smaller"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "smaller" : null }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
                             <ArrowsPointingInIcon aria-hidden="true" className="h-4 w-4 text-sky-500" />Kisebb méret preferáció
                         </label>
-                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
+                        <label className={privilegeCardClass(form.special_size_preference === "larger")}>
                             <input type="checkbox" checked={form.special_size_preference === "larger"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "larger" : null }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
                             <ArrowsPointingOutIcon aria-hidden="true" className="h-4 w-4 text-amber-500" />Nagyobb méret preferáció
                         </label>
-                        <label className="flex cursor-pointer items-center gap-2 rounded-lg bg-white px-3 py-2 text-sm text-gray-700 ring-1 ring-slate-200">
+                        <label className={privilegeCardClass(form.oroshazi_delivery)}>
                             <input type="checkbox" checked={form.oroshazi_delivery} onChange={(event) => setForm((current) => ({ ...current, oroshazi_delivery: event.target.checked }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
                             <TruckIcon aria-hidden="true" className="h-4 w-4 text-emerald-500" />Orosházi kiszállítás
