@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import CountdownCard from "@/components/CountdownCard";
+import InfoModal from "@/components/InfoModal";
 import PickupDaySelector from "@/components/PickupDaySelector";
 import ProductSelector from "@/components/ProductSelector";
 import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
@@ -528,82 +529,65 @@ export default function PreorderManager({
             )}
 
             {termsModalOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-                    <div className="flex w-full max-w-2xl max-h-[85vh] flex-col rounded-xl bg-white p-6 shadow-xl">
-                        <h2 className="text-xl font-semibold text-gray-800">
-                            Általános Szerződési Feltételek
-                        </h2>
-                        <p className="mt-1 text-sm font-medium text-gray-500">
-                            Hatályos: 2026. szeptember 22.
+                <InfoModal
+                    title="Általános Szerződési Feltételek"
+                    subtitle="Hatályos: 2026. szeptember 22."
+                    onClose={() => setTermsModalOpen(false)}
+                >
+                    <section>
+                        <h3 className="font-semibold text-gray-800">1. Általános rendelkezések</h3>
+                        <p className="mt-1">
+                            A Héjja Ökofarm weboldala a termékek előrendelésére és az előrendelések kezelésére szolgál. A weboldalon online fizetés nem történik.
                         </p>
+                    </section>
 
-                        <div className="mt-4 space-y-5 overflow-y-auto pr-1 text-base leading-6 text-gray-600">
-                            <section>
-                                <h3 className="font-semibold text-gray-800">1. Általános rendelkezések</h3>
-                                <p className="mt-1">
-                                    A Héjja Ökofarm weboldala a termékek előrendelésére és az előrendelések kezelésére szolgál. A weboldalon online fizetés nem történik.
-                                </p>
-                            </section>
+                    <section>
+                        <h3 className="font-semibold text-gray-800">2. Előrendelés</h3>
+                        <p className="mt-1">
+                            A vásárló a weboldalon elérhető termékekre, a feltüntetett feltételek szerint adhat le előrendelést.
+                        </p>
+                        <p className="mt-2">
+                            A sikeresen rögzített előrendelésről a rendszer visszaigazolást küld. Az előrendelés a weboldalon feltüntetett rendelési időszakon belül módosítható vagy törölhető.
+                        </p>
+                    </section>
 
-                            <section>
-                                <h3 className="font-semibold text-gray-800">2. Előrendelés</h3>
-                                <p className="mt-1">
-                                    A vásárló a weboldalon elérhető termékekre, a feltüntetett feltételek szerint adhat le előrendelést.
-                                </p>
-                                <p className="mt-2">
-                                    A sikeresen rögzített előrendelésről a rendszer visszaigazolást küld. Az előrendelés a weboldalon feltüntetett rendelési időszakon belül módosítható vagy törölhető.
-                                </p>
-                            </section>
+                    <section>
+                        <h3 className="font-semibold text-gray-800">3. Árak, átvétel és fizetés</h3>
+                        <p className="mt-1">
+                            A weboldalon a termékek egységára kerül feltüntetésre. A ténylegesen fizetendő összeg a termék átvételkori súlya és a feltüntetett egységár alapján kerül meghatározásra.
+                        </p>
+                        <p className="mt-2">
+                            A termékek átvétele személyesen történik. A fizetés az átvételkor esedékes.
+                        </p>
+                    </section>
 
-                            <section>
-                                <h3 className="font-semibold text-gray-800">3. Árak, átvétel és fizetés</h3>
-                                <p className="mt-1">
-                                    A weboldalon a termékek egységára kerül feltüntetésre. A ténylegesen fizetendő összeg a termék átvételkori súlya és a feltüntetett egységár alapján kerül meghatározásra.
-                                </p>
-                                <p className="mt-2">
-                                    A termékek átvétele személyesen történik. A fizetés az átvételkor esedékes.
-                                </p>
-                            </section>
+                    <section>
+                        <h3 className="font-semibold text-gray-800">4. Teljesítés</h3>
+                        <p className="mt-1">
+                            Amennyiben az előrendelés teljesítése előre nem látható okból nem vagy csak részben lehetséges, a Héjja Ökofarm erről tájékoztatja a vásárlót.
+                        </p>
+                    </section>
 
-                            <section>
-                                <h3 className="font-semibold text-gray-800">4. Teljesítés</h3>
-                                <p className="mt-1">
-                                    Amennyiben az előrendelés teljesítése előre nem látható okból nem vagy csak részben lehetséges, a Héjja Ökofarm erről tájékoztatja a vásárlót.
-                                </p>
-                            </section>
+                    <section>
+                        <h3 className="font-semibold text-gray-800">5. Elállás és panaszkezelés</h3>
+                        <p className="mt-1">
+                            A romlandó vagy minőségüket rövid ideig megőrző termékekre a jogszabály szerinti indokolás nélküli elállási jog nem alkalmazható.
+                        </p>
+                        <p className="mt-2">
+                            Az előrendeléssel vagy a termékkel kapcsolatos kérdés, észrevétel vagy panasz a Héjja Ökofarm elérhetőségein jelezhető.
+                        </p>
+                    </section>
 
-                            <section>
-                                <h3 className="font-semibold text-gray-800">5. Elállás és panaszkezelés</h3>
-                                <p className="mt-1">
-                                    A romlandó vagy minőségüket rövid ideig megőrző termékekre a jogszabály szerinti indokolás nélküli elállási jog nem alkalmazható.
-                                </p>
-                                <p className="mt-2">
-                                    Az előrendeléssel vagy a termékkel kapcsolatos kérdés, észrevétel vagy panasz a Héjja Ökofarm elérhetőségein jelezhető.
-                                </p>
-                            </section>
-
-                            <section>
-                                <h3 className="font-semibold text-gray-800">6. Záró rendelkezések</h3>
-                                <p className="mt-1">
-                                    Az előrendelés leadásával a vásárló kijelenti, hogy a jelen Általános Szerződési Feltételeket megismerte és elfogadja.
-                                </p>
-                                <p className="mt-2">
-                                    A jelen feltételekben nem szabályozott kérdésekben a mindenkor hatályos magyar jogszabályok rendelkezései irányadók.
-                                </p>
-                            </section>
-                        </div>
-
-                        <div className="mt-6 flex justify-end">
-                            <button
-                                type="button"
-                                onClick={() => setTermsModalOpen(false)}
-                                className="rounded-lg bg-[rgb(92,113,190)] px-5 py-3 text-base font-semibold text-white hover:bg-[rgb(72,93,162)]"
-                            >
-                                Bezárás
-                            </button>
-                        </div>
-                    </div>
-                </div>
+                    <section>
+                        <h3 className="font-semibold text-gray-800">6. Záró rendelkezések</h3>
+                        <p className="mt-1">
+                            Az előrendelés leadásával a vásárló kijelenti, hogy a jelen Általános Szerződési Feltételeket megismerte és elfogadja.
+                        </p>
+                        <p className="mt-2">
+                            A jelen feltételekben nem szabályozott kérdésekben a mindenkor hatályos magyar jogszabályok rendelkezései irányadók.
+                        </p>
+                    </section>
+                </InfoModal>
             )}
 
             {showDayChangeModal && (

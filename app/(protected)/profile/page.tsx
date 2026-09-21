@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileEditor from "@/components/ProfileEditor";
+import ProfilePrivacyNotice from "@/components/ProfilePrivacyNotice";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -48,16 +49,7 @@ export default async function ProfilePage() {
 
       {/* Tájékoztató rész */}
       <div className="mt-8 mb-12 w-full">
-        <p className="text-lg leading-7 text-justify text-gray-600">
-          <span className="font-medium text-gray-700">
-            Az itt megjelenő adatok a Héjja Ökofarm rendszerében Önről
-            tárolt személyes és kapcsolattartási adatok.
-          </span>{" "}
-          Ezeket a felhasználói fiók azonosításához, az előrendelések
-          kezeléséhez, valamint az átvétellel kapcsolatos
-          kapcsolattartáshoz használjuk. Adatait ezen az oldalon
-          bármikor áttekintheti és módosíthatja.
-        </p>
+        <ProfilePrivacyNotice />
       </div>
 
       {/* Vásárlói adatlap */}
