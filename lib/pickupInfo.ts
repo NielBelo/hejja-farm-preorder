@@ -45,7 +45,11 @@ export type PickupWindowInput = {
 export type PickupWindowInfo = {
     /** pl. "október 7. (szerda)" */
     dateLabel: string;
-    /** pl. "17:00 - 18:15", vagy null, ha nincs elég adat az időtartományhoz */
+    /**
+     * Békés megyénél csak a kezdő időpont, pl. "15:00" (a tanyasi átvételnek
+     * nincs önálló befejező időpontja), egyéb megyénél időtartomány, pl.
+     * "17:00 - 18:15". Null, ha nincs elég adat.
+     */
     timeRange: string | null;
     /** dateLabel és timeRange összefűzve, pl. "október 7. (szerda) 17:00 - 18:15" */
     windowLabel: string;
@@ -70,10 +74,14 @@ export function getPickupWindowInfo({
         ? dateOnly
         : `${pickupMonthDayFormatter.format(date)} (${pickupWeekdayFormatter.format(date)})`;
 
-    const timeRangeStart = bekes ? localPickupTimeStart : pickupTimeStart;
-    const timeRange = timeRangeStart && pickupTimeEnd
-        ? `${toHoursAndMinutes(timeRangeStart)} - ${toHoursAndMinutes(pickupTimeEnd)}`
-        : null;
+    // A tanyasi (Békés megyei) átvételnek nincs befejező időpontja, ezért
+    // csak a helyi kezdő időt mutatjuk; a városi átvétel a teljes
+    // időtartományt (kezdő - befejező) jeleníti meg.
+    const timeRange = bekes
+        ? (localPickupTimeStart ? toHoursAndMinutes(localPickupTimeStart) : null)
+        : (pickupTimeStart && pickupTimeEnd
+            ? `${toHoursAndMinutes(pickupTimeStart)} - ${toHoursAndMinutes(pickupTimeEnd)}`
+            : null);
 
     const location = bekes ? BEKES_LOCATION : DEFAULT_LOCATION;
 

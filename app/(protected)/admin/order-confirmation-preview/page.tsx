@@ -1,21 +1,23 @@
 import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
-import { getCurrentUser } from "@/lib/auth/getCurrentUser";
+import { createClient } from "@/lib/supabase/server";
+import { getActiveSeasonPickupTimes } from "@/lib/activeSeasonPickupTimes";
 
 // Ugyanaz a komponens jelenik meg itt, mint amit a vásárló az Előrendelés
-// oldalon lát a rendelés sikeres leadása után - a minta adatok csak a
-// fejlesztői előnézethez kellenek, valódi rendelés nem jön létre. A megye
-// viszont a bejelentkezett admin tényleges profilbeállítása, hogy a Békés
-// megyei ág is valós adattal ellenőrizhető legyen ugyanazzal a komponenssel
-// és döntési logikával, mint az éles előrendelési folyamatban.
+// oldalon lát a rendelés sikeres leadása után - a rendelésre és a tételekre
+// vonatkozó adatok csak a fejlesztői előnézethez kellenek, valódi rendelés
+// nem jön létre. Az átvételi időpontok viszont NEM ezek közül a minta-
+// mezők közül származnak, hanem a jelenleg aktív szezon valós
+// season_parameters beállításaiból (lásd lent), hogy az előnézet mindig a
+// Szezonok oldalon tényleg beállított időpontokat mutassa. Mindkét
+// megye-ág (tanyasi/Békés és városi/más megye) egyszerre látható, ugyanazzal
+// a komponenssel és megye-alapú döntési logikával (lib/pickupInfo), mint az
+// éles előrendelési folyamatban.
 const sampleOrderConfirmation = {
     orderNumber: "HF-777153",
     pickupDate: "2026-10-07",
     submittedAt: new Date("2026-09-16T23:42:00+02:00"),
     seasonEndDate: "2026-09-29T23:59:00+02:00",
     emailRecipient: "hejjafarm.admin@gmail.com",
-    pickupTimeStart: "17:00",
-    pickupTimeEnd: "18:15",
-    localPickupTimeStart: "16:00",
     items: [
         {
             productName: "Darabolt csirke",
@@ -27,8 +29,16 @@ const sampleOrderConfirmation = {
     ],
 };
 
+// A két megyeág mintaadata - a helyszín és az átvételi időpont is ugyanabból
+// a megye-alapú döntésből (lib/pickupInfo) származik, mint éles rendelésnél.
+const countyVariants = [
+    { label: "Tanyasi átvétel (Békés megyei vásárló)", county: "Békés" },
+    { label: "Városi átvétel (más megyei vásárló)", county: "Csongrád-Csanád" },
+];
+
 export default async function AdminOrderConfirmationPreviewPage() {
-    const currentUser = await getCurrentUser();
+    const supabase = await createClient();
+    const activeSeason = await getActiveSeasonPickupTimes(supabase);
 
     return (
         <div className="mx-auto w-full max-w-5xl">
@@ -42,18 +52,39 @@ export default async function AdminOrderConfirmationPreviewPage() {
                 </div>
                 <p className="mx-auto mt-2.5 max-w-4xl text-base leading-7 text-gray-600 italic">
                     A vásárló ezt a felületet látja közvetlenül az előrendelés sikeres
-                    leadása után, az Előrendelés oldalon.
+                    leadása után, az Előrendelés oldalon. Az alábbi két változat a
+                    Békés megyei (tanyasi) és a más megyei (városi) átvételt mutatja,
+                    a jelenleg aktív szezon átvételi időpontjaival.
                 </p>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-                <div className="bg-[#f4f7f5] p-3 sm:p-6">
-                    <OrderConfirmationSummary
-                        {...sampleOrderConfirmation}
-                        userCounty={currentUser?.county ?? null}
-                    />
-                </div>
-            </div>
+            {!activeSeason ? (
+                <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-700">
+                    Nincs jelenleg aktív szezon beállítva, ezért az átvételi
+                    időpont előnézete nem elérhető. Állítson be aktív szezont a
+                    Szezonok oldalon, majd térjen vissza ide.
+                </p>
+            ) : (
+                countyVariants.map(({ label, county }) => (
+                    <div
+                        key={county}
+                        className="mt-6 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+                    >
+                        <div className="border-b border-gray-200 bg-gray-50 px-5 py-3 text-center text-sm font-semibold text-gray-600 sm:px-7">
+                            {label}
+                        </div>
+                        <div className="bg-[#f4f7f5] p-3 sm:p-6">
+                            <OrderConfirmationSummary
+                                {...sampleOrderConfirmation}
+                                pickupTimeStart={activeSeason.pickupTimeStart}
+                                pickupTimeEnd={activeSeason.pickupTimeEnd}
+                                localPickupTimeStart={activeSeason.localPickupTimeStart}
+                                userCounty={county}
+                            />
+                        </div>
+                    </div>
+                ))
+            )}
         </div>
     );
 }

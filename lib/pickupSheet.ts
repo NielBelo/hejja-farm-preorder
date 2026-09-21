@@ -120,14 +120,13 @@ export function formatPhoneNumber(phone: string) {
     return phone.replace(/^(\+36)(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3 $4");
 }
 
+// A csomagolástípus megjelenítendő neve mindig az adatbázisban tárolt
+// aktuális packages.name-ből származik - nincs csomagolásnév-specifikus
+// hardcode-olt leképezés, csak az ismétlődő "csomagolás" szó levágása a
+// kompakt statisztikai kártyán, hogy egy átnevezés is automatikusan
+// megjelenjen további kódmódosítás nélkül.
 export function summarizePackage(name: string | null | undefined) {
     if (!name) return "—";
-    const normalized = name.toLocaleLowerCase("hu");
-    if (normalized.includes("gyűjt")) return "Gyűjtő";
-    // Az "egyedi" a történeti, az "egyenként" a jelenlegi élő adatbázis-
-    // elnevezés ugyanarra a csomagolásra - mindkettő ugyanabba a kategóriába
-    // essen (lásd lib/orderPackaging.ts findIndividualPackaging()).
-    if (normalized.includes("egyedi") || normalized.includes("egyenként")) return "Egyedi";
     return name.replace(/\s*csomagolás\s*/iu, "").trim() || name;
 }
 
