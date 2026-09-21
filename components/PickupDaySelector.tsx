@@ -106,15 +106,12 @@ export default function PickupDaySelector({
                         type="button"
                         disabled
                         aria-label={`${number}. nap – jelenleg nem elérhető`}
-                        className="relative flex h-[168px] cursor-not-allowed flex-col items-stretch justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-left"
+                        className="relative flex h-[168px] cursor-not-allowed flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-center"
                     >
-                        <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                            {number}. nap
-                        </p>
                         <div className="flex flex-1 items-center justify-center">
                             <NoSymbolIcon
                                 aria-hidden="true"
-                                className="h-12 w-12 text-gray-400"
+                                className="h-10 w-10 text-gray-400"
                             />
                         </div>
                     </button>
@@ -137,7 +134,7 @@ export default function PickupDaySelector({
                                 }
                             }}
                             className={`
-                                relative flex h-[168px] flex-col items-stretch justify-start rounded-xl p-3 text-left transition-all
+                                relative flex h-[168px] flex-col items-center justify-start rounded-xl p-3 text-center transition-all
                                 ${
                                     selected
                                         ? `border-2 ${cardBorderClass} bg-[rgba(216,227,232,0.51)] shadow-md`
@@ -146,23 +143,17 @@ export default function PickupDaySelector({
                                 ${isFull ? "cursor-not-allowed" : ""}
                             `}
                         >
-                            <div className="pr-10">
-                                <p className="text-sm font-semibold uppercase tracking-wide text-gray-500">
-                                    {day.serial_number}. nap
-                                </p>
-
-                                <p className="mt-1 whitespace-nowrap text-xl font-bold leading-7 text-gray-700">
-                                    {formatMonth(day.pickup_date)} {formatDay(day.pickup_date)}.
-                                </p>
-
-                                <p className="text-base font-semibold capitalize text-gray-600">
-                                    {formatWeekday(day.pickup_date)}
-                                </p>
-                            </div>
-
                             <ArchiveBoxIcon
-                                className={`absolute right-3 top-3 h-8 w-8 ${status.iconClass}`}
+                                className={`h-10 w-10 ${status.iconClass}`}
                             />
+
+                            <p className="mt-1 whitespace-nowrap text-xl font-bold leading-7 text-gray-700">
+                                {formatMonth(day.pickup_date)} {formatDay(day.pickup_date)}.
+                            </p>
+
+                            <p className="text-base font-semibold capitalize text-gray-600">
+                                {formatWeekday(day.pickup_date)}
+                            </p>
 
                             <div className="mx-auto mt-2 w-4/5 border-t-2 border-black" />
 

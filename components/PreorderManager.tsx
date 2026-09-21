@@ -176,6 +176,8 @@ export default function PreorderManager({
         const { data, error } = await supabase
             .from("pickup_days")
             .select("*")
+            .eq("is_active", true)
+            .order("_group")
             .order("serial_number");
 
         if (error) {
