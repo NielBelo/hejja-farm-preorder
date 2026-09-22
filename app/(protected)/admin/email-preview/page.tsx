@@ -1,5 +1,6 @@
 import { buildOrderNotification } from "@/lib/email/orderNotification";
 import { getLatestOrderUpdate } from "@/lib/email/latestOrderUpdate";
+import { getLatestOrderNotificationData } from "@/lib/email/orderNotificationData";
 import { buildRegistrationConfirmation } from "@/lib/email/registrationConfirmation";
 import { buildRegistrationInvite } from "@/lib/email/registrationInvite";
 import RegisterForm, { RegistrationSuccessMessage } from "@/app/(public)/register/RegisterForm";
@@ -14,39 +15,7 @@ const BEKES_SAMPLE_COUNTY = "Békés";
 const NON_BEKES_SAMPLE_COUNTY = "Csongrád-Csanád";
 const BACS_KISKUN_SAMPLE_COUNTY = "Bács-Kiskun";
 const NO_ACTIVE_SEASON_MESSAGE =
-    "Nincs jelenleg aktív szezon beállítva, és korábbi rendelésmódosítás sem érhető el mintaadatként, ezért az átvételi időpontot tartalmazó e-mail előnézete nem elérhető. Állítson be aktív szezont a Szezonok oldalon, majd térjen vissza ide.";
-
-// A rendelésszám, tételek stb. csak a fejlesztői előnézethez kellenek. Az
-// átvételi IDŐPONT mezőket (pickupTimeStart/pickupTimeEnd/
-// localPickupTimeStart) nem itt hardcode-oljuk, azokat lent a jelenleg
-// aktív szezon season_parameters beállításaiból töltjük fel, hogy ne
-// mutasson elavult mintaidőpontot.
-const sampleOrderDataBase = {
-    kind: "created" as const,
-    orderId: 0,
-    orderNumber: "HF-MINTA01",
-    customerName: "Dániel",
-    pickupDate: "2026-09-19",
-    county: null as string | null,
-    modificationWindowStart: "2026-09-07T08:00:00+02:00",
-    modificationWindowEnd: "2026-09-16T23:59:00+02:00",
-    items: [
-        {
-            productName: "Öko csirke",
-            packageName: "Egész csirke",
-            quantity: 2,
-            sizePreference: "Közepes",
-            note: null,
-        },
-        {
-            productName: "Csirkemell filé",
-            packageName: "Vákuumcsomagolt",
-            quantity: 1,
-            sizePreference: null,
-            note: "Minta rendelési tétel",
-        },
-    ],
-};
+    "Nincs jelenleg aktív szezon beállítva, és nincs elérhető valós rendelés sem mintaadatként, ezért az átvételi időpontot tartalmazó e-mail előnézete nem elérhető. Állítson be aktív szezont a Szezonok oldalon, majd térjen vissza ide.";
 
 function formatDateTime(value: string) {
     return new Intl.DateTimeFormat("hu-HU", {
@@ -62,9 +31,10 @@ export default async function AdminEmailPreviewPage({
     searchParams: Promise<{ template?: string | string[] }>;
 }) {
     const supabase = await createClient();
-    const [latestUpdate, activeSeason] = await Promise.all([
+    const [latestUpdate, activeSeason, latestOrderNotification] = await Promise.all([
         getLatestOrderUpdate(supabase),
         getActiveSeasonPickupTimes(supabase),
+        getLatestOrderNotificationData(supabase, { asAdmin: true }),
     ]);
 
     // A Bács-Kiskun (DUNAVECSE) mintaváltozat a jelenleg aktív szezon valós
@@ -88,13 +58,15 @@ export default async function AdminEmailPreviewPage({
     const rawTemplate = params.template;
     const initialTemplate = Array.isArray(rawTemplate) ? rawTemplate[0] : rawTemplate;
 
-    // Valódi módosított rendelés hiányában csak akkor van mintaadat, ha
-    // van aktív szezon - így az átvételi időpont sosem elavult, hardcode-olt
-    // érték, hanem vagy egy valódi rendelésé, vagy a jelenleg aktív szezoné.
+    // Valódi módosított rendelés hiányában a legutóbb leadott valós
+    // rendelés (getLatestOrderNotificationData) adja a mintaadatot, csak
+    // akkor, ha van aktív szezon is - így az átvételi időpont sosem
+    // elavult, hardcode-olt érték, hanem vagy egy valódi módosított
+    // rendelésé, vagy a jelenleg aktív szezoné.
     const orderDataBase = latestUpdate?.notificationData ?? (
-        activeSeason
+        activeSeason && latestOrderNotification
             ? {
-                ...sampleOrderDataBase,
+                ...latestOrderNotification.data,
                 pickupTimeStart: activeSeason.pickupTimeStart,
                 pickupTimeEnd: activeSeason.pickupTimeEnd,
                 localPickupTimeStart: activeSeason.localPickupTimeStart,

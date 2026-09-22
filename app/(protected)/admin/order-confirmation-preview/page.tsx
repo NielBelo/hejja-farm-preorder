@@ -1,33 +1,19 @@
 import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveSeasonPickupTimes } from "@/lib/activeSeasonPickupTimes";
+import { getLatestOrderNotificationData } from "@/lib/email/orderNotificationData";
 
 // Ugyanaz a komponens jelenik meg itt, mint amit a vásárló az Előrendelés
-// oldalon lát a rendelés sikeres leadása után - a rendelésre és a tételekre
-// vonatkozó adatok csak a fejlesztői előnézethez kellenek, valódi rendelés
-// nem jön létre. Az átvételi időpontok viszont NEM ezek közül a minta-
-// mezők közül származnak, hanem a jelenleg aktív szezon valós
-// season_parameters beállításaiból (lásd lent), hogy az előnézet mindig a
-// Szezonok oldalon tényleg beállított időpontokat mutassa. Mindkét
-// megye-ág (tanyasi/Békés és városi/más megye) egyszerre látható, ugyanazzal
-// a komponenssel és megye-alapú döntési logikával (lib/pickupInfo), mint az
-// éles előrendelési folyamatban.
-const sampleOrderConfirmation = {
-    orderNumber: "HF-777153",
-    pickupDate: "2026-10-07",
-    submittedAt: new Date("2026-09-16T23:42:00+02:00"),
-    seasonEndDate: "2026-09-29T23:59:00+02:00",
-    emailRecipient: "hejjafarm.admin@gmail.com",
-    items: [
-        {
-            productName: "Darabolt csirke",
-            packageName: "Egyedi csomagolás",
-            quantity: 3,
-            sizePreference: "Átlagostól kisebb méret",
-            note: null,
-        },
-    ],
-};
+// oldalon lát a rendelés sikeres leadása után - a megjelenő rendelés (szám,
+// tételek, vásárló, csomagolás stb.) a legutóbb leadott valós rendelés
+// (lásd getLatestOrderNotificationData), nincs kitalált mintaadat. Az
+// átvételi időpontok viszont NEM ebből a rendelésből származnak, hanem a
+// jelenleg aktív szezon valós season_parameters beállításaiból (lásd lent),
+// hogy az előnézet mindig a Szezonok oldalon tényleg beállított
+// időpontokat mutassa. Mindkét megye-ág (tanyasi/Békés és városi/más
+// megye) egyszerre látható, ugyanazzal a komponenssel és megye-alapú
+// döntési logikával (lib/pickupInfo), mint az éles előrendelési
+// folyamatban.
 
 // A három megyeág mintaadata - a helyszín/időpont, illetve a Bács-Kiskun
 // esetén megjelenő kétnapos dátumtartomány is ugyanabból a megye-alapú
@@ -41,7 +27,10 @@ const countyVariants = [
 
 export default async function AdminOrderConfirmationPreviewPage() {
     const supabase = await createClient();
-    const activeSeason = await getActiveSeasonPickupTimes(supabase);
+    const [activeSeason, latestOrder] = await Promise.all([
+        getActiveSeasonPickupTimes(supabase),
+        getLatestOrderNotificationData(supabase, { asAdmin: true }),
+    ]);
 
     // A Bács-Kiskun (DUNAVECSE) mintaváltozat a jelenleg aktív szezon valós
     // "vágási napját" (a DUNAVECSE nap pickup_date-jét, ami mindig a szezon
@@ -74,13 +63,17 @@ export default async function AdminOrderConfirmationPreviewPage() {
                 <p className="mx-auto mt-2.5 max-w-4xl text-base leading-7 text-gray-600 italic">
                     A vásárló ezt a felületet látja közvetlenül az előrendelés sikeres
                     leadása után, az Előrendelés oldalon. Az alábbi három változat a
-                    Békés megyei (tanyasi), a más megyei (városi) és a Bács-Kiskun
-                    megyei (DUNAVECSE) átvételt mutatja, a jelenleg aktív szezon
-                    átvételi időpontjaival.
+                    legutóbbi valós rendelés adataival, a Békés megyei (tanyasi), a
+                    más megyei (városi) és a Bács-Kiskun megyei (DUNAVECSE) átvételt
+                    mutatja, a jelenleg aktív szezon átvételi időpontjaival.
                 </p>
             </div>
 
-            {!activeSeason ? (
+            {!latestOrder ? (
+                <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-700">
+                    Nincs elérhető rendelés az előnézethez.
+                </p>
+            ) : !activeSeason ? (
                 <p className="mt-6 rounded-xl border border-amber-200 bg-amber-50 p-6 text-center text-amber-700">
                     Nincs jelenleg aktív szezon beállítva, ezért az átvételi
                     időpont előnézete nem elérhető. Állítson be aktív szezont a
@@ -97,11 +90,21 @@ export default async function AdminOrderConfirmationPreviewPage() {
                         </div>
                         <div className="bg-[#f4f7f5] p-3 sm:p-6">
                             <OrderConfirmationSummary
-                                {...sampleOrderConfirmation}
+                                orderNumber={latestOrder.data.orderNumber}
+                                submittedAt={new Date(latestOrder.submittedAt)}
+                                seasonEndDate={latestOrder.data.modificationWindowEnd}
+                                emailRecipient={latestOrder.recipient}
+                                items={latestOrder.data.items.map((item) => ({
+                                    productName: item.productName,
+                                    packageName: item.packageName,
+                                    quantity: item.quantity,
+                                    sizePreference: item.sizePreference ?? "",
+                                    note: item.note,
+                                }))}
                                 pickupDate={
                                     county === "Bács-Kiskun" && dunavecseDay?.pickup_date
                                         ? dunavecseDay.pickup_date
-                                        : sampleOrderConfirmation.pickupDate
+                                        : latestOrder.data.pickupDate
                                 }
                                 pickupTimeStart={activeSeason.pickupTimeStart}
                                 pickupTimeEnd={activeSeason.pickupTimeEnd}

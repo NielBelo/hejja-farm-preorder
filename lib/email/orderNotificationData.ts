@@ -32,6 +32,10 @@ export type LoadedOrderNotification = {
     data: OrderNotificationData;
 };
 
+export type LatestOrderNotification = LoadedOrderNotification & {
+    submittedAt: string;
+};
+
 const notificationOrderSelect = `
     id,
     user_id,
@@ -174,4 +178,36 @@ export async function loadOrderNotificationData(
             })),
         },
     };
+}
+
+// A Sablonok menüpont alatti fejlesztői előnézetek (order-confirmation-preview,
+// email-preview) ezzel töltik be a legutóbb leadott, még nem visszavont
+// (`submitted` állapotú) valós rendelést, ugyanazzal az adatértelmezéssel,
+// mint amit a rendszer ténylegesen az értesítő e-mailekhez használ
+// (loadOrderNotificationData) - nincs az előnézetekhez külön, párhuzamos
+// rendeléslekérdezés vagy -formázás.
+export async function getLatestOrderNotificationData(
+    supabase: SupabaseClient,
+    options: { asAdmin?: boolean } = {},
+): Promise<LatestOrderNotification | null> {
+    const { data: latestOrder, error } = await supabase
+        .from("orders")
+        .select("id, created_at")
+        .eq("status", "submitted")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error || !latestOrder) {
+        return null;
+    }
+
+    const loaded = await loadOrderNotificationData(
+        supabase,
+        { orderId: latestOrder.id },
+        "created",
+        options,
+    );
+
+    return { ...loaded, submittedAt: latestOrder.created_at };
 }
