@@ -183,9 +183,9 @@ function buildHtml(
                                         <strong style="color:#218856;">Átvételi nap:</strong>
                                         ${escapeHtml(bacsKiskunRange.rangeLabel)}<br>` : `
                                         <strong style="color:#218856;">Átvétel:</strong>
-                                        ${escapeHtml(pickupWindow!.windowLabel)}<br>
+                                        ${escapeHtml(pickupWindow!.windowLabel)}<br>${isCancelled ? "" : `
                                         <strong style="color:#218856;">Átvétel helyszíne:</strong>
-                                        ${escapeHtml(pickupWindow!.location)}!<br>`}
+                                        ${escapeHtml(pickupWindow!.location)}!<br>`}`}
                                         <strong style="color:#218856;">Összes mennyiség:</strong>
                                         ${totalQuantity} db
                                     </td>
@@ -284,7 +284,9 @@ export function buildOrderNotification(
         `Rendelésszám: ${data.orderNumber}`,
         ...(isBacsKiskun && bacsKiskunRange
             ? [`Átvételi nap: ${bacsKiskunRange.rangeLabel}`]
-            : [`Átvétel: ${pickupWindow!.windowLabel}`, `Átvétel helyszíne: ${pickupWindow!.location}!`]),
+            : isCancelled
+                ? [`Átvétel: ${pickupWindow!.windowLabel}`]
+                : [`Átvétel: ${pickupWindow!.windowLabel}`, `Átvétel helyszíne: ${pickupWindow!.location}!`]),
         "",
         "A rendelés tételei:",
         data.items.map(formatItem).join("\n\n"),
