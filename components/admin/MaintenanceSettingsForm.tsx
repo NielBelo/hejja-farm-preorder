@@ -26,7 +26,6 @@ function toggleCardClass(checked: boolean) {
 
 type FormState = {
     active: boolean;
-    startsAtLocal: string;
     endsAtLocal: string;
     message: string;
     adminBypass: boolean;
@@ -35,7 +34,6 @@ type FormState = {
 function toFormState(config: MaintenanceConfig): FormState {
     return {
         active: config.active,
-        startsAtLocal: toLocalInputValue(config.startsAt),
         endsAtLocal: toLocalInputValue(config.endsAt),
         message: config.message,
         adminBypass: config.adminBypass,
@@ -62,7 +60,6 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                 try {
                     const result = await updateMaintenanceConfig({
                         active: form.active,
-                        startsAt: fromLocalInputValue(form.startsAtLocal),
                         endsAt: fromLocalInputValue(form.endsAtLocal),
                         message: form.message,
                         adminBypass: form.adminBypass,
@@ -105,26 +102,19 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                     </label>
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div>
                     <label className="text-xs font-medium text-gray-500">
-                        Karbantartás kezdete
-                        <input
-                            type="datetime-local"
-                            value={form.startsAtLocal}
-                            onChange={(event) => setForm((current) => ({ ...current, startsAtLocal: event.target.value }))}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60"
-                        />
-                    </label>
-                    <label className="text-xs font-medium text-gray-500">
-                        Karbantartás vége
+                        Karbantartás vége (tervezett, tájékoztató jellegű)
                         <input
                             type="datetime-local"
                             value={form.endsAtLocal}
                             onChange={(event) => setForm((current) => ({ ...current, endsAtLocal: event.target.value }))}
-                            className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60"
+                            className="mt-1 block w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60"
                         />
                     </label>
-                    <p className="text-xs text-gray-400 sm:col-span-2">Mindkét időpont opcionális; ha üresen hagyja, az oldal nem jelenít meg dátumot a tájékoztatóban.</p>
+                    <p className="mt-1 text-xs text-gray-400">
+                        Opcionális; csak tájékoztatásul jelenik meg a látogatóknak, a karbantartást nem kapcsolja ki automatikusan. A karbantartás tényleges állapotát kizárólag az „Karbantartás: aktív / inaktív” kapcsoló határozza meg.
+                    </p>
                 </div>
 
                 <label className="block text-xs font-medium text-gray-500">

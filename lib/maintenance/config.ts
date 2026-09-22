@@ -2,7 +2,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 export type MaintenanceConfig = {
   active: boolean;
-  startsAt: string | null;
   endsAt: string | null;
   message: string;
   adminBypass: boolean;
@@ -15,7 +14,6 @@ const KV_KEY = "maintenance-config";
 
 const DEFAULT_CONFIG: MaintenanceConfig = {
   active: false,
-  startsAt: null,
   endsAt: null,
   message: DEFAULT_MAINTENANCE_MESSAGE,
   adminBypass: true,
@@ -44,7 +42,6 @@ function normalizeConfig(raw: unknown): MaintenanceConfig {
   const parsed = (raw ?? {}) as Partial<MaintenanceConfig>;
   return {
     active: Boolean(parsed.active),
-    startsAt: typeof parsed.startsAt === "string" ? parsed.startsAt : null,
     endsAt: typeof parsed.endsAt === "string" ? parsed.endsAt : null,
     message:
       typeof parsed.message === "string" && parsed.message.trim()

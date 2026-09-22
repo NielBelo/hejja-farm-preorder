@@ -6,7 +6,6 @@ import { setMaintenanceConfig, type MaintenanceConfig } from "@/lib/maintenance/
 
 export type MaintenanceConfigInput = {
     active: boolean;
-    startsAt: string | null;
     endsAt: string | null;
     message: string;
     adminBypass: boolean;
@@ -22,17 +21,11 @@ export async function updateMaintenanceConfig(input: MaintenanceConfigInput) {
     if (!message) return { success: false as const, error: "A tájékoztató üzenet nem lehet üres." };
     if (message.length > 2000) return { success: false as const, error: "A tájékoztató üzenet túl hosszú (max. 2000 karakter)." };
 
-    const startsAt = typeof input?.startsAt === "string" && input.startsAt ? input.startsAt : null;
     const endsAt = typeof input?.endsAt === "string" && input.endsAt ? input.endsAt : null;
-    if (startsAt && Number.isNaN(new Date(startsAt).getTime())) return { success: false as const, error: "Érvénytelen kezdési időpont." };
     if (endsAt && Number.isNaN(new Date(endsAt).getTime())) return { success: false as const, error: "Érvénytelen befejezési időpont." };
-    if (startsAt && endsAt && new Date(endsAt).getTime() < new Date(startsAt).getTime()) {
-        return { success: false as const, error: "A karbantartás vége nem lehet korábbi, mint a kezdete." };
-    }
 
     const config: MaintenanceConfig = {
         active: Boolean(input?.active),
-        startsAt,
         endsAt,
         message,
         adminBypass: input?.adminBypass !== false,

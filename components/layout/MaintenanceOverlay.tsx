@@ -16,7 +16,6 @@ export default function MaintenanceOverlay({
 }: {
   config: MaintenanceConfig;
 }) {
-  const startsAt = formatDateTime(config.startsAt);
   const endsAt = formatDateTime(config.endsAt);
 
   return (
@@ -37,24 +36,10 @@ export default function MaintenanceOverlay({
           {config.message}
         </p>
 
-        {(startsAt || endsAt) && (
-          <dl className="mt-8 grid gap-4 border-t border-gray-100 pt-6 text-sm text-gray-500 sm:grid-cols-2">
-            {startsAt && (
-              <div>
-                <dt className="font-medium text-gray-400">
-                  Karbantartás kezdete
-                </dt>
-                <dd className="mt-1 text-gray-700">{startsAt}</dd>
-              </div>
-            )}
-            {endsAt && (
-              <div>
-                <dt className="font-medium text-gray-400">
-                  Tervezett vége
-                </dt>
-                <dd className="mt-1 text-gray-700">{endsAt}</dd>
-              </div>
-            )}
+        {endsAt && (
+          <dl className="mt-8 border-t border-gray-100 pt-6 text-sm text-gray-500">
+            <dt className="font-medium text-gray-400">Tervezett befejezés:</dt>
+            <dd className="mt-1 text-gray-700">{endsAt}</dd>
           </dl>
         )}
       </div>

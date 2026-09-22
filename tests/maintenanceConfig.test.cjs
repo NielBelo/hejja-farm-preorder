@@ -20,7 +20,7 @@ const superAdmin = { isAdmin: true, isSuperAdmin: true };
 
 test('inactive maintenance never blocks anyone, regardless of role or bypass setting', () => {
     for (const bypass of [true, false]) {
-        const config = { active: false, startsAt: null, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
+        const config = { active: false, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
         assert.equal(isMaintenanceBlocking(config, guest), false);
         assert.equal(isMaintenanceBlocking(config, normalUser), false);
         assert.equal(isMaintenanceBlocking(config, admin), false);
@@ -30,22 +30,22 @@ test('inactive maintenance never blocks anyone, regardless of role or bypass set
 
 test('active maintenance always blocks guests and normal users, regardless of the admin bypass toggle', () => {
     for (const bypass of [true, false]) {
-        const config = { active: true, startsAt: null, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
+        const config = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
         assert.equal(isMaintenanceBlocking(config, guest), true);
         assert.equal(isMaintenanceBlocking(config, normalUser), true);
     }
 });
 
 test('active maintenance blocks admins only when the admin bypass toggle is off', () => {
-    const bypassOn = { active: true, startsAt: null, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: true };
-    const bypassOff = { active: true, startsAt: null, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: false };
+    const bypassOn = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: true };
+    const bypassOff = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: false };
     assert.equal(isMaintenanceBlocking(bypassOn, admin), false);
     assert.equal(isMaintenanceBlocking(bypassOff, admin), true);
 });
 
 test('active maintenance never blocks the superadmin, regardless of the admin bypass toggle', () => {
     for (const bypass of [true, false]) {
-        const config = { active: true, startsAt: null, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
+        const config = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
         assert.equal(isMaintenanceBlocking(config, superAdmin), false);
     }
 });
