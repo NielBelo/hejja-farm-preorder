@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
+import { getCalendarDate } from "@/lib/orderWindow";
 import SeasonManager from "@/components/admin/SeasonManager";
 
 export default async function AdminSeasonsPage() {
@@ -55,7 +56,7 @@ export default async function AdminSeasonsPage() {
   const seasons = (seasonsResult.data ?? []).map((row) => {
     const dunavecse = dunavecseBySeasonId.get(row.id);
     return {
-      id: String(row.id), year: row.year, type: row.season, price: row.price ?? 0, weightMin: row.weight_min ?? 0, weightMax: row.weight_max ?? 0, orderStart: row.time_window_start?.slice(0, 10) ?? "", orderEnd: row.time_window_end?.slice(0, 10) ?? "", pickupTimeStart: row.pickup_time_start?.slice(0, 5) ?? "", pickupTimeEnd: row.pickup_time_end?.slice(0, 5) ?? "", localPickupTimeStart: row.local_pickup_time_start?.slice(0, 5) ?? "", active: row.is_active === true, created_at: row.created_at,
+      id: String(row.id), year: row.year, type: row.season, price: row.price ?? 0, weightMin: row.weight_min ?? 0, weightMax: row.weight_max ?? 0, orderStart: (row.time_window_start ? getCalendarDate(row.time_window_start) : null) ?? "", orderEnd: (row.time_window_end ? getCalendarDate(row.time_window_end) : null) ?? "", pickupTimeStart: row.pickup_time_start?.slice(0, 5) ?? "", pickupTimeEnd: row.pickup_time_end?.slice(0, 5) ?? "", localPickupTimeStart: row.local_pickup_time_start?.slice(0, 5) ?? "", active: row.is_active === true, created_at: row.created_at,
       pickupDays: (pickupResult.data ?? []).filter((day) => day.season_parameter_id === row.id).map((day) => ({ id: day.id, date: day.pickup_date?.slice(0, 10) ?? "", limit: Number(day.planned_stock), active: day.is_active === true, orderCount: orderCountsByDay.get(day.id) ?? 0, reservedQuantity: Number(day.planned_stock ?? 0) - Number(day.available_stock ?? 0), hasOrderHistory: daysWithOrderHistory.has(day.id) })),
       dunavecse: dunavecse
         ? { id: dunavecse.id, date: dunavecse.pickup_date?.slice(0, 10) ?? "", active: dunavecse.is_active === true, orderCount: orderCountsByDay.get(dunavecse.id) ?? 0, reservedQuantity: reservedQuantityByDay.get(dunavecse.id) ?? 0, hasOrderHistory: daysWithOrderHistory.has(dunavecse.id) }

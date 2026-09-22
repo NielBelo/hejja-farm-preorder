@@ -9,7 +9,15 @@ const endDateFormatter = new Intl.DateTimeFormat("hu-HU", {
     timeZone: BUDAPEST_TIME_ZONE,
 });
 
-function getCalendarDate(value: string) {
+// A "YYYY-MM-DD" naptári napot adja vissza Europe/Budapest időzóna szerint
+// egy tetszőleges (pl. UTC-ben tárolt) időbélyegből. Bárhol, ahol egy
+// time_window_start/time_window_end timestamptz-ből a szerkesztőűrlap vagy
+// egy admin nézet naptári napot jelenít meg, EZT kell használni a naiv
+// `.slice(0, 10)` string-vágás helyett - az utóbbi az UTC-ben szerializált
+// ISO-string dátumrészét olvasná ki, ami éjféli (00:00 helyi) időpontok
+// esetén Budapesten még az előző UTC-napra eshet, és eggyel korábbi dátumot
+// mutatna.
+export function getCalendarDate(value: string) {
     const date = new Date(value);
 
     if (Number.isNaN(date.getTime())) {
