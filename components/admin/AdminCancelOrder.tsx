@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { cancelAdminOrder } from "@/app/(protected)/admin/orders/actions";
 import { getPickupDateStatus, usePickupDateStatus } from "@/lib/usePickupDateStatus";
 
 export default function AdminCancelOrder({
@@ -11,6 +11,7 @@ export default function AdminCancelOrder({
     disabled,
     onOpen,
     onOrderChanged,
+    onEmailWarning,
 }: {
     orderId: number;
     publicOrderNumber: string;
@@ -18,6 +19,7 @@ export default function AdminCancelOrder({
     disabled: boolean;
     onOpen: () => void;
     onOrderChanged: () => Promise<void>;
+    onEmailWarning?: (warning: string | null) => void;
 }) {
     const dialogRef = useRef<HTMLDialogElement>(null);
     const requestInFlight = useRef(false);
@@ -37,18 +39,18 @@ export default function AdminCancelOrder({
         requestInFlight.current = true;
         setIsCancelling(true);
         setError(null);
+        onEmailWarning?.(null);
 
         try {
             // Use the same soft-cancellation operation as the History page.
-            const { error: cancelError } = await createClient().rpc("cancel_order", {
-                p_order_id: orderId,
-            });
+            const result = await cancelAdminOrder({ orderId });
 
-            if (cancelError) {
-                setError(cancelError.message || "A rendelés lemondása sikertelen.");
+            if (!result.success) {
+                setError(result.error || "A rendelés lemondása sikertelen.");
                 return;
             }
 
+            onEmailWarning?.(result.emailWarning ?? null);
             setIsCancelled(true);
             dialogRef.current?.close();
             await onOrderChanged();

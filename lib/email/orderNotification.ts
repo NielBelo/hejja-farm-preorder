@@ -4,7 +4,7 @@ import { formatOrderWindowEnd } from "@/lib/orderWindow";
 import { getBacsKiskunPickupRangeInfo, getPickupWindowInfo } from "@/lib/pickupInfo";
 import { getCountyGroup } from "@/lib/countyGroups";
 
-export type OrderNotificationKind = "created" | "updated";
+export type OrderNotificationKind = "created" | "updated" | "cancelled";
 
 export type OrderNotificationItem = {
     productName: string;
@@ -38,7 +38,14 @@ export type OrderNotification = {
 export type OrderNotificationHtmlOptions = {
     logoSrc?: string;
     orderUrl?: string;
+    /** A törlési blokk kuka ikonjának abszolút (vagy előnézetben relatív) URL-je - lásd sendOrderNotification.ts. */
+    cancelIconSrc?: string;
 };
+
+// Éles Resend e-mailben mindig teljes, publikus HTTPS URL-nek kell lennie
+// (lásd sendOrderNotification.ts) - ez csak akkor lép életbe, ha valamiért
+// mégsem érkezik explicit cancelIconSrc.
+const DEFAULT_CANCEL_ICON_SRC = "https://hejja-okofarm.hu/images/order-cancelled-icon.png";
 
 function formatItem(item: OrderNotificationItem, index: number) {
     const lines = [
@@ -110,6 +117,8 @@ function buildHtml(
 ) {
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");
     const orderUrl = options.orderUrl ? escapeHtml(options.orderUrl) : null;
+    const isCancelled = data.kind === "cancelled";
+    const cancelIconSrc = escapeHtml(options.cancelIconSrc ?? DEFAULT_CANCEL_ICON_SRC);
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
     // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
     // helyette a "vágási nap" + az azt követő nap alkotta kétnapos
@@ -149,12 +158,21 @@ function buildHtml(
                                 Kedves ${escapeHtml(data.customerName)}!
                             </p>
 
+                            ${isCancelled ? `
+                            <div style="margin-bottom:20px;padding:14px 17px;background:#fdecec;border-left:3px solid #dc4c4c;border-radius:0 8px 8px 0;">
+                                <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#dc4c4c;line-height:24px;text-align:center;vertical-align:middle;">
+                                    <img src="${cancelIconSrc}" width="16" height="16" alt="Törölt rendelés" style="display:inline-block;width:16px;height:16px;vertical-align:middle;border:0;outline:none;">
+                                </span>
+                                <span style="padding-left:8px;font-size:14px;line-height:22px;font-weight:700;color:#7f1d1d;vertical-align:middle;">
+                                    ${escapeHtml(heading)}
+                                </span>
+                            </div>` : `
                             <div style="margin-bottom:20px;">
                                 <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#46cc8d;color:#ffffff;font-size:14px;line-height:24px;text-align:center;font-weight:700;vertical-align:middle;">&#10003;</span>
                                 <span style="padding-left:8px;font-size:14px;line-height:22px;font-weight:700;color:#374151;vertical-align:middle;">
                                     ${escapeHtml(heading)}
                                 </span>
-                            </div>
+                            </div>`}
 
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:26px;background:#f1fbf6;border-left:3px solid #46cc8d;border-radius:0 8px 8px 0;">
                                 <tr>
@@ -181,6 +199,7 @@ function buildHtml(
                                 ${buildItemsHtml(data.items)}
                             </table>
 
+                            ${isCancelled ? "" : `
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:26px;margin-bottom:26px;background:#fff9e9;border-left:3px solid #e8b931;border-radius:0 8px 8px 0;">
                                 <tr>
                                     <td style="padding:15px 17px;font-size:14px;line-height:22px;color:#4b5563;">
@@ -188,12 +207,12 @@ function buildHtml(
                                         ${escapeHtml(formatOrderWindowEnd(data.modificationWindowEnd))}
                                     </td>
                                 </tr>
-                            </table>
+                            </table>`}
 
                             ${orderUrl ? `
                             <div style="padding-top:28px;text-align:center;">
                                 <a href="${orderUrl}" target="_blank" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#38b878;color:#ffffff;text-decoration:none;font-size:14px;line-height:22px;font-weight:700;">
-                                    Rendelésem megtekintése
+                                    ${isCancelled ? "Új rendelés leadása" : "Rendelésem megtekintése"}
                                 </a>
                             </div>` : ""}
 
@@ -233,12 +252,17 @@ export function buildOrderNotification(
     htmlOptions: OrderNotificationHtmlOptions = {},
 ): OrderNotification {
     const isCreated = data.kind === "created";
+    const isCancelled = data.kind === "cancelled";
     const subject = isCreated
         ? `Héjja Ökofarm – rendelés visszaigazolása (${data.orderNumber})`
-        : `Héjja Ökofarm – rendelés módosítva (${data.orderNumber})`;
+        : isCancelled
+            ? `Héjja Ökofarm – rendelés törölve (${data.orderNumber})`
+            : `Héjja Ökofarm – rendelés módosítva (${data.orderNumber})`;
     const heading = isCreated
         ? "Rendelését sikeresen rögzítettük."
-        : "Rendelésének módosítását sikeresen rögzítettük.";
+        : isCancelled
+            ? "Rendelését sikeresen töröltük."
+            : "Rendelésének módosítását sikeresen rögzítettük.";
     const isBacsKiskun = getCountyGroup(data.county) === "bacsKiskun";
     const pickupWindow = isBacsKiskun
         ? null
@@ -264,10 +288,11 @@ export function buildOrderNotification(
         "",
         "A rendelés tételei:",
         data.items.map(formatItem).join("\n\n"),
-        "",
-        `A rendelés módosítható eddig: ${formatOrderWindowEnd(data.modificationWindowEnd)}`,
+        ...(isCancelled
+            ? []
+            : ["", `A rendelés módosítható eddig: ${formatOrderWindowEnd(data.modificationWindowEnd)}`]),
         ...(htmlOptions.orderUrl
-            ? ["", `Rendelés megtekintése: ${htmlOptions.orderUrl}`]
+            ? ["", `${isCancelled ? "Új rendelés leadása" : "Rendelés megtekintése"}: ${htmlOptions.orderUrl}`]
             : []),
         "",
         "Ez egy automatikus e-mail, kérjük, ne válaszoljon rá.",

@@ -970,6 +970,7 @@ export default function AdminOrderCard({
                                 pickupDate={order.pickup_days.pickup_date}
                                 disabled={cannotModifyOrder}
                                 onOrderChanged={onOrderChanged}
+                                onEmailWarning={setEmailWarning}
                                 onOpen={() => {
                                     handleCloseHistory();
                                     setIsUserDetailsOpen(false);

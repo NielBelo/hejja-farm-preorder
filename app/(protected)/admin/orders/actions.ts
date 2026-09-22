@@ -122,3 +122,65 @@ export async function updateAdminOrder(data: AdminUpdateOrderData) {
 
     return { success: true, emailWarning, emailRecipient };
 }
+
+export async function cancelAdminOrder(data: { orderId: number }) {
+    const supabase = await createClient();
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            success: false,
+            error: "Nincs bejelentkezett felhasználó.",
+        };
+    }
+
+    const { data: adminRole, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+    if (roleError || !adminRole) {
+        return {
+            success: false,
+            error: "A művelethez adminisztrátori jogosultság szükséges.",
+        };
+    }
+
+    const { error } = await supabase.rpc("cancel_order", {
+        p_order_id: data.orderId,
+    });
+
+    if (error) {
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+
+    let emailWarning: string | undefined;
+    let emailRecipient: string | undefined;
+
+    try {
+        const notification = await sendOrderNotification({
+            supabase,
+            lookup: { orderId: data.orderId },
+            kind: "cancelled",
+            asAdmin: true,
+        });
+        emailRecipient = notification.recipient;
+    } catch (notificationError) {
+        console.error(
+            `Admin order cancellation email failed for order ${data.orderId}:`,
+            notificationError,
+        );
+        emailWarning =
+            "A rendelés törlése sikeres, de az értesítő e-mailt nem sikerült elküldeni.";
+    }
+
+    return { success: true, emailWarning, emailRecipient };
+}

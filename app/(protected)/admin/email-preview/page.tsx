@@ -77,6 +77,7 @@ export default async function AdminEmailPreviewPage({
     const orderUrl = orderDataBase?.orderId
         ? `/history?focusOrder=${orderDataBase.orderId}#order-${orderDataBase.orderId}`
         : "/history";
+    const cancelOrderUrl = "/preorder";
     const orderDataBekes = orderDataBase ? { ...orderDataBase, county: BEKES_SAMPLE_COUNTY } : null;
     const orderDataVarosi = orderDataBase ? { ...orderDataBase, county: NON_BEKES_SAMPLE_COUNTY } : null;
     const orderDataBacsKiskun = orderDataBase
@@ -104,6 +105,16 @@ export default async function AdminEmailPreviewPage({
     const updatedOrderEmailBacsKiskun = orderDataBacsKiskun
         ? buildOrderNotification({ ...orderDataBacsKiskun, kind: "updated" }, { logoSrc: "/images/logo2.png", orderUrl })
         : null;
+    const cancelIconSrc = "/images/order-cancelled-icon.png";
+    const cancelledOrderEmailBekes = orderDataBekes
+        ? buildOrderNotification({ ...orderDataBekes, kind: "cancelled" }, { logoSrc: "/images/logo2.png", orderUrl: cancelOrderUrl, cancelIconSrc })
+        : null;
+    const cancelledOrderEmailVarosi = orderDataVarosi
+        ? buildOrderNotification({ ...orderDataVarosi, kind: "cancelled" }, { logoSrc: "/images/logo2.png", orderUrl: cancelOrderUrl, cancelIconSrc })
+        : null;
+    const cancelledOrderEmailBacsKiskun = orderDataBacsKiskun
+        ? buildOrderNotification({ ...orderDataBacsKiskun, kind: "cancelled" }, { logoSrc: "/images/logo2.png", orderUrl: cancelOrderUrl, cancelIconSrc })
+        : null;
     const registrationEmail = buildRegistrationConfirmation({
         firstName: "Dániel",
         confirmationUrl: "https://hejja-okofarm.hu/auth/confirm?token_hash=minta-token&type=email",
@@ -114,7 +125,7 @@ export default async function AdminEmailPreviewPage({
         recipientName: "Dániel",
         invitationUrl: "https://hejja-okofarm.hu/register?invite=minta-egyszer-hasznalatos-token",
     });
-    const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "registration-invite"
+    const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "order-cancelled" || initialTemplate === "registration-invite"
         ? initialTemplate
         : "registration-invite" as const;
     const previews = {
@@ -162,6 +173,18 @@ export default async function AdminEmailPreviewPage({
         } : {
             unavailableMessage: NO_ACTIVE_SEASON_MESSAGE,
         },
+        "order-cancelled": (cancelledOrderEmailBekes && cancelledOrderEmailVarosi && cancelledOrderEmailBacsKiskun) ? {
+            subject: cancelledOrderEmailBekes.subject,
+            variants: [
+                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: cancelledOrderEmailBekes.html },
+                { label: "Városi átvétel (más megyei vásárló)", html: cancelledOrderEmailVarosi.html },
+                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: cancelledOrderEmailBacsKiskun.html },
+            ],
+            iframeTitle: "Rendeléstörlő e-mail",
+            height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
+        } : {
+            unavailableMessage: NO_ACTIVE_SEASON_MESSAGE,
+        },
     };
     const useCases = {
         registration: "Ezt a képernyőn megjelenő tájékoztatót a vásárló közvetlenül az adatok sikeres elküldése után látja.",
@@ -169,6 +192,7 @@ export default async function AdminEmailPreviewPage({
         "registration-invite": "Az adminisztrátor ezzel az e-maillel küld egyszer használatos linket a vásárlónak a meghívásos regisztráció megkezdéséhez.",
         "order-created": "A vásárló közvetlenül az új előrendelés leadása után kapja meg, amikor a rendszer sikeresen rögzítette a rendelését.",
         "order-updated": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését módosítja, és a rendszer elmenti a változtatást.",
+        "order-cancelled": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését törli, és a rendszer rögzíti a lemondást.",
     };
 
     return (

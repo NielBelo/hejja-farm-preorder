@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import ProductSelector from "@/components/ProductSelector";
 import PickupDayChangeCard from "@/components/PickupDayChangeCard";
-import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
@@ -11,6 +10,7 @@ import { normalizeSizePreference } from "@/lib/sizePreferences";
 import { BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
 import { getBacsKiskunPickupRangeInfo } from "@/lib/pickupInfo";
 import {
+    cancelOrder,
     updateOrder,
     type UpdateOrderItem,
 } from "@/app/(protected)/history/actions";
@@ -87,6 +87,7 @@ export default function OrderActions({
         editingOrderId,
         startEditing,
         stopEditing,
+        setCancellationNotice,
     } = useOrderActionsManager();
     const anotherOrderIsEditing =
         editingOrderId !== null &&
@@ -100,7 +101,6 @@ export default function OrderActions({
     const [emailWarning, setEmailWarning] = useState<string | null>(null);
     const [isCancelling, setIsCancelling] = useState(false);
     const [showCancelModal, setShowCancelModal] = useState(false);
-    const supabase = createClient();
 
     const initialItems = useMemo(
         () => [
@@ -327,18 +327,33 @@ export default function OrderActions({
         setIsCancelling(true);
         setSaveError(null);
         setSaveSuccess(null);
+        setEmailWarning(null);
+        setCancellationNotice(null);
 
-        const { error } = await supabase.rpc("cancel_order", {
-            p_order_id: orderId,
-        });
+        const result = await cancelOrder({ orderId });
 
-        if (error) {
+        if (!result.success) {
             setSaveError(
-                error.message || "A rendelés törlése sikertelen."
+                result.error || "A rendelés törlése sikertelen."
             );
             setIsCancelling(false);
             return;
         }
+
+        const emailMessage = result.emailRecipient
+            ? ` A rendelés törléséről visszaigazoló e-mailt küldtünk a(z) ${result.emailRecipient} e-mail-címre.`
+            : "";
+
+        // A helyi (kártyaszintű) siker/figyelmeztetés state helyett a megosztott
+        // OrderActionsManager-be kerül az üzenet: a törölt rendelés eltűnik a
+        // history oldal lekérdezéséből (lásd ott a .neq("status", "cancelled")
+        // szűrést), így a kártya - és a rajta belüli helyi state - a
+        // router.refresh() után azonnal unmountolódna, a visszajelzés pedig
+        // villanásnyi idő után eltűnne.
+        setCancellationNotice({
+            success: `A rendelés törlését sikeresen rögzítettük.${emailMessage}`,
+            warning: result.emailWarning ?? null,
+        });
 
         setIsCancelling(false);
 

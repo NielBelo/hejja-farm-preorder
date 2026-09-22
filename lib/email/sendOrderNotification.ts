@@ -65,11 +65,18 @@ export async function sendOrderNotification({
     const origin = await getRequestOrigin();
     const orderAnchor = `order-${data.orderId}`;
     const orderUrl = origin
-        ? `${origin}/history?focusOrder=${data.orderId}#${orderAnchor}`
+        ? kind === "cancelled"
+            ? `${origin}/preorder`
+            : `${origin}/history?focusOrder=${data.orderId}#${orderAnchor}`
         : undefined;
+    // A törlési e-mail kuka ikonja normál <img>-ként, teljes publikus HTTPS
+    // URL-lel kerül be - Gmail/Outlook a beágyazott <svg>-t kiszűri, a
+    // Unicode emoji pedig kliensfüggő/apró, ezért egyik sem megbízható.
+    const cancelIconSrc = origin ? `${origin}/images/order-cancelled-icon.png` : undefined;
     const notification = buildOrderNotification(data, {
         logoSrc: "cid:hejja-logo",
         orderUrl,
+        cancelIconSrc,
     });
 
     const delivery = await sendEmail({

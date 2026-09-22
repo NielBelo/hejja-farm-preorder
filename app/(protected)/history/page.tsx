@@ -276,14 +276,14 @@ export default async function HistoryPage({
       </div>
 
 
-      {orders.length === 0 ? (
-        <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
-          <p className="text-base text-gray-500">
-            Még nincs korábbi rendelése.
-          </p>
-        </div>
-      ) : (
-        <OrderActionsManager>
+      <OrderActionsManager>
+        {orders.length === 0 ? (
+          <div className="rounded-xl border border-gray-200 bg-white p-8 text-center">
+            <p className="text-base text-gray-500">
+              Még nincs korábbi rendelése.
+            </p>
+          </div>
+        ) : (
           <div className="space-y-5">
             {orders.map((order) => {
               const pickupDate = order.pickup_days?.pickup_date;
@@ -427,8 +427,8 @@ export default async function HistoryPage({
               );
             })}
           </div>
-        </OrderActionsManager>
-      )}
+        )}
+      </OrderActionsManager>
     </main>
   );
 }

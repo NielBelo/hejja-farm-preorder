@@ -15,7 +15,7 @@ type Preview = {
     unavailableMessage?: string;
 };
 
-type TemplateKey = "registration" | "registration-confirmation" | "registration-invite" | "order-created" | "order-updated";
+type TemplateKey = "registration" | "registration-confirmation" | "registration-invite" | "order-created" | "order-updated" | "order-cancelled";
 
 const templateLabels: Record<TemplateKey, string> = {
     registration: "Regisztráció",
@@ -23,6 +23,7 @@ const templateLabels: Record<TemplateKey, string> = {
     "registration-invite": "Regisztrációs meghívó",
     "order-created": "Új rendelés visszaigazolása",
     "order-updated": "Rendelés módosítása",
+    "order-cancelled": "Rendelés törlése",
 };
 
 export default function EmailPreviewSwitcher({

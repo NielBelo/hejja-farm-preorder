@@ -108,3 +108,51 @@ export async function updateOrder(data: UpdateOrderData) {
 
     return { success: true, emailWarning, emailRecipient };
 }
+
+export async function cancelOrder(data: { orderId: number }) {
+    const supabase = await createClient();
+
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            success: false,
+            error: "Nincs bejelentkezett felhasználó.",
+        };
+    }
+
+    const { error } = await supabase.rpc("cancel_order", {
+        p_order_id: data.orderId,
+    });
+
+    if (error) {
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+
+    let emailWarning: string | undefined;
+    let emailRecipient: string | undefined;
+
+    try {
+        const notification = await sendOrderNotification({
+            supabase,
+            lookup: { orderId: data.orderId },
+            kind: "cancelled",
+        });
+        emailRecipient = notification.recipient;
+    } catch (notificationError) {
+        console.error(
+            `Order cancellation email failed for order ${data.orderId}:`,
+            notificationError,
+        );
+        emailWarning =
+            "A rendelés törlése sikeres, de az értesítő e-mailt nem sikerült elküldeni.";
+    }
+
+    return { success: true, emailWarning, emailRecipient };
+}
