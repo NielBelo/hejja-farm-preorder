@@ -14,13 +14,15 @@ import { deleteSeason, saveSeason, setDunavecsePickupDayActive, type SeasonInput
 
 // A DUNAVECSE (Bács-Kiskun) technikai nap - a normál pickupDays listától
 // külön, mert nem szerkeszthető/törölhető a form-on keresztül, csak
-// aktiválható/deaktiválható. Korlátlan kapacitású, ezért nincs limit/
-// reservedQuantity mezője.
+// aktiválható/deaktiválható. Korlátlan kapacitású, ezért nincs limit
+// mezője, de a hozzá tartozó rendelések/foglalások (orderCount,
+// reservedQuantity) ugyanúgy megjelennek, mint a normál napoknál.
 type DunavecseInfo = {
   id: number;
   date: string;
   active: boolean;
   orderCount: number;
+  reservedQuantity: number;
   hasOrderHistory: boolean;
 };
 
@@ -308,6 +310,10 @@ function Editor({
   onCancel,
   saving,
   error,
+  dunavecse,
+  dunavecseToggling,
+  dunavecseError,
+  onToggleDunavecse,
 }: {
   value: SeasonInput;
   onChange: (v: SeasonInput) => void;
@@ -315,6 +321,10 @@ function Editor({
   onCancel: () => void;
   saving: boolean;
   error?: string | null;
+  dunavecse?: DunavecseInfo | null;
+  dunavecseToggling?: boolean;
+  dunavecseError?: string | null;
+  onToggleDunavecse?: (d: DunavecseInfo) => void;
 }) {
   const days = (fn: (d: SeasonInput["pickupDays"][number], i: number) => SeasonInput["pickupDays"][number]) =>
     onChange({ ...value, pickupDays: value.pickupDays.map(fn) });
@@ -486,6 +496,43 @@ function Editor({
           </button>
         )}
       </div>
+
+      {dunavecse && (
+        <div className="space-y-2 sm:col-span-2">
+          <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+            DUNAVECSE (Bács-Kiskun, technikai nap)
+            <InfoTip>
+              <p>
+                A Bács-Kiskun vármegyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem szerkeszthető
+                és nem törölhető, csak aktiválható/deaktiválható. Kapacitása korlátlan, nincs napi limitje.
+              </p>
+              <p className="mt-1.5">
+                Deaktiváláskor a Bács-Kiskun vármegyei vásárlók nem tudnak új rendelést leadni erre a szezonra, de a
+                már leadott rendeléseik változatlanul megmaradnak.
+              </p>
+            </InfoTip>
+          </p>
+          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+            <div className="min-w-[10rem] flex-1">
+              <p className="truncate text-sm font-medium text-gray-700">
+                Vágási nap: {dunavecse.date ? formatDate(dunavecse.date) : "–"}
+              </p>
+              <p className="text-xs text-gray-500">Korlátlan kapacitás</p>
+            </div>
+
+            <ActiveCheckbox
+              active={dunavecse.active}
+              loading={dunavecseToggling}
+              onChange={() => onToggleDunavecse?.(dunavecse)}
+            />
+
+            {dunavecse.hasOrderHistory && (
+              <OrderStatsCard orderCount={dunavecse.orderCount} reservedQuantity={dunavecse.reservedQuantity} />
+            )}
+          </div>
+          {dunavecseError && <p className="text-xs font-medium text-red-700">{dunavecseError}</p>}
+        </div>
+      )}
 
       <label className="flex items-center gap-2 sm:col-span-2">
         <input
@@ -670,9 +717,18 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                       {s.year} {s.type}
                     </span>
                     <span className="flex flex-wrap items-center gap-1.5">
-                      <StatChip value={activeDaysCount} label="aktív nap" />
-                      <StatChip value={totalOrders} label="rendelés" />
-                      <StatChip value={totalReserved} label="db csirke" />
+                      <StatChip
+                        value={s.dunavecse ? `${activeDaysCount} + ${s.dunavecse.active ? 1 : 0}` : activeDaysCount}
+                        label="aktív nap"
+                      />
+                      <StatChip
+                        value={s.dunavecse ? `${totalOrders} + ${s.dunavecse.orderCount}` : totalOrders}
+                        label="rendelés"
+                      />
+                      <StatChip
+                        value={s.dunavecse ? `${totalReserved} db + ${s.dunavecse.reservedQuantity} db` : totalReserved}
+                        label={s.dunavecse ? "csirke" : "db csirke"}
+                      />
                       <StatusBadge active={s.active} />
                       <ChevronDownIcon
                         aria-hidden="true"
@@ -685,7 +741,18 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                 {expanded && (
                   <div id={`season-${s.id}`}>
                     {isEditing ? (
-                      <Editor value={form} onChange={setForm} onSave={save} onCancel={cancelSeasonEdit} saving={saving} error={error} />
+                      <Editor
+                        value={form}
+                        onChange={setForm}
+                        onSave={save}
+                        onCancel={cancelSeasonEdit}
+                        saving={saving}
+                        error={error}
+                        dunavecse={s.dunavecse}
+                        dunavecseToggling={dunavecseTogglingId === s.dunavecse?.id}
+                        dunavecseError={dunavecseError}
+                        onToggleDunavecse={toggleDunavecseActive}
+                      />
                     ) : (
                       <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
                         <div className="grid gap-3 sm:grid-cols-2">
@@ -756,25 +823,13 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                                 </p>
                                 <p className="text-xs text-gray-500">
                                   Korlátlan kapacitás
-                                  {s.dunavecse.orderCount ? ` · ${s.dunavecse.orderCount} rendelés` : ""}
+                                  {s.dunavecse.orderCount
+                                    ? ` · ${s.dunavecse.orderCount} rendelés · ${s.dunavecse.reservedQuantity ?? 0} db csirke`
+                                    : ""}
                                 </p>
                               </div>
-                              <button
-                                type="button"
-                                disabled={dunavecseTogglingId === s.dunavecse.id}
-                                onClick={() => toggleDunavecseActive(s.dunavecse!)}
-                                className={statusBadgeClass(s.dunavecse.active) + " cursor-pointer disabled:cursor-not-allowed disabled:opacity-60"}
-                              >
-                                {dunavecseTogglingId === s.dunavecse.id
-                                  ? "…"
-                                  : s.dunavecse.active
-                                    ? <><CheckCircleIcon className="h-4 w-4" />Aktív</>
-                                    : <><XCircleIcon className="h-4 w-4" />Inaktív</>}
-                              </button>
+                              <StatusBadge active={s.dunavecse.active} />
                             </div>
-                            {dunavecseError && (
-                              <p className="mt-1.5 text-xs font-medium text-red-700">{dunavecseError}</p>
-                            )}
                           </div>
                         )}
 

@@ -435,8 +435,12 @@ export default function PreorderManager({
             <div className="mx-auto mt-6 mb-4 flex w-full max-w-4xl items-center gap-4">
                 <div className="h-px flex-1 bg-gray-400" />
 
-                <h2 className="text-xl font-semibold tracking-wider text-gray-500">
-                    ELŐRENDELÉS
+                <h2
+                    className={`text-xl font-semibold tracking-wider ${
+                        isBacsKiskun ? "text-gray-700" : "text-gray-500"
+                    }`}
+                >
+                    {isBacsKiskun ? "ELŐRENDELÉS (DUNAVECSE)" : "ELŐRENDELÉS"}
                 </h2>
 
                 <div className="h-px flex-1 bg-gray-400" />
