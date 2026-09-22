@@ -1,13 +1,10 @@
 import Navigation from "./Navigation";
 import LogoutButton from "./LogoutButton";
 import Logo from "./Logo";
+import HeaderMaintenanceBlockLayer from "./HeaderMaintenanceBlockLayer";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
-export default async function Header({
-  blocked = false,
-}: {
-  blocked?: boolean;
-}) {
+export default async function Header() {
   const currentUser = await getCurrentUser();
 
   return (
@@ -37,14 +34,7 @@ export default async function Header({
         </div>
       </div>
 
-      {/* Karbantartás alatt a fejléc látszik, de nem használható: ez a
-          réteg a sticky headerrel együtt mozog és minden interakciót elnyel. */}
-      {blocked && (
-        <div
-          aria-hidden="true"
-          className="absolute inset-0 z-10 cursor-not-allowed rounded-xl"
-        />
-      )}
+      <HeaderMaintenanceBlockLayer />
     </header>
   );
 }

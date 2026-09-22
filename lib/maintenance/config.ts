@@ -97,3 +97,20 @@ export function isMaintenanceBlocking(
   if (currentUser?.isAdmin && config.adminBypass) return false;
   return true;
 }
+
+// A kliensoldali pollozó végpont (app/api/maintenance-status) válasza. Nem
+// blokkolt állapotban szándékosan csak egyetlen mezőt tartalmaz – a
+// pollozás minimális payloadú maradjon, és blokkolt állapotban se szivárogjon
+// ki több adat (üzenet, időpont), mint amit a felhasználó úgyis megkapna a
+// MaintenanceOverlay-en.
+export type MaintenanceStatusPayload =
+  | { blocked: false }
+  | { blocked: true; message: string; endsAt: string | null };
+
+export function buildMaintenanceStatusPayload(
+  config: MaintenanceConfig,
+  currentUser: { isAdmin: boolean; isSuperAdmin: boolean } | null
+): MaintenanceStatusPayload {
+  if (!isMaintenanceBlocking(config, currentUser)) return { blocked: false };
+  return { blocked: true, message: config.message, endsAt: config.endsAt };
+}

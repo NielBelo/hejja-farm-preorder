@@ -1,5 +1,6 @@
+"use client";
+
 import { WrenchScrewdriverIcon } from "@heroicons/react/24/outline";
-import type { MaintenanceConfig } from "@/lib/maintenance/config";
 
 function formatDateTime(iso: string | null): string | null {
   if (!iso) return null;
@@ -12,11 +13,13 @@ function formatDateTime(iso: string | null): string | null {
 }
 
 export default function MaintenanceOverlay({
-  config,
+  message,
+  endsAt: endsAtIso,
 }: {
-  config: MaintenanceConfig;
+  message: string;
+  endsAt: string | null;
 }) {
-  const endsAt = formatDateTime(config.endsAt);
+  const endsAt = formatDateTime(endsAtIso);
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-2xl flex-col items-center justify-center px-4 py-10">
@@ -33,7 +36,7 @@ export default function MaintenanceOverlay({
         </h1>
 
         <p className="mt-4 whitespace-pre-line text-base leading-7 text-gray-600">
-          {config.message}
+          {message}
         </p>
 
         {endsAt && (

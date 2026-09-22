@@ -11,7 +11,7 @@ const compiled = ts.transpileModule(source, {
 const moduleExports = {};
 new Function('exports', 'require', compiled)(moduleExports, require);
 
-const { isMaintenanceBlocking, DEFAULT_MAINTENANCE_MESSAGE } = moduleExports;
+const { isMaintenanceBlocking, buildMaintenanceStatusPayload, DEFAULT_MAINTENANCE_MESSAGE } = moduleExports;
 
 const guest = null;
 const normalUser = { isAdmin: false, isSuperAdmin: false };
@@ -48,4 +48,38 @@ test('active maintenance never blocks the superadmin, regardless of the admin by
         const config = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: bypass };
         assert.equal(isMaintenanceBlocking(config, superAdmin), false);
     }
+});
+
+test('the poll status payload is minimal ({blocked:false} only) when the caller is not blocked', () => {
+    const inactive = { active: false, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: true };
+    for (const user of [guest, normalUser, admin, superAdmin]) {
+        const payload = buildMaintenanceStatusPayload(inactive, user);
+        assert.deepEqual(payload, { blocked: false });
+        assert.deepEqual(Object.keys(payload), ['blocked']);
+    }
+
+    const activeWithBypass = { active: true, endsAt: null, message: DEFAULT_MAINTENANCE_MESSAGE, adminBypass: true };
+    assert.deepEqual(buildMaintenanceStatusPayload(activeWithBypass, admin), { blocked: false });
+    assert.deepEqual(buildMaintenanceStatusPayload(activeWithBypass, superAdmin), { blocked: false });
+});
+
+test('the poll status payload includes the message and end time only when the caller is actually blocked', () => {
+    const active = { active: true, endsAt: '2999-01-01T10:00:00.000Z', message: 'Teszt üzenet', adminBypass: true };
+    assert.deepEqual(buildMaintenanceStatusPayload(active, normalUser), {
+        blocked: true,
+        message: 'Teszt üzenet',
+        endsAt: '2999-01-01T10:00:00.000Z',
+    });
+    assert.deepEqual(buildMaintenanceStatusPayload(active, guest), {
+        blocked: true,
+        message: 'Teszt üzenet',
+        endsAt: '2999-01-01T10:00:00.000Z',
+    });
+
+    const activeNoBypass = { active: true, endsAt: null, message: 'Teszt üzenet', adminBypass: false };
+    assert.deepEqual(buildMaintenanceStatusPayload(activeNoBypass, admin), {
+        blocked: true,
+        message: 'Teszt üzenet',
+        endsAt: null,
+    });
 });

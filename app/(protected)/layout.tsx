@@ -1,5 +1,6 @@
 import Header from "@/components/layout/Header";
-import MaintenanceOverlay from "@/components/layout/MaintenanceOverlay";
+import MaintenanceGate from "@/components/layout/MaintenanceGate";
+import MaintenanceStateProvider from "@/components/layout/MaintenanceStateProvider";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { getMaintenanceConfig, isMaintenanceBlocking } from "@/lib/maintenance/config";
 
@@ -15,16 +16,13 @@ export default async function ProtectedLayout({
   const blocked = isMaintenanceBlocking(maintenanceConfig, currentUser);
 
   return (
-    <>
-      <Header blocked={blocked} />
-
-      {blocked ? (
-        <MaintenanceOverlay config={maintenanceConfig} />
-      ) : (
-        <main className="max-w-6xl mx-auto px-4 py-6">
-          {children}
-        </main>
-      )}
-    </>
+    <MaintenanceStateProvider
+      initialBlocked={blocked}
+      initialMessage={blocked ? maintenanceConfig.message : null}
+      initialEndsAt={blocked ? maintenanceConfig.endsAt : null}
+    >
+      <Header />
+      <MaintenanceGate>{children}</MaintenanceGate>
+    </MaintenanceStateProvider>
   );
 }
