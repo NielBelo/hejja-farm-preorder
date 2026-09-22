@@ -21,8 +21,10 @@ const menuItems = [
 
 export default function Navigation({
   isAdmin,
+  isSuperAdmin,
 }: {
   isAdmin: boolean;
+  isSuperAdmin?: boolean;
 }) {
   const pathname = usePathname();
   const [userMenuOpen, setUserMenuOpen] = useState(false);
@@ -165,6 +167,10 @@ export default function Navigation({
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
                 <Link href="/admin/accounts/invites" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/invites" ? "page" : undefined}
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Meghívó</Link>
+                {isSuperAdmin && (
+                  <Link href="/admin/accounts/maintenance" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/maintenance" ? "page" : undefined}
+                    className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Karbantartás</Link>
+                )}
               </div>}
             </div>
 

@@ -3,7 +3,11 @@ import LogoutButton from "./LogoutButton";
 import Logo from "./Logo";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 
-export default async function Header() {
+export default async function Header({
+  blocked = false,
+}: {
+  blocked?: boolean;
+}) {
   const currentUser = await getCurrentUser();
 
   return (
@@ -15,7 +19,10 @@ export default async function Header() {
           </div>
 
           <div className="col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
-            <Navigation isAdmin={currentUser?.isAdmin ?? false} />
+            <Navigation
+              isAdmin={currentUser?.isAdmin ?? false}
+              isSuperAdmin={currentUser?.isSuperAdmin ?? false}
+            />
           </div>
 
           <div className="justify-self-end sm:col-start-3 sm:row-start-1">
@@ -29,6 +36,15 @@ export default async function Header() {
           </div>
         </div>
       </div>
+
+      {/* Karbantartás alatt a fejléc látszik, de nem használható: ez a
+          réteg a sticky headerrel együtt mozog és minden interakciót elnyel. */}
+      {blocked && (
+        <div
+          aria-hidden="true"
+          className="absolute inset-0 z-10 cursor-not-allowed rounded-xl"
+        />
+      )}
     </header>
   );
 }

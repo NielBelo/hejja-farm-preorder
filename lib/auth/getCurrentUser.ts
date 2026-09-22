@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 
 export type CurrentUser = {
@@ -9,10 +10,11 @@ export type CurrentUser = {
   city: string;
   county: string;
   isAdmin: boolean;
+  isSuperAdmin: boolean;
   specialSizePreference: "smaller" | "larger" | null;
 };
 
-export async function getCurrentUser(): Promise<CurrentUser | null> {
+export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
   const supabase = await createClient();
 
   const {
@@ -25,7 +27,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
 
   const { data: userRole } = await supabase
   .from("user_roles")
-  .select("role")
+  .select("role, is_superadmin")
   .eq("user_id", user.id)
   .single();
 
@@ -48,6 +50,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     city: profile.city,
     county: profile.county,
     isAdmin: userRole?.role === "admin",
+    isSuperAdmin: userRole?.role === "admin" && userRole?.is_superadmin === true,
     specialSizePreference: profile.special_size_preference ?? null,
   };
-}
+});
