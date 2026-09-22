@@ -21,8 +21,6 @@
       "service": "hejja-farm-preorder-test"
     }
   ],
-  // A karbantartási mód beállításait (aktív/inaktív, kezdet, vég, üzenet,
-  // admin bypass) tárolja, Supabase/Postgres nélkül.
   "kv_namespaces": [
     {
       "binding": "MAINTENANCE_KV",
