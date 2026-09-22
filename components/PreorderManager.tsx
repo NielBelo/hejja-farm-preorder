@@ -268,7 +268,14 @@ export default function PreorderManager({
     };
 
 
+    // Ref-based guard: synchronous, so it blocks a second call that arrives in the
+    // same event-loop tick, before the isSubmitting state update above could commit.
+    const isSubmittingRef = useRef(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+
     const handleFinalizeOrder = async () => {
+        if (isSubmittingRef.current) return;
+
         if (isBacsKiskun) {
             if (!dunavecsePickupDay?.is_active) {
                 setSubmitError(
@@ -301,43 +308,53 @@ export default function PreorderManager({
             return;
         }
 
+        // From here on this is a valid submit attempt: block any further calls
+        // (double click/tap, duplicate event) immediately and synchronously.
+        isSubmittingRef.current = true;
+        setIsSubmitting(true);
+
         setSubmitError(null);
         setEmailWarning(null);
 
-        const rpcItems = validOrderItems.map<SubmitOrderItem>((item) => ({
-            product_id: item.selectedProductId!,
-            package_id: item.selectedPackageId!,
-            quantity: item.quantity,
-            size_preference: item.selectedNote,
-            note: item.note || null,
-        }));
+        try {
+            const rpcItems = validOrderItems.map<SubmitOrderItem>((item) => ({
+                product_id: item.selectedProductId!,
+                package_id: item.selectedPackageId!,
+                quantity: item.quantity,
+                size_preference: item.selectedNote,
+                note: item.note || null,
+            }));
 
-        const result = await submitOrder({
-            seasonParameterId: season.id,
-            pickupDayId: displayPickupDay.id,
-            items: rpcItems,
-        });
+            const result = await submitOrder({
+                seasonParameterId: season.id,
+                pickupDayId: displayPickupDay.id,
+                items: rpcItems,
+            });
 
-        await refreshPickupDays();
+            await refreshPickupDays();
 
-        if (!result.success || !result.orderNumber) {
-            setSubmitError(result.error ?? "A rendelés véglegesítése sikertelen.");
-            return;
+            if (!result.success || !result.orderNumber) {
+                setSubmitError(result.error ?? "A rendelés véglegesítése sikertelen.");
+                return;
+            }
+
+            setLastSubmittedOrder({
+                orderNumber: result.orderNumber,
+                pickupDay: displayPickupDay,
+                items: validOrderItems.map((item) => ({ ...item })),
+                submittedAt: new Date(),
+                emailRecipient: result.emailRecipient,
+            });
+            setResetKey((prev) => prev + 1);
+            setOrderItems([]);
+            setHasOrderChanges(false);
+            setSelectedPickupDay(null);
+            setTermsAccepted(false);
+            setEmailWarning(result.emailWarning ?? null);
+        } finally {
+            isSubmittingRef.current = false;
+            setIsSubmitting(false);
         }
-
-        setLastSubmittedOrder({
-            orderNumber: result.orderNumber,
-            pickupDay: displayPickupDay,
-            items: validOrderItems.map((item) => ({ ...item })),
-            submittedAt: new Date(),
-            emailRecipient: result.emailRecipient,
-        });
-        setResetKey((prev) => prev + 1);
-        setOrderItems([]);
-        setHasOrderChanges(false);
-        setSelectedPickupDay(null);
-        setTermsAccepted(false);
-        setEmailWarning(result.emailWarning ?? null);
     };
 
 
@@ -520,9 +537,11 @@ export default function PreorderManager({
                     <button
                         type="button"
                         onClick={handleFinalizeOrder}
-                        className="rounded-lg bg-[rgb(49,171,2)] px-10 py-4 text-lg font-semibold text-white transition hover:brightness-95"
+                        disabled={isSubmitting}
+                        aria-busy={isSubmitting}
+                        className="rounded-lg bg-[rgb(49,171,2)] px-10 py-4 text-lg font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
-                        Rendelés véglegesítése
+                        {isSubmitting ? "Rendelés folyamatban…" : "Rendelés véglegesítése"}
                     </button>
                 </div>
             </div>
