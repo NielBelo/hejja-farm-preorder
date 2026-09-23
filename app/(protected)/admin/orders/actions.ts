@@ -4,6 +4,7 @@ import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
 import { createClient } from "@/lib/supabase/server";
 import { normalizePackageId } from "@/lib/orderPackaging";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
+import { getMaintenanceBlockError } from "@/lib/maintenance/guard";
 
 export type AdminUpdateOrderItem = {
     product_id: number;
@@ -45,6 +46,11 @@ export async function updateAdminOrder(data: AdminUpdateOrderData) {
             success: false,
             error: "A művelethez adminisztrátori jogosultság szükséges.",
         };
+    }
+
+    const maintenanceError = await getMaintenanceBlockError();
+    if (maintenanceError) {
+        return { success: false, error: maintenanceError };
     }
 
     if (data.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QUANTITY_PER_ITEM)) {
@@ -151,6 +157,11 @@ export async function cancelAdminOrder(data: { orderId: number }) {
         };
     }
 
+    const maintenanceError = await getMaintenanceBlockError();
+    if (maintenanceError) {
+        return { success: false, error: maintenanceError };
+    }
+
     const { error } = await supabase.rpc("cancel_order", {
         p_order_id: data.orderId,
     });
@@ -183,4 +194,51 @@ export async function cancelAdminOrder(data: { orderId: number }) {
     }
 
     return { success: true, emailWarning, emailRecipient };
+}
+
+export async function restoreAdminOrder(data: { orderId: number }) {
+    const supabase = await createClient();
+    const {
+        data: { user },
+        error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+        return {
+            success: false,
+            error: "Nincs bejelentkezett felhasználó.",
+        };
+    }
+
+    const { data: adminRole, error: roleError } = await supabase
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .maybeSingle();
+
+    if (roleError || !adminRole) {
+        return {
+            success: false,
+            error: "A művelethez adminisztrátori jogosultság szükséges.",
+        };
+    }
+
+    const maintenanceError = await getMaintenanceBlockError();
+    if (maintenanceError) {
+        return { success: false, error: maintenanceError };
+    }
+
+    const { error } = await supabase.rpc("restore_order", {
+        p_order_id: data.orderId,
+    });
+
+    if (error) {
+        return {
+            success: false,
+            error: error.message,
+        };
+    }
+
+    return { success: true };
 }

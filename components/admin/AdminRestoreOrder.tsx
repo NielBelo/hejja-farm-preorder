@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { createClient } from "@/lib/supabase/client";
+import { restoreAdminOrder } from "@/app/(protected)/admin/orders/actions";
 import { getPickupDateStatus, usePickupDateStatus } from "@/lib/usePickupDateStatus";
 
 export default function AdminRestoreOrder({ orderId, pickupDate, disabled, onOrderChanged }: {
@@ -28,11 +28,9 @@ export default function AdminRestoreOrder({ orderId, pickupDate, disabled, onOrd
         setIsRestoring(true);
         setError(null);
         try {
-            const { error: restoreError } = await createClient().rpc("restore_order", {
-                p_order_id: orderId,
-            });
-            if (restoreError) {
-                setError(restoreError.message || "A rendelés visszaállítása sikertelen.");
+            const result = await restoreAdminOrder({ orderId });
+            if (!result.success) {
+                setError(result.error || "A rendelés visszaállítása sikertelen.");
                 return;
             }
             setIsRestored(true);

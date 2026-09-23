@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { sendOrderNotification } from "@/lib/email/sendOrderNotification";
 import { normalizePackageId } from "@/lib/orderPackaging";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
+import { getMaintenanceBlockError } from "@/lib/maintenance/guard";
 
 export type UpdateOrderItem = {
     product_id: number;
@@ -32,6 +33,11 @@ export async function updateOrder(data: UpdateOrderData) {
             success: false,
             error: "Nincs bejelentkezett felhasználó.",
         };
+    }
+
+    const maintenanceError = await getMaintenanceBlockError();
+    if (maintenanceError) {
+        return { success: false, error: maintenanceError };
     }
 
     if (data.items.some((item) => !Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > MAX_QUANTITY_PER_ITEM)) {
@@ -122,6 +128,11 @@ export async function cancelOrder(data: { orderId: number }) {
             success: false,
             error: "Nincs bejelentkezett felhasználó.",
         };
+    }
+
+    const maintenanceError = await getMaintenanceBlockError();
+    if (maintenanceError) {
+        return { success: false, error: maintenanceError };
     }
 
     const { error } = await supabase.rpc("cancel_order", {
