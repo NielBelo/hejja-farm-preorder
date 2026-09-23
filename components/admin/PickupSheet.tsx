@@ -313,9 +313,20 @@ export default function PickupSheet({
                     <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
                         <h2 className="text-center text-sm font-semibold text-gray-700">Napi készlet</h2>
                         {activePickupDate?.kind === "dunavecse" ? (
-                            <p className="mt-3 py-4 text-center text-sm text-gray-500">
-                                Korlátlan (DUNAVECSE technikai nap)
-                            </p>
+                            <div className="mt-3">
+                                <p className="text-center text-sm text-gray-500">
+                                    Korlátlan (DUNAVECSE technikai nap)
+                                </p>
+                                <div className="mt-3 space-y-1.5 text-xs leading-tight text-gray-600">
+                                    <div className="flex items-center justify-between gap-2">
+                                        <span className="flex items-center gap-1.5 font-medium">
+                                            <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
+                                            Lefoglalt
+                                        </span>
+                                        <span className="tabular-nums text-gray-500">{summary.chickenCount} db</span>
+                                    </div>
+                                </div>
+                            </div>
                         ) : (
                             <div className="mt-3">
                                 <div
