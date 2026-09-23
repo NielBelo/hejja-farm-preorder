@@ -89,6 +89,7 @@ export default function Navigation({
               <Link
                 key={item.href}
                 href={item.href}
+                prefetch={false}
                 className={`
                   px-2 py-2 text-base sm:px-3 sm:text-lg transition-all
                   ${
@@ -141,6 +142,7 @@ export default function Navigation({
                     <Link
                       key={href}
                       href={href}
+                      prefetch={false}
                       onClick={() => setOrderMenuOpen(false)}
                       className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
                     >
@@ -163,12 +165,12 @@ export default function Navigation({
                 </svg>
               </button>
               {accountMenuOpen && <div id="account-menu" className="absolute left-0 top-full z-50 mt-1 min-w-44 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
-                <Link href="/admin/accounts" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts" ? "page" : undefined}
+                <Link href="/admin/accounts" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts" ? "page" : undefined}
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
-                <Link href="/admin/accounts/invites" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/invites" ? "page" : undefined}
+                <Link href="/admin/accounts/invites" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/invites" ? "page" : undefined}
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Meghívó</Link>
                 {isSuperAdmin && (
-                  <Link href="/admin/accounts/maintenance" onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/maintenance" ? "page" : undefined}
+                  <Link href="/admin/accounts/maintenance" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/maintenance" ? "page" : undefined}
                     className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Karbantartás</Link>
                 )}
               </div>}
@@ -213,6 +215,7 @@ export default function Navigation({
                     <Link
                       key={href}
                       href={href}
+                      prefetch={false}
                       onClick={() => setEmailMenuOpen(false)}
                       className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
                     >
@@ -270,6 +273,7 @@ export default function Navigation({
                     <Link
                       key={item.href}
                       href={item.href}
+                      prefetch={false}
                       onClick={() => setUserMenuOpen(false)}
                       className={`
                         block rounded-md px-3 py-2 text-base transition-all
