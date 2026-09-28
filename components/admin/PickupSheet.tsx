@@ -353,14 +353,14 @@ export default function PickupSheet({
                                             <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-500 ring-1 ring-gray-300" />
                                             Lefoglalt
                                         </span>
-                                        <span className="tabular-nums text-gray-500">{stock.usedCount} db</span>
+                                        <span className="tabular-nums text-gray-500">{stock.usedCount} db · {percentageFormatter.format(stock.usedPercentage)}%</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-2">
                                         <span className="flex items-center gap-1.5 font-medium">
                                             <span aria-hidden="true" className="h-2.5 w-2.5 rounded-sm bg-slate-200 ring-1 ring-gray-300" />
                                             Elérhető
                                         </span>
-                                        <span className="tabular-nums text-gray-500">{stock.availableCount} db</span>
+                                        <span className="tabular-nums text-gray-500">{stock.availableCount} db · {percentageFormatter.format(stock.availablePercentage)}%</span>
                                     </div>
                                     <div className="flex items-center justify-between gap-2 border-t border-gray-200 pt-1.5">
                                         <span className="font-medium">Napi limit</span>
@@ -453,9 +453,9 @@ export default function PickupSheet({
                             <col className="w-[6%]" />
                             <col className="w-[10%]" />
                             <col className="w-[10%]" />
-                            <col className="w-[10%]" />
-                            <col className="w-[10%]" />
-                            <col className="w-[22.5%]" />
+                            <col className="w-[9%]" />
+                            <col className="w-[12%]" />
+                            <col className="w-[21.5%]" />
                             <col className="w-[9%]" />
                         </colgroup>
                         <thead className="bg-gray-300 font-semibold text-gray-800 print:table-header-group">
