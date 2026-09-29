@@ -106,7 +106,7 @@ export default function PickupDaySelector({
                         type="button"
                         disabled
                         aria-label={`${number}. nap – jelenleg nem elérhető`}
-                        className="relative flex h-[168px] cursor-not-allowed flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-center"
+                        className="relative flex h-[178px] cursor-not-allowed flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-center"
                     >
                         <div className="flex flex-1 items-center justify-center">
                             <NoSymbolIcon
@@ -134,7 +134,7 @@ export default function PickupDaySelector({
                                 }
                             }}
                             className={`
-                                relative flex h-[168px] flex-col items-center justify-start rounded-xl p-3 text-center transition-all
+                                relative flex h-[178px] flex-col items-center justify-start rounded-xl px-3 pt-3 pb-2 text-center transition-all
                                 ${
                                     selected
                                         ? `border-2 ${cardBorderClass} bg-[rgba(216,227,232,0.51)] shadow-md`
@@ -144,7 +144,7 @@ export default function PickupDaySelector({
                             `}
                         >
                             <ArchiveBoxIcon
-                                className={`h-10 w-10 ${status.iconClass}`}
+                                className={`h-10 w-10 shrink-0 ${status.iconClass}`}
                             />
 
                             <p className="mt-1 whitespace-nowrap text-xl font-bold leading-7 text-gray-700">
@@ -157,7 +157,7 @@ export default function PickupDaySelector({
 
                             <div className="mx-auto mt-2 w-4/5 border-t-2 border-black" />
 
-                            <p className={`mt-2 text-center text-base font-medium leading-5 ${status.iconClass}`}>
+                            <p className={`mt-2 min-h-10 shrink-0 text-center text-base font-medium leading-5 ${status.iconClass}`}>
                                 {status.text}
                             </p>
                         </button>
