@@ -3,6 +3,7 @@ import { supabase } from "@/lib/supabase";
 import PreorderManager from "@/components/PreorderManager";
 import SeasonOrderInfo from "@/components/SeasonOrderInfo";
 import PreorderIntro from "@/components/PreorderIntro";
+import CustomerFooter from "@/components/CustomerFooter";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { createClient } from "@/lib/supabase/server";
 
@@ -62,8 +63,9 @@ export default async function PreorderPage() {
     .replace("{price}", String(season?.price));
 
   return (
-    <main className="mx-auto mt-4 w-full max-w-5xl">
-      <PreorderIntro imageUrl={orderInfo1?.image_url}>
+    <>
+      <main className="mx-auto mt-4 w-full max-w-5xl">
+        <PreorderIntro imageUrl={orderInfo1?.image_url}>
           <div className="text-lg text-gray-600 leading-7 whitespace-pre-line">
             {orderInfo1?.content}
           </div>
@@ -75,18 +77,20 @@ export default async function PreorderPage() {
               seasonText={orderInfo2Text}
             />
           </div>
-      </PreorderIntro>
+        </PreorderIntro>
 
-      <PreorderManager
-        season={season}
-        products={products ?? []}
-        packages={packages ?? []}
-        pickupDays={pickupDays ?? []}
-        dunavecseDay={dunavecseDay ?? null}
-        userCounty={currentUser?.county ?? null}
-        userSizePreference={currentUser?.specialSizePreference ?? null}
-        sizePreferenceLocks={sizePreferenceLocks ?? []}
-      />
-    </main>
+        <PreorderManager
+          season={season}
+          products={products ?? []}
+          packages={packages ?? []}
+          pickupDays={pickupDays ?? []}
+          dunavecseDay={dunavecseDay ?? null}
+          userCounty={currentUser?.county ?? null}
+          userSizePreference={currentUser?.specialSizePreference ?? null}
+          sizePreferenceLocks={sizePreferenceLocks ?? []}
+        />
+      </main>
+      <CustomerFooter />
+    </>
   );
 }

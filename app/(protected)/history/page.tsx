@@ -3,6 +3,7 @@ import OrderActions from "@/components/OrderActions";
 import { OrderActionsManager } from "@/components/OrderActionsManager";
 import EditableOrderCard from "@/components/EditableOrderCard";
 import CountdownCard from "@/components/CountdownCard";
+import CustomerFooter from "@/components/CustomerFooter";
 import Image from "next/image";
 import { getPickupDateStatus } from "@/lib/pickupDateStatus";
 
@@ -186,6 +187,7 @@ export default async function HistoryPage({
   
 
   return (
+    <>
     <main className="mx-auto mt-4 w-full max-w-5xl">
       {/* Tájékoztató rész */}
       <div className="mt-4 mb-6 w-full">
@@ -430,5 +432,7 @@ export default async function HistoryPage({
         )}
       </OrderActionsManager>
     </main>
+    <CustomerFooter />
+    </>
   );
 }

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import ProfileEditor from "@/components/ProfileEditor";
 import ProfilePrivacyNotice from "@/components/ProfilePrivacyNotice";
+import CustomerFooter from "@/components/CustomerFooter";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -45,6 +46,7 @@ export default async function ProfilePage() {
   }
 
   return (
+    <>
     <main className="mx-auto mt-4 w-full max-w-5xl">
 
       {/* Tájékoztató rész */}
@@ -62,5 +64,7 @@ export default async function ProfilePage() {
       </div>
 
     </main>
+    <CustomerFooter />
+    </>
   );
 }
