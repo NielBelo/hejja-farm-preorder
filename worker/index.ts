@@ -32,7 +32,7 @@ import openNextWorker from "../.open-next/worker.js";
 // @ts-ignore "../.open-next/worker.js" csak build időben generálódik
 export { BucketCachePurge, DOQueueHandler, DOShardedTagCache } from "../.open-next/worker.js";
 import { createClient } from "@supabase/supabase-js";
-import { sendPickupReminders } from "../lib/email/sendReminderEmail";
+import { isReminderSendingBlocked, sendPickupReminders } from "../lib/email/sendReminderEmail";
 import { getTomorrowPickupDateIso, shouldRunReminderJob } from "./reminderSchedule";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
@@ -49,6 +49,32 @@ type ExecutionContextLike = {
 };
 
 async function runReminderJob(pickupDateIso: string) {
+    // A sending guardot (NODE_ENV === "production" ÉS
+    // REMINDER_EMAIL_SENDING_ENABLED === "true", lásd
+    // lib/email/reminderGuard.ts) itt, a Supabase kliens létrehozása ELŐTT
+    // ellenőrizzük, nem csak sendPickupReminders belsejében. Így amíg a
+    // küldés szándékosan ki van kapcsolva:
+    //   - a SUPABASE_SERVICE_ROLE_KEY (Cloudflare Worker secret) hiánya
+    //     irreleváns - sosem próbálunk meg Supabase klienst létrehozni vele;
+    //   - nem történik felesleges DB-lekérdezés (sendPickupReminders
+    //     egyébként a jogosult rendelések számát blokkolt állapotban is
+    //     lekérdezné, diagnosztikai célból - ez a worker/cron útvonalon nem
+    //     szükséges, mivel blokkolt állapotban admin összesítő sem megy ki);
+    //   - nincs zavaró hibalog: egy hiányzó/érvénytelen service role kulcs
+    //     esetén a @supabase/supabase-js createClient() szinkron hibát dob
+    //     ("supabaseKey is required"), amit korábban csak a lenti try/catch
+    //     kapott el és logolt hibaként - pedig ez valójában a guard által
+    //     szándékosan megakadályozott, biztonságos állapot, nem hiba.
+    if (isReminderSendingBlocked()) {
+        console.log(
+            `[reminder] scheduled no-op: a küldés jelenleg ki van kapcsolva `
+            + `(NODE_ENV=${process.env.NODE_ENV ?? "development"}, `
+            + `REMINDER_EMAIL_SENDING_ENABLED=${process.env.REMINDER_EMAIL_SENDING_ENABLED ?? "nincs beállítva"}) - `
+            + `Supabase-kliens sem jön létre. Érintett átvételi nap: ${pickupDateIso}.`,
+        );
+        return;
+    }
+
     try {
         // A claim_reminder_send/finalize_reminder_send RPC-k (lásd
         // supabase/migrations/20260930000000_reminder_sends.sql) kizárólag
@@ -102,11 +128,12 @@ const worker = {
             `[reminder] scheduled indul: Budapest 08:00, holnapi átvételi nap = ${pickupDateIso}.`,
         );
 
-        // sendPickupReminders (lib/email/sendReminderEmail.ts) a tényleges
-        // SMTP2GO-küldés előtt mindig ellenőrzi a meglévő guardot
-        // (NODE_ENV === "production" ÉS REMINDER_EMAIL_SENDING_ENABLED ===
-        // "true") - ezt itt nem kerüljük meg, localhoston/teszt közben a
-        // küldés emiatt mindig blokkolva marad.
+        // A tényleges sending guardot (NODE_ENV === "production" ÉS
+        // REMINDER_EMAIL_SENDING_ENABLED === "true") a runReminderJob eleje
+        // ellenőrzi, MÉG a Supabase kliens létrehozása előtt - ezt itt nem
+        // kerüljük meg, localhoston/teszt közben, vagy ha a flag nincs
+        // bekapcsolva, a küldés emiatt mindig blokkolva marad, és Supabase
+        // kliens sem jön létre.
         ctx.waitUntil(runReminderJob(pickupDateIso));
     },
 };
