@@ -3,6 +3,8 @@ import { getLatestOrderUpdate } from "@/lib/email/latestOrderUpdate";
 import { getLatestOrderNotificationData } from "@/lib/email/orderNotificationData";
 import { buildRegistrationConfirmation } from "@/lib/email/registrationConfirmation";
 import { buildRegistrationInvite } from "@/lib/email/registrationInvite";
+import { buildReminderEmail } from "@/lib/email/reminder";
+import { getLatestReminderSampleOrder } from "@/lib/email/reminderData";
 import RegisterForm, { RegistrationSuccessMessage } from "@/app/(public)/register/RegisterForm";
 import { createClient } from "@/lib/supabase/server";
 import { getActiveSeasonPickupTimes } from "@/lib/activeSeasonPickupTimes";
@@ -16,6 +18,8 @@ const NON_BEKES_SAMPLE_COUNTY = "Csongrád-Csanád";
 const BACS_KISKUN_SAMPLE_COUNTY = "Bács-Kiskun";
 const NO_ACTIVE_SEASON_MESSAGE =
     "Nincs jelenleg aktív szezon beállítva, és nincs elérhető valós rendelés sem mintaadatként, ezért az átvételi időpontot tartalmazó e-mail előnézete nem elérhető. Állítson be aktív szezont a Szezonok oldalon, majd térjen vissza ide.";
+const NO_REMINDER_SAMPLE_MESSAGE =
+    "Nincs elérhető, nem Bács-Kiskun vármegyei (DUNAVECSE) valós rendelés az emlékeztető e-mail előnézetéhez - a Bács-Kiskun vármegyei vásárlók ugyanis sosem kapnak emlékeztetőt.";
 
 function formatDateTime(value: string) {
     return new Intl.DateTimeFormat("hu-HU", {
@@ -31,10 +35,11 @@ export default async function AdminEmailPreviewPage({
     searchParams: Promise<{ template?: string | string[] }>;
 }) {
     const supabase = await createClient();
-    const [latestUpdate, activeSeason, latestOrderNotification] = await Promise.all([
+    const [latestUpdate, activeSeason, latestOrderNotification, reminderSample] = await Promise.all([
         getLatestOrderUpdate(supabase),
         getActiveSeasonPickupTimes(supabase),
         getLatestOrderNotificationData(supabase, { asAdmin: true }),
+        getLatestReminderSampleOrder(supabase, { asAdmin: true }),
     ]);
 
     // A Bács-Kiskun (DUNAVECSE) mintaváltozat a jelenleg aktív szezon valós
@@ -125,7 +130,25 @@ export default async function AdminEmailPreviewPage({
         recipientName: "Dániel",
         invitationUrl: "https://hejja-okofarm.hu/register?invite=minta-egyszer-hasznalatos-token",
     });
-    const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "order-cancelled" || initialTemplate === "registration-invite"
+
+    // Az emlékeztető mintaadata (reminderSample) a legutóbbi, NEM
+    // Bács-Kiskun vármegyei valós rendelésből származik (lásd
+    // lib/email/reminderData.ts getLatestReminderSampleOrder) - ezért itt
+    // nincs (és nem is lehet) DUNAVECSE/Bács-Kiskun variáns, csak a
+    // tanyasi (Békés) és a városi (más megye) ág.
+    const reminderOrderUrl = reminderSample
+        ? `/history?focusOrder=${reminderSample.data.orderId}#order-${reminderSample.data.orderId}`
+        : "/history";
+    const reminderDataBekes = reminderSample ? { ...reminderSample.data, county: BEKES_SAMPLE_COUNTY } : null;
+    const reminderDataVarosi = reminderSample ? { ...reminderSample.data, county: NON_BEKES_SAMPLE_COUNTY } : null;
+    const reminderEmailBekes = reminderDataBekes
+        ? buildReminderEmail(reminderDataBekes, { logoSrc: "/images/logo2.png", orderUrl: reminderOrderUrl })
+        : null;
+    const reminderEmailVarosi = reminderDataVarosi
+        ? buildReminderEmail(reminderDataVarosi, { logoSrc: "/images/logo2.png", orderUrl: reminderOrderUrl })
+        : null;
+
+    const selectedTemplate = initialTemplate === "registration" || initialTemplate === "registration-confirmation" || initialTemplate === "order-created" || initialTemplate === "order-updated" || initialTemplate === "order-cancelled" || initialTemplate === "registration-invite" || initialTemplate === "reminder"
         ? initialTemplate
         : "registration-invite" as const;
     const previews = {
@@ -185,6 +208,17 @@ export default async function AdminEmailPreviewPage({
         } : {
             unavailableMessage: NO_ACTIVE_SEASON_MESSAGE,
         },
+        reminder: (reminderEmailBekes && reminderEmailVarosi) ? {
+            subject: reminderEmailBekes.subject,
+            variants: [
+                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: reminderEmailBekes.html },
+                { label: "Városi átvétel (más megyei vásárló)", html: reminderEmailVarosi.html },
+            ],
+            iframeTitle: "Átvétel előtti emlékeztető e-mail",
+            height: Math.max(760, 560 + (reminderSample?.data.items.length ?? 0) * 110),
+        } : {
+            unavailableMessage: NO_REMINDER_SAMPLE_MESSAGE,
+        },
     };
     const useCases = {
         registration: "Ezt a képernyőn megjelenő tájékoztatót a vásárló közvetlenül az adatok sikeres elküldése után látja.",
@@ -193,6 +227,7 @@ export default async function AdminEmailPreviewPage({
         "order-created": "A vásárló közvetlenül az új előrendelés leadása után kapja meg, amikor a rendszer sikeresen rögzítette a rendelését.",
         "order-updated": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését módosítja, és a rendszer elmenti a változtatást.",
         "order-cancelled": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését törli, és a rendszer rögzíti a lemondást.",
+        reminder: "A vásárló az átvételi nap előtti napon kapja meg, hogy emlékeztesse a másnapi átvételre. Bács-Kiskun vármegyei (DUNAVECSE) vásárló nem kap emlékeztetőt.",
     };
 
     return (

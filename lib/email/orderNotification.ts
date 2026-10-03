@@ -47,7 +47,7 @@ export type OrderNotificationHtmlOptions = {
 // mégsem érkezik explicit cancelIconSrc.
 const DEFAULT_CANCEL_ICON_SRC = "https://hejja-okofarm.hu/images/order-cancelled-icon.png";
 
-function formatItem(item: OrderNotificationItem, index: number) {
+export function formatItem(item: OrderNotificationItem, index: number) {
     const lines = [
         `${index + 1}. ${item.productName} – ${item.quantity} db`,
         `   Csomagolás: ${item.packageName}`,
@@ -64,7 +64,7 @@ function formatItem(item: OrderNotificationItem, index: number) {
     return lines.join("\n");
 }
 
-function escapeHtml(value: string) {
+export function escapeHtml(value: string) {
     return value
         .replaceAll("&", "&amp;")
         .replaceAll("<", "&lt;")
@@ -73,7 +73,7 @@ function escapeHtml(value: string) {
         .replaceAll("'", "&#039;");
 }
 
-function buildItemsHtml(items: OrderNotificationItem[]) {
+export function buildItemsHtml(items: OrderNotificationItem[]) {
     return items.map((item, index) => {
         const details = [
             `<span style="color:#6b7280;">Csomagolás:</span> ${escapeHtml(item.packageName)}`,
@@ -122,7 +122,7 @@ function buildHtml(
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
     // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
     // helyette a "vágási nap" + az azt követő nap alkotta kétnapos
-    // dátumtartomány jelenik meg, "Átvétel"/"Átvétel helyszíne" sorok nélkül.
+    // dátumtartomány jelenik meg, "Átvétel időpontja"/"Átvétel helye" sorok nélkül.
     const isBacsKiskun = getCountyGroup(data.county) === "bacsKiskun";
     const pickupWindow = isBacsKiskun
         ? null
@@ -182,10 +182,10 @@ function buildHtml(
                                         ${isBacsKiskun && bacsKiskunRange ? `
                                         <strong style="color:#218856;">Átvételi nap:</strong>
                                         ${escapeHtml(bacsKiskunRange.rangeLabel)}<br>` : `
-                                        <strong style="color:#218856;">Átvétel:</strong>
+                                        <strong style="color:#218856;">Átvétel időpontja:</strong>
                                         ${escapeHtml(pickupWindow!.windowLabel)}<br>${isCancelled ? "" : `
-                                        <strong style="color:#218856;">Átvétel helyszíne:</strong>
-                                        ${escapeHtml(pickupWindow!.location)}!<br>`}`}
+                                        <strong style="color:#218856;">Átvétel helye:</strong>
+                                        ${escapeHtml(pickupWindow!.location)}<br>`}`}
                                         <strong style="color:#218856;">Összes mennyiség:</strong>
                                         ${totalQuantity} db
                                     </td>
@@ -285,8 +285,8 @@ export function buildOrderNotification(
         ...(isBacsKiskun && bacsKiskunRange
             ? [`Átvételi nap: ${bacsKiskunRange.rangeLabel}`]
             : isCancelled
-                ? [`Átvétel: ${pickupWindow!.windowLabel}`]
-                : [`Átvétel: ${pickupWindow!.windowLabel}`, `Átvétel helyszíne: ${pickupWindow!.location}!`]),
+                ? [`Átvétel időpontja: ${pickupWindow!.windowLabel}`]
+                : [`Átvétel időpontja: ${pickupWindow!.windowLabel}`, `Átvétel helye: ${pickupWindow!.location}`]),
         "",
         "A rendelés tételei:",
         data.items.map(formatItem).join("\n\n"),

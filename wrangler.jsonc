@@ -1,10 +1,37 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "hejja-farm-preorder-test",
-  "main": ".open-next/worker.js",
+  // A meglévő OpenNext worker (.open-next/worker.js, build-generált) helyett
+  // egy vékony custom entry (lásd worker/index.ts) a "main": ez a fetch
+  // handlert változtatás nélkül továbbadja, és hozzáadja a napi emlékeztető
+  // "scheduled" handlert (lásd "triggers.crons" lent).
+  "main": "worker/index.ts",
   "compatibility_date": "2026-08-31",
   "compatibility_flags": ["nodejs_compat"],
   "workers_dev": true,
+  // A worker/index.ts (a lib/email/*.ts láncon keresztül) "import
+  // \"server-only\";" sorokat is bundle-el - ez az npm csomag nincs
+  // telepítve (Next.js build közben saját belső alias-ból oldja fel), ezért
+  // esbuild-alias-szal egy üres stubra mutatjuk (lásd worker/shims/server-only.ts).
+  "alias": {
+    "server-only": "./worker/shims/server-only.ts"
+  },
+  // A Cloudflare cron csak UTC-ben ütemezhető, ezért két UTC időpontban fut:
+  // nyári időszámításkor a 06:00 UTC, télin a 07:00 UTC esik egybe a
+  // Budapest szerinti 08:00-val. A scheduled handler (worker/index.ts,
+  // worker/reminderSchedule.ts) minden futáskor ellenőrzi az aktuális
+  // Europe/Budapest órát, és a másik (nem 08:00-nak megfelelő) futáskor
+  // azonnal kilép.
+  "triggers": {
+    "crons": ["0 6 * * *", "0 7 * * *"]
+  },
+  // A scheduled handler (worker/index.ts) a reminder RPC-k hívásához
+  // SUPABASE_SERVICE_ROLE_KEY nevű Worker secretet igényel (NEM "vars" itt,
+  // mivel titkos érték) - deploy előtt: "wrangler secret put
+  // SUPABASE_SERVICE_ROLE_KEY". Nélküle a scheduled futás a
+  // claim_reminder_send/finalize_reminder_send hívásokon jogosultsági
+  // hibával elhasal (lásd supabase/migrations/20260930000000_reminder_sends.sql).
+
   "routes": [
     {
       "pattern": "hejja-okofarm.hu/*",

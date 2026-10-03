@@ -211,6 +211,7 @@ export default function Navigation({
                     ["Új rendelés visszaigazolása", "/admin/email-preview?template=order-created"],
                     ["Rendelés módosítása", "/admin/email-preview?template=order-updated"],
                     ["Rendelés törlése", "/admin/email-preview?template=order-cancelled"],
+                    ["Emlékeztető", "/admin/email-preview?template=reminder"],
                   ].map(([label, href]) => (
                     <Link
                       key={href}
