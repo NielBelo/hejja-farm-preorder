@@ -4,16 +4,36 @@
 // handler és a Durable Object exportok változatlanul az OpenNext workeré
 // maradnak; ez a fájl KIZÁRÓLAG a napi emlékeztető cron-feladathoz
 // szükséges `scheduled` handlert adja hozzá.
-import openNextWorker, {
-    BucketCachePurge,
-    DOQueueHandler,
-    DOShardedTagCache,
-} from "../.open-next/worker.js";
+// A "../.open-next/worker.js" csak a build FOLYAMÁN, az opennextjs-cloudflare
+// build "next build" lépése UTÁN generálódik - tiszta checkout-on (pl. CI)
+// ez a fájl a "next build" saját típusellenőrzése IDEJÉN még nem létezik.
+// A Next típusellenőrzése a teljes tsconfig.json "include"-ja alapján épít
+// fel egy TS-programot (nem csak a route-okból elérhető fájlokból), ezért
+// ezt a worker-entry fájlt is ellenőrzi, és hiányzó modul esetén TS2307-tel
+// elbuktatná a teljes "next build"-et. Ez az OpenNext hivatalosan
+// dokumentált mintája ennek kezelésére (lásd
+// https://opennext.js.org/cloudflare/howtos/custom-worker): soronként
+// célzott "@ts-ignore", NEM globális skipLibCheck/ignoreBuildErrors - a
+// tényleges bundlingot (wrangler/esbuild) ez nem érinti, az a build végén,
+// amikor a fájl már valóban létezik, helyesen oldja fel az importot.
+//
+// Szándékosan "@ts-ignore", NEM "@ts-expect-error": az utóbbi maga is
+// hibát dobna ("Unused '@ts-expect-error' directive"), ha ezt a fájlt egy
+// korábbi, lokálisan már lefutott build után (amikor a worker.js még a
+// lemezen maradt) futtatjuk újra típusellenőrzésre - a "@ts-ignore"
+// mindkét állapotban (fájl létezik/nem létezik) biztonságosan, hiba
+// nélkül viselkedik.
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore "../.open-next/worker.js" csak build időben generálódik
+import openNextWorker from "../.open-next/worker.js";
+// A re-export csak akkor szükséges, ha az app DO Queue-t/DO Tag Cache-t
+// használ (lásd az OpenNext minta ugyanezen megjegyzését a fenti linken).
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore "../.open-next/worker.js" csak build időben generálódik
+export { BucketCachePurge, DOQueueHandler, DOShardedTagCache } from "../.open-next/worker.js";
 import { createClient } from "@supabase/supabase-js";
 import { sendPickupReminders } from "../lib/email/sendReminderEmail";
 import { getTomorrowPickupDateIso, shouldRunReminderJob } from "./reminderSchedule";
-
-export { BucketCachePurge, DOQueueHandler, DOShardedTagCache };
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
 // scheduled handler paramétereit minimális, a ténylegesen használt alakra
