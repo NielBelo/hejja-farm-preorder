@@ -9,6 +9,8 @@ import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
 import { createClient } from "@/lib/supabase/client";
 import { getCountyGroup, BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
 import { getBacsKiskunPickupRangeInfo } from "@/lib/pickupInfo";
+import { useOrderWindow } from "@/lib/useOrderWindow";
+import { getDisplayPickupDay } from "@/lib/orderingAvailability";
 import {
     submitOrder,
     type SubmitOrderItem,
@@ -78,6 +80,9 @@ type SizePreferenceLock = {
     preference: "smaller" | "larger";
 };
 
+const ORDERING_CLOSED_MESSAGE =
+    "Jelenleg nincs lehetőség előrendelésre! A rendelés leadása csak a rendelési időszakban lehetséges.";
+
 export default function PreorderManager({
     season,
     products,
@@ -105,6 +110,14 @@ export default function PreorderManager({
     // OrderConfirmationSummary logika (maxAvailableQuantity, pickupDate stb.)
     // változtatás nélkül újrahasználható legyen.
     const isBacsKiskun = getCountyGroup(userCounty) === "bacsKiskun";
+
+    // A rendelési időablak mindkét csoportnál ugyanazt a tiltást adja: lejárt
+    // (vagy még nem kezdődött) időablaknál nincs aktív átvételi nap, így a
+    // termékválasztás és a véglegesítés sem érhető el.
+    const isOrderingOpen = useOrderWindow(
+        season?.time_window_start,
+        season?.time_window_end
+    );
 
     const [selectedPickupDay, setSelectedPickupDay] = useState<PickupDay | null>(
         null
@@ -135,9 +148,12 @@ export default function PreorderManager({
     // kézzel kiválasztott nap. Ezt render közben származtatjuk (nem
     // effektussal szinkronizáljuk state-be), hogy ne legyen felesleges,
     // kaszkádoló renderelés.
-    const displayPickupDay: PickupDay | null = isBacsKiskun
-        ? (dunavecsePickupDay?.is_active ? dunavecsePickupDay : null)
-        : selectedPickupDay;
+    const displayPickupDay: PickupDay | null = getDisplayPickupDay({
+        isOrderingOpen,
+        isBacsKiskun,
+        selectedPickupDay,
+        dunavecsePickupDay,
+    });
 
     const [currentSizePreferenceLocks, setCurrentSizePreferenceLocks] =
         useState<SizePreferenceLock[]>(sizePreferenceLocks);
@@ -275,6 +291,11 @@ export default function PreorderManager({
 
     const handleFinalizeOrder = async () => {
         if (isSubmittingRef.current) return;
+
+        if (!isOrderingOpen) {
+            setSubmitError(ORDERING_CLOSED_MESSAGE);
+            return;
+        }
 
         if (isBacsKiskun) {
             if (!dunavecsePickupDay?.is_active) {
@@ -449,7 +470,16 @@ export default function PreorderManager({
             <div ref={pickupDaySectionRef} className="scroll-mt-24">
                 {isBacsKiskun ? (
                     <section className="mt-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
-                        {dunavecsePickupDay?.is_active ? (
+                        {!isOrderingOpen ? (
+                            <>
+                                <h3 className="text-center text-xl font-semibold text-gray-700">
+                                    Jelenleg nincs lehetőség előrendelésre!
+                                </h3>
+                                <p className="mt-2 text-center text-lg font-semibold text-gray-700">
+                                    A következő előrendelési lehetőségről e-mailben értesítjük.
+                                </p>
+                            </>
+                        ) : dunavecsePickupDay?.is_active ? (
                             <p className="text-center text-lg font-semibold text-gray-700">
                                 Vágási nap:{" "}
                                 <span className="text-[rgb(49,171,2)]">
@@ -474,6 +504,7 @@ export default function PreorderManager({
                 )}
             </div>
 
+            {isOrderingOpen && (
             <section className="mt-6 rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
                 <h2 className="mb-3 text-center text-xl font-semibold text-gray-700">
                     Adja meg a rendelési tétel(eke)t!
@@ -495,6 +526,7 @@ export default function PreorderManager({
                     }}
                 />
             </section>
+            )}
 
 
 
