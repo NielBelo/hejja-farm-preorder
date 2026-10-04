@@ -20,6 +20,7 @@ function load(relativePath, imports = {}) {
 const { isBacsKiskunCounty } = load('../lib/countyGroups.ts');
 const { summarizeReminderOutcomes, shouldSendAdminReminderSummary, processWithConcurrencyLimit } = load('../lib/email/reminderRun.ts');
 const reminderStalenessModule = load('../lib/email/reminderStaleness.ts');
+const smtp2goModule = load('../lib/email/smtp2go.ts');
 
 // Hűen szimulálja a public.claim_reminder_send / finalize_reminder_send
 // Postgres-függvények (supabase/migrations/20260930000000_reminder_sends.sql
@@ -98,6 +99,7 @@ function createMockReminderStore() {
 function buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient, blocked = false, store }) {
     const smtp2goCalls = [];
     const adminSummaryCalls = [];
+    const loadCalls = [];
 
     const modules = load('../lib/email/sendReminderEmail.ts', {
         '@/lib/email/reminder': {
@@ -111,7 +113,8 @@ function buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient,
             getReminderOrderTargetsForDate: async () => targets,
         },
         '@/lib/email/orderNotificationData': {
-            loadOrderNotificationData: async (_supabase, lookup) => {
+            loadOrderNotificationData: async (_supabase, lookup, kind, options) => {
+                loadCalls.push({ lookup, kind, options });
                 const info = orderData.get(lookup.orderId);
                 if (!info) throw new Error(`no fixture data for order ${lookup.orderId}`);
                 return {
@@ -122,6 +125,7 @@ function buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient,
         },
         '@/lib/countyGroups': { isBacsKiskunCounty },
         '@/lib/email/smtp2go': {
+            isSmtp2GoUncertainError: smtp2goModule.isSmtp2GoUncertainError,
             sendSmtp2GoEmail: async (args) => {
                 smtp2goCalls.push(args);
                 const outcome = sendOutcomeByRecipient.get(args.to);
@@ -152,7 +156,7 @@ function buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient,
         },
     });
 
-    return { sendPickupReminders: modules.sendPickupReminders, store, adminSummaryCalls, smtp2goCalls };
+    return { sendPickupReminders: modules.sendPickupReminders, store, adminSummaryCalls, smtp2goCalls, loadCalls };
 }
 
 const fakeSupabase = {};
@@ -251,6 +255,7 @@ test('8: at most 5 orders are processed concurrently even with many eligible ord
         },
         '@/lib/countyGroups': { isBacsKiskunCounty },
         '@/lib/email/smtp2go': {
+            isSmtp2GoUncertainError: smtp2goModule.isSmtp2GoUncertainError,
             sendSmtp2GoEmail: async (args) => {
                 inFlight += 1;
                 maxInFlight = Math.max(maxInFlight, inFlight);
@@ -608,4 +613,196 @@ test('a bizonytalan (uncertain) jelzés szövege megjelenik a renderelt admin ö
     assert.ok(summary.text.includes('manuális ellenőrzés'));
     assert.ok(summary.html.includes('HO-0203'));
     assert.ok(summary.html.includes('Bizonytalan'));
+});
+
+// Hotfix: a reminder runtime szerver-oldali (serviceRole) betöltést használ.
+test('hotfix: the reminder runtime loads orders with serviceRole + asAdmin', async () => {
+    const store = createMockReminderStore();
+    const targets = [{ orderId: 1, pickupDayId: 100 }];
+    const orderData = new Map([[1, { orderNumber: 'HO-0001', recipient: 'a@example.hu', county: 'Békés' }]]);
+    const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient: new Map([['a@example.hu', 'msg-1']]), store });
+
+    await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(fx.loadCalls.length, 1);
+    assert.deepEqual(fx.loadCalls[0].options, { asAdmin: true, serviceRole: true });
+});
+
+// Hotfix 3: egy claim-hiba csak az adott rendelést érinti, a batch folytatódik.
+test('hotfix 3: a claimReminderSend error only fails that order and the batch continues', async () => {
+    const store = createMockReminderStore();
+    const originalClaim = store.claim.bind(store);
+    store.claim = async (orderId, pickupDayId) => {
+        if (orderId === 11) throw new Error('A reminder-rekord lefoglalása sikertelen (rendelés #11): timeout');
+        return originalClaim(orderId, pickupDayId);
+    };
+    const targets = [
+        { orderId: 10, pickupDayId: 100 },
+        { orderId: 11, pickupDayId: 100 },
+        { orderId: 12, pickupDayId: 100 },
+    ];
+    const orderData = new Map([
+        [10, { orderNumber: 'HO-0010', recipient: 'ok1@example.hu', county: 'Békés' }],
+        [11, { orderNumber: 'HO-0011', recipient: 'claim@example.hu', county: 'Békés' }],
+        [12, { orderNumber: 'HO-0012', recipient: 'ok2@example.hu', county: 'Békés' }],
+    ]);
+    const sendOutcomeByRecipient = new Map([
+        ['ok1@example.hu', 'msg-10'],
+        ['ok2@example.hu', 'msg-12'],
+    ]);
+
+    const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient, store });
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(result.stats.sentCount, 2);
+    assert.equal(result.stats.failedCount, 1);
+    assert.equal(result.failures[0].orderNumber, '11');
+    assert.match(result.failures[0].errorMessage, /timeout/);
+    assert.equal(fx.smtp2goCalls.length, 2, 'the two healthy orders must still be sent');
+    assert.equal(result.failures.length, 1);
+    assert.ok(fx.adminSummaryCalls.length === 1, 'admin summary must still be sent for a run with attempts');
+});
+
+// Hotfix 4: SMTP ELŐTTI hiba (itt: a rendelés adatbetöltése) -> failed, nincs SMTP-hívás.
+test('hotfix 4: a failure before SMTP marks the record failed and never calls SMTP2GO', async () => {
+    const store = createMockReminderStore();
+    const targets = [{ orderId: 20, pickupDayId: 100 }];
+    // Nincs fixture-adat a 20-as rendeléshez -> loadOrderNotificationData dob.
+    const orderData = new Map();
+    const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient: new Map(), store });
+
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(result.stats.failedCount, 1);
+    assert.equal(fx.smtp2goCalls.length, 0);
+    assert.equal(store.getRow(20, 100).status, 'failed');
+});
+
+// Hotfix 5: SMTP SIKER UTÁN a finalize hibája -> uncertain, SOHA nem failed.
+test('hotfix 5: a finalize error after a successful SMTP send yields uncertain, never failed', async () => {
+    const store = createMockReminderStore();
+    const originalFinalize = store.finalize.bind(store);
+    store.finalize = async (id, status, extra) => {
+        if (status === 'sent') throw new Error('A reminder-rekord lezárása sikertelen (#1): network down');
+        return originalFinalize(id, status, extra);
+    };
+    const targets = [{ orderId: 30, pickupDayId: 100 }];
+    const orderData = new Map([[30, { orderNumber: 'HO-0030', recipient: 'uncertain@example.hu', county: 'Békés' }]]);
+    const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient: new Map([['uncertain@example.hu', 'msg-30']]), store });
+
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(fx.smtp2goCalls.length, 1);
+    assert.equal(result.stats.uncertainCount, 1);
+    assert.equal(result.stats.failedCount, 0);
+    assert.equal(result.stats.attemptedCount, 1, 'an SMTP-accepted send is an attempt, so the admin summary is still produced');
+    assert.equal(fx.adminSummaryCalls.length, 1);
+    assert.equal(result.uncertain.length, 1);
+    assert.match(result.uncertain[0].detail, /msg-30/);
+    assert.notEqual(store.getRow(30, 100).status, 'failed');
+    assert.equal(store.getRow(30, 100).status, 'sending');
+
+    // Következő futás: a "sending" sor nem foglalható újra, SMTP nem hívódik.
+    const fx2 = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient: new Map([['uncertain@example.hu', 'msg-dup']]), store });
+    await fx2.sendPickupReminders(fakeSupabase, '2026-10-07');
+    assert.equal(fx2.smtp2goCalls.length, 0, 'a successfully-sent-but-unfinalized reminder must never be re-sent automatically');
+});
+
+// Hotfix 6: sent rekord -> nincs újraküldés.
+test('hotfix 6: a record already in sent state is never retried', async () => {
+    const store = createMockReminderStore();
+    const row = store.seedSending(40, 100, '2026-10-06T08:00:00Z');
+    row.status = 'sent';
+    row.sentAt = '2026-10-06T08:00:01Z';
+    const targets = [{ orderId: 40, pickupDayId: 100 }];
+    const orderData = new Map([[40, { orderNumber: 'HO-0040', recipient: 'sent@example.hu', county: 'Békés' }]]);
+    const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient: new Map([['sent@example.hu', 'msg-dup']]), store });
+
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(result.stats.skippedCount, 1);
+    assert.equal(result.stats.attemptedCount, 0);
+    assert.equal(fx.smtp2goCalls.length, 0);
+    assert.equal(store.getRow(40, 100).status, 'sent');
+});
+
+// SMTP2GO kategorizálás a runtime-ban: egyértelmű elutasítás -> failed,
+// bizonytalan kézbesítés -> uncertain, és az uncertain SOHA nem küldődik újra.
+test('smtp 1: an explicit SMTP2GO rejection marks the record failed (retry allowed)', async () => {
+    const store = createMockReminderStore();
+    const targets = [{ orderId: 50, pickupDayId: 100 }];
+    const orderData = new Map([[50, { orderNumber: 'HO-0050', recipient: 'rej@example.hu', county: 'Békés' }]]);
+    const fx = buildFixtureBySendOutcome({
+        targets,
+        orderData,
+        sendOutcomeByRecipient: new Map([['rej@example.hu', new smtp2goModule.Smtp2GoDeliveryError('rejected')]]),
+        store,
+    });
+
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(result.stats.failedCount, 1);
+    assert.equal(result.stats.uncertainCount, 0);
+    assert.equal(store.getRow(50, 100).status, 'failed');
+});
+
+test('smtp 2: an SMTP2GO network/timeout error marks the record uncertain, never failed', async () => {
+    const store = createMockReminderStore();
+    const targets = [{ orderId: 51, pickupDayId: 100 }];
+    const orderData = new Map([[51, { orderNumber: 'HO-0051', recipient: 'net@example.hu', county: 'Békés' }]]);
+    const fx = buildFixtureBySendOutcome({
+        targets,
+        orderData,
+        sendOutcomeByRecipient: new Map([['net@example.hu', new smtp2goModule.Smtp2GoUncertainDeliveryError('timeout')]]),
+        store,
+    });
+
+    const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+
+    assert.equal(result.stats.uncertainCount, 1);
+    assert.equal(result.stats.failedCount, 0);
+    assert.equal(result.stats.attemptedCount, 1, 'a network-uncertain send is a real attempt, so the admin summary is produced');
+    assert.equal(fx.adminSummaryCalls.length, 1);
+    assert.equal(store.getRow(51, 100).status, 'sending');
+});
+
+// 4. uncertain következő futásnál -> nincs resend (friss és stale esetben egyaránt).
+test('smtp 4: an uncertain record is never resent by the next run (fresh or stale)', async () => {
+    const store = createMockReminderStore();
+    const targets = [{ orderId: 52, pickupDayId: 100 }];
+    const orderData = new Map([[52, { orderNumber: 'HO-0052', recipient: 'once@example.hu', county: 'Békés' }]]);
+    const fx1 = buildFixtureBySendOutcome({
+        targets,
+        orderData,
+        sendOutcomeByRecipient: new Map([['once@example.hu', new smtp2goModule.Smtp2GoUncertainDeliveryError('timeout')]]),
+        store,
+    });
+    await fx1.sendPickupReminders(fakeSupabase, '2026-10-07');
+    assert.equal(fx1.smtp2goCalls.length, 1);
+
+    // Következő futás, a sor még friss "sending": csendes skip, nincs SMTP.
+    const fx2 = buildFixtureBySendOutcome({
+        targets,
+        orderData,
+        sendOutcomeByRecipient: new Map([['once@example.hu', 'msg-resend']]),
+        store,
+    });
+    const result2 = await fx2.sendPickupReminders(fakeSupabase, '2026-10-07');
+    assert.equal(fx2.smtp2goCalls.length, 0);
+    assert.equal(result2.stats.attemptedCount, 0);
+    assert.equal(store.getRow(52, 100).status, 'sending');
+
+    // Stale sor (régi attempted_at): uncertain marad, még mindig nincs SMTP.
+    const staleStore = createMockReminderStore();
+    staleStore.seedSending(52, 100, '2026-10-01T08:00:00Z');
+    const fx3 = buildFixtureBySendOutcome({
+        targets,
+        orderData,
+        sendOutcomeByRecipient: new Map([['once@example.hu', 'msg-stale-resend']]),
+        store: staleStore,
+    });
+    const result3 = await fx3.sendPickupReminders(fakeSupabase, '2026-10-07');
+    assert.equal(fx3.smtp2goCalls.length, 0, 'a stale sending record must never trigger an automatic resend');
+    assert.equal(result3.stats.uncertainCount, 1);
+    assert.equal(staleStore.getRow(52, 100).status, 'sending');
 });

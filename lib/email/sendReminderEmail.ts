@@ -5,9 +5,9 @@ import { buildReminderEmail } from "@/lib/email/reminder";
 import { getReminderOrderTargetsForDate } from "@/lib/email/reminderData";
 import { loadOrderNotificationData } from "@/lib/email/orderNotificationData";
 import { isBacsKiskunCounty } from "@/lib/countyGroups";
-import { sendSmtp2GoEmail } from "@/lib/email/smtp2go";
+import { sendSmtp2GoEmail, isSmtp2GoUncertainError } from "@/lib/email/smtp2go";
 import { isReminderSendingBlocked } from "@/lib/email/reminderGuard";
-import { claimReminderSend, finalizeReminderSend } from "@/lib/email/reminderSends";
+import { claimReminderSend, finalizeReminderSend, type ReminderClaim } from "@/lib/email/reminderSends";
 import { formatSendingDuration, isStaleSending } from "@/lib/email/reminderStaleness";
 import {
     processWithConcurrencyLimit,
@@ -24,6 +24,10 @@ export { isReminderSendingBlocked } from "@/lib/email/reminderGuard";
 export type { ReminderRunFailure, ReminderRunStats, ReminderRunUncertain } from "@/lib/email/reminderRun";
 
 const SITE_URL = "https://hejja-okofarm.hu";
+
+// A reminder runtime service role kulccsal fut, felhasználói session nélkül:
+// a címzett a rendelés vásárlójának profiles.email mezője (nincs auth.getUser).
+const REMINDER_LOAD_OPTIONS = { asAdmin: true, serviceRole: true } as const;
 
 // Ne induljon 50 (vagy több) párhuzamos HTTP-hívás az SMTP2GO felé egy
 // nagyobb napi kiküldésnél - legfeljebb ennyi rendelés feldolgozása fut
@@ -60,7 +64,7 @@ async function classifyUnclaimedSending(
     let recipient = "";
 
     try {
-        const loaded = await loadOrderNotificationData(supabase, { orderId }, "created", { asAdmin: true });
+        const loaded = await loadOrderNotificationData(supabase, { orderId }, "created", REMINDER_LOAD_OPTIONS);
         orderNumber = loaded.data.orderNumber;
         recipient = loaded.recipient;
     } catch (error) {
@@ -84,13 +88,55 @@ async function classifyUnclaimedSending(
     };
 }
 
+function describeCaughtError(error: unknown, fallback: string): string {
+    return error instanceof Error ? error.message : fallback;
+}
+
+// SMTP-küldés ELŐTTI hiba: a rekord failed-re zárul, így a következő futás
+// újrapróbálhatja. A finalize maga is hibázhat - ilyenkor a sor "sending"
+// marad, ami a stale-logika miatt később "uncertain"-ként jelenik meg, és
+// SOHA nem küldődik automatikusan újra.
+async function failBeforeSend(
+    supabase: SupabaseClient,
+    claimId: number,
+    orderId: number,
+    orderNumber: string,
+    recipient: string,
+    errorMessage: string,
+): Promise<ReminderOutcome> {
+    try {
+        await finalizeReminderSend(supabase, claimId, { status: "failed", errorMessage });
+    } catch (finalizeError) {
+        console.error(`[reminder] A reminder-rekord lezárása is sikertelen (#${claimId}):`, finalizeError);
+    }
+
+    return { kind: "failed", orderId, orderNumber, recipient, errorMessage };
+}
+
+// Egyetlen rendelés feldolgozása. SOHA nem dob ki hibát: minden hiba az
+// adott rendelés outcome-jába kerül, így a párhuzamos batch (lásd
+// processWithConcurrencyLimit) a többi rendelést akkor is folytatja, ha az
+// egyik claim/küldés/lezárás elhasal.
 async function processOneReminder(
     supabase: SupabaseClient,
     orderId: number,
     pickupDayId: number,
     now: Date,
 ): Promise<ReminderOutcome> {
-    const claim = await claimReminderSend(supabase, orderId, pickupDayId);
+    let claim: ReminderClaim;
+    try {
+        claim = await claimReminderSend(supabase, orderId, pickupDayId);
+    } catch (error) {
+        // Ilyenkor nincs lefoglalt sor, amit lezárni kellene - csak ez a
+        // rendelés bukik el, a többi nem.
+        return {
+            kind: "failed",
+            orderId,
+            orderNumber: String(orderId),
+            recipient: "",
+            errorMessage: describeCaughtError(error, "Ismeretlen hiba a reminder-rekord lefoglalása közben."),
+        };
+    }
 
     if (!claim.claimed) {
         if (claim.status === "sending") {
@@ -104,13 +150,15 @@ async function processOneReminder(
 
     let orderNumber = String(orderId);
     let recipient = "";
+    let email: { subject: string; text: string; html: string };
 
+    // 1. SMTP ELŐTTI szakasz: adatbetöltés, Bács-Kiskun ellenőrzés, levélépítés.
     try {
         const loaded = await loadOrderNotificationData(
             supabase,
             { orderId },
             "created",
-            { asAdmin: true },
+            REMINDER_LOAD_OPTIONS,
         );
         orderNumber = loaded.data.orderNumber;
         recipient = loaded.recipient;
@@ -118,42 +166,89 @@ async function processOneReminder(
         if (isBacsKiskunCounty(loaded.data.county)) {
             // Védekező dupla ellenőrzés: getReminderOrderTargetsForDate már
             // kizárja a DUNAVECSE napot, de emlékeztető Bács-Kiskun
-            // vármegyei vásárlónak így sem mehet ki. A már lefoglalt
-            // rekordot failed-ként zárjuk le (nem maradhat örökre
-            // "sending" állapotban), a hiba pedig megjelenik az admin
-            // futásösszesítőben.
-            const errorMessage = "Bács-Kiskun vármegyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető.";
-            await finalizeReminderSend(supabase, claim.id, { status: "failed", errorMessage });
-            return { kind: "failed", orderId, orderNumber, recipient, errorMessage };
+            // vármegyei vásárlónak így sem mehet ki.
+            return failBeforeSend(
+                supabase,
+                claim.id,
+                orderId,
+                orderNumber,
+                recipient,
+                "Bács-Kiskun vármegyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető.",
+            );
         }
 
         const notification = buildReminderEmail(loaded.data, {
             logoSrc: `${SITE_URL}/images/logo2.png`,
             orderUrl: `${SITE_URL}/history?focusOrder=${loaded.data.orderId}#order-${loaded.data.orderId}`,
         });
+        email = { subject: notification.subject, text: notification.text, html: notification.html };
+    } catch (error) {
+        return failBeforeSend(
+            supabase,
+            claim.id,
+            orderId,
+            orderNumber,
+            recipient,
+            describeCaughtError(error, "Ismeretlen hiba a reminder küldése előkészítése közben."),
+        );
+    }
 
+    // 2. SMTP-küldés. Hiba esetén a küldés nem sikerült -> failed (retry engedett).
+    let providerMessageId: string;
+    try {
         const delivery = await sendSmtp2GoEmail({
             to: recipient,
-            subject: notification.subject,
-            text: notification.text,
-            html: notification.html,
+            subject: email.subject,
+            text: email.text,
+            html: email.html,
         });
-
-        await finalizeReminderSend(supabase, claim.id, { status: "sent", providerMessageId: delivery.id });
-        return { kind: "sent" };
+        providerMessageId = delivery.id;
     } catch (error) {
-        const errorMessage = error instanceof Error ? error.message : "Ismeretlen hiba a reminder küldése közben.";
-
-        try {
-            await finalizeReminderSend(supabase, claim.id, { status: "failed", errorMessage });
-        } catch (finalizeError) {
-            console.error(`[reminder] A reminder-rekord lezárása is sikertelen (#${claim.id}):`, finalizeError);
+        if (isSmtp2GoUncertainError(error)) {
+            // Hálózati hiba / timeout / 5xx / olvashatatlan válasz: a provider
+            // elfogadhatta a levelet, ezért NEM failed (az újrapróbálást engedné).
+            return {
+                kind: "uncertain",
+                sendAttempted: true,
+                orderId,
+                orderNumber,
+                recipient,
+                detail: "Az SMTP2GO-hívás hálózati hibával, időtúllépéssel vagy bizonytalan válasszal ért véget, "
+                    + "ezért nem tudjuk, kézbesítette-e a levelet. A rekord 'sending' állapotban maradt, "
+                    + "NEM indult újraküldés. Ellenőrizd az SMTP2GO küldési naplójában, mielőtt bármit módosítasz.",
+            };
         }
 
-        // Egyetlen hibás címzett nem állítja le a teljes futást - a hívó
-        // (processWithConcurrencyLimit) a többi rendelést a hibától
-        // függetlenül folytatja.
-        return { kind: "failed", orderId, orderNumber, recipient, errorMessage };
+        // Egyértelmű elutasítás vagy lokális, küldés előtti hiba (pl. hiányzó API-kulcs): failed.
+        return failBeforeSend(
+            supabase,
+            claim.id,
+            orderId,
+            orderNumber,
+            recipient,
+            describeCaughtError(error, "Ismeretlen hiba az SMTP2GO-küldés közben."),
+        );
+    }
+
+    // 3. SMTP SIKER UTÁN. Az e-mail már elment, ezért a finalize hiba NEM
+    // lehet failed: az újrapróbálást engedné, és ügyfélnek duplán menne ki.
+    // A sor "sending" marad, a kézi ellenőrzésig "uncertain".
+    try {
+        await finalizeReminderSend(supabase, claim.id, { status: "sent", providerMessageId });
+        return { kind: "sent" };
+    } catch (finalizeError) {
+        console.error(`[reminder] A sikeres küldés után a "sent" lezárás elhasalt (#${claim.id}):`, finalizeError);
+        return {
+            kind: "uncertain",
+            sendAttempted: true,
+            orderId,
+            orderNumber,
+            recipient,
+            detail: "Az SMTP2GO elfogadta az e-mailt (provider azonosító: "
+                + `${providerMessageId}), de a reminder-rekord "sent" állapotba írása sikertelen volt. `
+                + "A rekord 'sending' állapotban maradt, ezért NEM indult újraküldés. Ellenőrizd az SMTP2GO "
+                + "küldési naplójában, és kézzel zárd le a rekordot.",
+        };
     }
 }
 

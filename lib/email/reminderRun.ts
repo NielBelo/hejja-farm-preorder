@@ -37,7 +37,7 @@ export type ReminderOutcome =
     | { kind: "skipped" }
     | { kind: "sent" }
     | ({ kind: "failed" } & ReminderRunFailure)
-    | ({ kind: "uncertain" } & ReminderRunUncertain);
+    | ({ kind: "uncertain"; sendAttempted?: boolean } & ReminderRunUncertain);
 
 // attempt = tényleges kiküldési kísérlet történt egy rendelésre (akár
 // sikeres, akár sikertelen a vége - mindkettő beleszámít). A skip (pl. a
@@ -54,6 +54,10 @@ export function summarizeReminderOutcomes(
     let failedCount = 0;
     let skippedCount = 0;
     let uncertainCount = 0;
+    // Olyan "uncertain", ahol az SMTP2GO már elfogadta az e-mailt (csak a
+    // "sent" lezárás hibázott). Ez tényleges kísérlet, ezért beleszámít az
+    // attemptedCount-ba, különben a futás admin összesítő nélkül maradna.
+    let sendAttemptedUncertainCount = 0;
 
     for (const outcome of outcomes) {
         if (outcome.kind === "sent") {
@@ -62,6 +66,7 @@ export function summarizeReminderOutcomes(
             failedCount += 1;
         } else if (outcome.kind === "uncertain") {
             uncertainCount += 1;
+            if (outcome.sendAttempted) sendAttemptedUncertainCount += 1;
         } else {
             skippedCount += 1;
         }
@@ -69,7 +74,7 @@ export function summarizeReminderOutcomes(
 
     return {
         eligibleCount,
-        attemptedCount: sentCount + failedCount,
+        attemptedCount: sentCount + failedCount + sendAttemptedUncertainCount,
         sentCount,
         failedCount,
         skippedCount,

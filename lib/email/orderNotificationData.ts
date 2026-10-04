@@ -55,42 +55,65 @@ const notificationOrderSelect = `
     )
 `;
 
+export type LoadOrderNotificationOptions = {
+    asAdmin?: boolean;
+    /**
+     * Szerver-oldali (service role) hívó, pl. a napi reminder cron. Ilyenkor
+     * nincs felhasználói session, ezért az auth.getUser() NEM fut (az
+     * AuthSessionMissingError-t adna). A címzett a rendelés vásárlójának
+     * profiles.email mezője; csak asAdmin-nal együtt használható.
+     */
+    serviceRole?: boolean;
+};
+
 export async function loadOrderNotificationData(
     supabase: SupabaseClient,
     lookup: OrderLookup,
     kind: OrderNotificationKind,
-    options: { asAdmin?: boolean } = {},
+    options: LoadOrderNotificationOptions = {},
 ): Promise<LoadedOrderNotification> {
-    const {
-        data: { user },
-        error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-        throw new Error("A rendeléshez tartozó e-mail-cím nem érhető el.");
+    if (options.serviceRole && !options.asAdmin) {
+        throw new Error("A szerver-oldali értesítésbetöltés csak asAdmin opcióval használható.");
     }
 
-    if (options.asAdmin) {
-        const { data: adminRole, error: roleError } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", user.id)
-            .eq("role", "admin")
-            .maybeSingle();
+    let sessionUserId: string | null = null;
+    let sessionEmail: string | null = null;
 
-        if (roleError || !adminRole) {
-            throw new Error("Az adminisztrátori jogosultság nem ellenőrizhető.");
+    if (!options.serviceRole) {
+        const {
+            data: { user },
+            error: userError,
+        } = await supabase.auth.getUser();
+
+        if (userError || !user) {
+            throw new Error("A rendeléshez tartozó e-mail-cím nem érhető el.");
         }
-    } else if (!user.email) {
-        throw new Error("A rendeléshez tartozó e-mail-cím nem érhető el.");
+
+        if (options.asAdmin) {
+            const { data: adminRole, error: roleError } = await supabase
+                .from("user_roles")
+                .select("role")
+                .eq("user_id", user.id)
+                .eq("role", "admin")
+                .maybeSingle();
+
+            if (roleError || !adminRole) {
+                throw new Error("Az adminisztrátori jogosultság nem ellenőrizhető.");
+            }
+        } else if (!user.email) {
+            throw new Error("A rendeléshez tartozó e-mail-cím nem érhető el.");
+        }
+
+        sessionUserId = user.id;
+        sessionEmail = user.email ?? null;
     }
 
     let orderQuery = supabase
         .from("orders")
         .select(notificationOrderSelect);
 
-    if (!options.asAdmin) {
-        orderQuery = orderQuery.eq("user_id", user.id);
+    if (!options.asAdmin && sessionUserId) {
+        orderQuery = orderQuery.eq("user_id", sessionUserId);
     }
 
     orderQuery = "orderId" in lookup
@@ -149,7 +172,7 @@ export async function loadOrderNotificationData(
     ].filter(Boolean).join(" ").trim() || "Vásárlónk";
     const recipient = options.asAdmin
         ? profileResult.data?.email
-        : user.email;
+        : sessionEmail;
 
     if (!recipient) {
         throw new Error("A rendeléshez tartozó e-mail-cím nem érhető el.");
