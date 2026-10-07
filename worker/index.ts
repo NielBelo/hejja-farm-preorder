@@ -34,6 +34,7 @@ export { BucketCachePurge, DOQueueHandler, DOShardedTagCache } from "../.open-ne
 import { createClient } from "@supabase/supabase-js";
 import { isReminderSendingBlocked, sendPickupReminders } from "../lib/email/sendReminderEmail";
 import { getTomorrowPickupDateIso, shouldRunReminderJob } from "./reminderSchedule";
+import { createReminderChunkRunner, handleReminderChunkRequest, REMINDER_CHUNK_PATH } from "./reminderChunk";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
 // scheduled handler paramétereit minimális, a ténylegesen használt alakra
@@ -48,7 +49,11 @@ type ExecutionContextLike = {
     waitUntil(promise: Promise<unknown>): void;
 };
 
-async function runReminderJob(pickupDateIso: string) {
+type WorkerEnvLike = {
+    WORKER_SELF_REFERENCE?: { fetch(request: Request): Promise<Response> };
+};
+
+async function runReminderJob(pickupDateIso: string, env: WorkerEnvLike) {
     // A sending guardot (NODE_ENV === "production" ÉS
     // REMINDER_EMAIL_SENDING_ENABLED === "true", lásd
     // lib/email/reminderGuard.ts) itt, a Supabase kliens létrehozása ELŐTT
@@ -93,7 +98,10 @@ async function runReminderJob(pickupDateIso: string) {
             { auth: { persistSession: false, autoRefreshToken: false } },
         );
 
-        const result = await sendPickupReminders(supabase, pickupDateIso);
+        const runChunk = env.WORKER_SELF_REFERENCE
+            ? createReminderChunkRunner(env.WORKER_SELF_REFERENCE)
+            : undefined;
+        const result = await sendPickupReminders(supabase, pickupDateIso, runChunk);
         console.log(`[reminder] scheduled futás eredménye (${pickupDateIso}):`, result);
     } catch (error) {
         console.error(`[reminder] scheduled futás hiba (${pickupDateIso}):`, error);
@@ -101,7 +109,12 @@ async function runReminderJob(pickupDateIso: string) {
 }
 
 const worker = {
-    fetch: openNextWorker.fetch,
+    async fetch(request: Request, env: WorkerEnvLike, ctx: unknown) {
+        if (new URL(request.url).pathname === REMINDER_CHUNK_PATH) {
+            return handleReminderChunkRequest(request);
+        }
+        return openNextWorker.fetch(request, env, ctx);
+    },
 
     // A Cloudflare cron csak UTC-ben ütemezhető, ezért két UTC időpontban
     // fut (lásd wrangler.jsonc "triggers.crons": "0 6 * * *" és
@@ -111,7 +124,7 @@ const worker = {
     // Europe/Budapest naptári nap/óra szerint, fix UTC eltolás nélkül.
     async scheduled(
         event: ScheduledControllerLike,
-        _env: unknown,
+        env: WorkerEnvLike,
         ctx: ExecutionContextLike,
     ) {
         const now = new Date(event.scheduledTime);
@@ -134,7 +147,7 @@ const worker = {
         // kerüljük meg, localhoston/teszt közben, vagy ha a flag nincs
         // bekapcsolva, a küldés emiatt mindig blokkolva marad, és Supabase
         // kliens sem jön létre.
-        ctx.waitUntil(runReminderJob(pickupDateIso));
+        ctx.waitUntil(runReminderJob(pickupDateIso, env));
     },
 };
 

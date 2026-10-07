@@ -2,8 +2,12 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { buildReminderEmail } from "@/lib/email/reminder";
-import { getReminderOrderTargetsForDate } from "@/lib/email/reminderData";
-import { loadOrderNotificationData } from "@/lib/email/orderNotificationData";
+import {
+    getReminderOrderTargetsForDate,
+    loadReminderOrdersBatch,
+    type ReminderOrderTarget,
+} from "@/lib/email/reminderData";
+import type { LoadedOrderNotification } from "@/lib/email/orderNotificationData";
 import { isBacsKiskunCounty } from "@/lib/countyGroups";
 import { sendSmtp2GoEmail, isSmtp2GoUncertainError } from "@/lib/email/smtp2go";
 import { isReminderSendingBlocked } from "@/lib/email/reminderGuard";
@@ -11,28 +15,29 @@ import { claimReminderSend, finalizeReminderSend, type ReminderClaim } from "@/l
 import { formatSendingDuration, isStaleSending } from "@/lib/email/reminderStaleness";
 import {
     processWithConcurrencyLimit,
-    shouldSendAdminReminderSummary,
     summarizeReminderOutcomes,
     type ReminderOutcome,
     type ReminderRunFailure,
     type ReminderRunStats,
     type ReminderRunUncertain,
 } from "@/lib/email/reminderRun";
-import { sendAdminReminderSummary } from "@/lib/email/adminReminderSummary";
 
 export { isReminderSendingBlocked } from "@/lib/email/reminderGuard";
 export type { ReminderRunFailure, ReminderRunStats, ReminderRunUncertain } from "@/lib/email/reminderRun";
 
 const SITE_URL = "https://hejja-okofarm.hu";
 
-// A reminder runtime service role kulccsal fut, felhasználói session nélkül:
-// a címzett a rendelés vásárlójának profiles.email mezője (nincs auth.getUser).
-const REMINDER_LOAD_OPTIONS = { asAdmin: true, serviceRole: true } as const;
+// Subrequest-költségvetés (Cloudflare Free: 50 / futás). Egy csomag feldolgozása
+// (egy worker-futás) = 3 kötegelt betöltő-lekérdezés + rendelésenként
+// 3 hívás (claim RPC, SMTP2GO, finalize RPC). 12 rendelés: 3 + 36 = 39 <= 50.
+export const REMINDER_CHUNK_SIZE = 12;
 
-// Ne induljon 50 (vagy több) párhuzamos HTTP-hívás az SMTP2GO felé egy
-// nagyobb napi kiküldésnél - legfeljebb ennyi rendelés feldolgozása fut
-// egyszerre (lásd lib/email/reminderRun.ts processWithConcurrencyLimit).
+// Egy csomagon belüli párhuzamosság: legfeljebb 5 egyidejű SMTP2GO-hívás.
 const MAX_CONCURRENT_SENDS = 5;
+
+// Csomagok egymás után futnak: így összesen is legfeljebb 5 SMTP2GO-hívás
+// fut egyszerre, akkor is, ha több worker-futás van.
+const MAX_CONCURRENT_CHUNKS = 1;
 
 export type ReminderRunResult = {
     blocked: boolean;
@@ -42,6 +47,14 @@ export type ReminderRunResult = {
     uncertain: ReminderRunUncertain[];
 };
 
+// Egy csomag feldolgozása. Alapértelmezetten helyben fut; a Worker a
+// szolgáltatás-bindingen keresztül külön worker-futásba küldi (lásd
+// worker/reminderChunk.ts), így minden csomag saját subrequest-keretet kap.
+export type ReminderChunkRunner = (
+    targets: ReminderOrderTarget[],
+    runAt: Date,
+) => Promise<ReminderOutcome[]>;
+
 // Egy nem-lefoglalható ("claimed: false"), "sending" állapotú rekordra
 // fut - ez vagy egy másik, épp aktívan dolgozó worker (friss), vagy egy
 // korábbi worker megszakadt (crash/timeout) próbálkozásának maradványa
@@ -50,36 +63,21 @@ export type ReminderRunResult = {
 // esetben - mivel NEM tudjuk biztosan, hogy az SMTP2GO végül elküldte-e az
 // e-mailt - SOHA nem indítunk automatikus retry-t (az dupla ügyfél-e-mailt
 // okozhatna), hanem "uncertain"-ként jelezzük, kézi ellenőrzésre várva.
-async function classifyUnclaimedSending(
-    supabase: SupabaseClient,
+function classifyUnclaimedSending(
     orderId: number,
+    loaded: LoadedOrderNotification | undefined,
     attemptedAt: string | null,
     now: Date,
-): Promise<ReminderOutcome> {
+): ReminderOutcome {
     if (!isStaleSending(attemptedAt, now)) {
         return { kind: "skipped" };
-    }
-
-    let orderNumber = String(orderId);
-    let recipient = "";
-
-    try {
-        const loaded = await loadOrderNotificationData(supabase, { orderId }, "created", REMINDER_LOAD_OPTIONS);
-        orderNumber = loaded.data.orderNumber;
-        recipient = loaded.recipient;
-    } catch (error) {
-        // Ha még a rendelésadat betöltése is sikertelen, a rendelésszám/
-        // címzett helyett az azonosítóval jelezzük - az "uncertain" jelzés
-        // ettől függetlenül megjelenik az admin összesítőben, hogy a
-        // problémát akkor se nyelje el a rendszer csendben.
-        console.error(`[reminder] Rendelésadat betöltése sikertelen egy stale "sending" reminderhez (#${orderId}):`, error);
     }
 
     return {
         kind: "uncertain",
         orderId,
-        orderNumber,
-        recipient,
+        orderNumber: loaded?.data.orderNumber ?? String(orderId),
+        recipient: loaded?.recipient ?? "",
         detail: `A reminder ${formatSendingDuration(attemptedAt, now)} "sending" állapotban van - a korábbi próbálkozás `
             + "workere feltehetően megszakadt, mielőtt az eredmény rögzülhetett volna. Az SMTP2GO tényleges válasza nem "
             + "ismert, ezért a rendszer NEM indított automatikus újraküldést (ez dupla e-mailt okozhatna) - kézi "
@@ -113,16 +111,16 @@ async function failBeforeSend(
     return { kind: "failed", orderId, orderNumber, recipient, errorMessage };
 }
 
-// Egyetlen rendelés feldolgozása. SOHA nem dob ki hibát: minden hiba az
-// adott rendelés outcome-jába kerül, így a párhuzamos batch (lásd
-// processWithConcurrencyLimit) a többi rendelést akkor is folytatja, ha az
-// egyik claim/küldés/lezárás elhasal.
-async function processOneReminder(
+// Egyetlen rendelés feldolgozása, az előre betöltött adatokkal. SOHA nem dob
+// ki hibát: minden hiba az adott rendelés outcome-jába kerül.
+async function processLoadedReminder(
     supabase: SupabaseClient,
-    orderId: number,
-    pickupDayId: number,
+    target: ReminderOrderTarget,
+    loaded: LoadedOrderNotification | undefined,
     now: Date,
 ): Promise<ReminderOutcome> {
+    const { orderId, pickupDayId } = target;
+
     let claim: ReminderClaim;
     try {
         claim = await claimReminderSend(supabase, orderId, pickupDayId);
@@ -132,15 +130,15 @@ async function processOneReminder(
         return {
             kind: "failed",
             orderId,
-            orderNumber: String(orderId),
-            recipient: "",
+            orderNumber: loaded?.data.orderNumber ?? String(orderId),
+            recipient: loaded?.recipient ?? "",
             errorMessage: describeCaughtError(error, "Ismeretlen hiba a reminder-rekord lefoglalása közben."),
         };
     }
 
     if (!claim.claimed) {
         if (claim.status === "sending") {
-            return classifyUnclaimedSending(supabase, orderId, claim.attemptedAt, now);
+            return classifyUnclaimedSending(orderId, loaded, claim.attemptedAt, now);
         }
 
         // "sent" - a reminder már korábban sikeresen kiment, ez sem
@@ -148,21 +146,23 @@ async function processOneReminder(
         return { kind: "skipped" };
     }
 
-    let orderNumber = String(orderId);
-    let recipient = "";
+    if (!loaded) {
+        return failBeforeSend(
+            supabase,
+            claim.id,
+            orderId,
+            String(orderId),
+            "",
+            "A rendelés adatai nem tölthetők be (hiányos adat vagy a rendelés már nem érvényes).",
+        );
+    }
+
+    const orderNumber = loaded.data.orderNumber;
+    const recipient = loaded.recipient;
     let email: { subject: string; text: string; html: string };
 
-    // 1. SMTP ELŐTTI szakasz: adatbetöltés, Bács-Kiskun ellenőrzés, levélépítés.
+    // 1. SMTP ELŐTTI szakasz: Bács-Kiskun ellenőrzés, levélépítés.
     try {
-        const loaded = await loadOrderNotificationData(
-            supabase,
-            { orderId },
-            "created",
-            REMINDER_LOAD_OPTIONS,
-        );
-        orderNumber = loaded.data.orderNumber;
-        recipient = loaded.recipient;
-
         if (isBacsKiskunCounty(loaded.data.county)) {
             // Védekező dupla ellenőrzés: getReminderOrderTargetsForDate már
             // kizárja a DUNAVECSE napot, de emlékeztető Bács-Kiskun
@@ -252,26 +252,104 @@ async function processOneReminder(
     }
 }
 
+// Egy csomag (legfeljebb REMINDER_CHUNK_SIZE rendelés) feldolgozása.
+// Az adatokat egy kötegelt lekérdezéssel tölti be (3 subrequest a csomagra),
+// majd rendelésenként claim -> SMTP2GO -> finalize. SOHA nem dob ki hibát:
+// ha a kötegelt betöltés elhasal, még egyetlen rekord sem foglalódott le,
+// ezért a csomag rendelései "failed"-ként kerülnek a naplóba, és a
+// következő futás újrapróbálhatja őket.
+export async function processReminderChunk(
+    supabase: SupabaseClient,
+    targets: ReminderOrderTarget[],
+    runAt: Date,
+): Promise<ReminderOutcome[]> {
+    let loaded: Map<number, LoadedOrderNotification>;
+    try {
+        loaded = await loadReminderOrdersBatch(supabase, targets.map((target) => target.orderId));
+    } catch (error) {
+        const errorMessage = describeCaughtError(error, "Ismeretlen hiba a rendelésadatok betöltése közben.");
+        return targets.map((target) => ({
+            kind: "failed",
+            orderId: target.orderId,
+            orderNumber: String(target.orderId),
+            recipient: "",
+            errorMessage,
+        }));
+    }
+
+    return processWithConcurrencyLimit(
+        targets,
+        MAX_CONCURRENT_SENDS,
+        (target) => processLoadedReminder(supabase, target, loaded.get(target.orderId), runAt),
+    );
+}
+
+// Egyetlen rendelés feldolgozása (visszafelé kompatibilis belépési pont a
+// kézi pótló scriptekhez). Ugyanazt a csomag-útvonalat használja.
+export async function processOneReminder(
+    supabase: SupabaseClient,
+    orderId: number,
+    pickupDayId: number,
+    now: Date,
+): Promise<ReminderOutcome> {
+    const [outcome] = await processReminderChunk(supabase, [{ orderId, pickupDayId }], now);
+    return outcome;
+}
+
+function chunkTargets(targets: ReminderOrderTarget[], size: number): ReminderOrderTarget[][] {
+    const chunks: ReminderOrderTarget[][] = [];
+    for (let index = 0; index < targets.length; index += size) {
+        chunks.push(targets.slice(index, index + size));
+    }
+    return chunks;
+}
+
+// Egy csomag futtatása legfeljebb kétszer. Az újrapróbálás biztonságos: a
+// claim atomi, így a már elküldött (sent) vagy épp folyamatban lévő (friss
+// sending) rekordokat a második próbálkozás egyszerűen kihagyja - duplikált
+// küldés nem lehetséges. Ha mindkét próbálkozás hibás, a csomag rendelései
+// "uncertain"-ként kerülnek a futási eredménybe, és NEM küldődnek újra.
+async function runChunkWithRetry(
+    runner: ReminderChunkRunner,
+    chunk: ReminderOrderTarget[],
+    runAt: Date,
+): Promise<ReminderOutcome[]> {
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+            return await runner(chunk, runAt);
+        } catch (error) {
+            console.error(`[reminder] ${chunk.length} rendelés csomagjának feldolgozása elhasalt (${attempt}. próba):`, error);
+        }
+    }
+
+    return chunk.map((target) => ({
+        kind: "uncertain",
+        orderId: target.orderId,
+        orderNumber: String(target.orderId),
+        recipient: "",
+        detail: "A feldolgozó csomag ismételten hibával ért véget, ezért ennek a rendelésnek az eredménye nem ismert. "
+            + "Ellenőrizd a reminder-naplóban (sent / sending / failed). Automatikus újraküldés NEM történt.",
+    }));
+}
+
 // A jövőbeli napi ütemezett feladat (lásd worker/index.ts) ezt a függvényt
-// hívja meg egyetlen argumentummal: a másnapi átvételi nap dátumával
-// ("YYYY-MM-DD", Europe/Budapest naptári nap). A meglévő SMTP2GO-
-// integrációt (lib/email/smtp2go.ts) használja újra - nincs új
-// e-mailszolgáltató bevezetve.
+// hívja meg az átvételi nap dátumával ("YYYY-MM-DD", Europe/Budapest).
 //
 // Idempotencia: rendelésenként a lib/email/reminderSends.ts atomikus
 // claim/finalize RPC-in (public.claim_reminder_send /
-// finalize_reminder_send, lásd
-// supabase/migrations/20260930000000_reminder_sends.sql és
-// supabase/migrations/20260930010000_reminder_sends_claim_attempted_at.sql)
-// keresztül - ugyanaz a rendelés ugyanarra az átvételi napra legfeljebb
-// egyszer kaphat sikeresen kiküldött emlékeztetőt, még konkurens futás
-// esetén is. Worker crash/timeout esetén (a claim UTÁN, a finalize ELŐTT)
-// a rekord "sending" állapotban ragad - ezt a lib/email/reminderStaleness.ts
-// alapján "stale"-ként ismerjük fel, és SOHA nem indítunk belőle
-// automatikus retry-t (lásd classifyUnclaimedSending fent).
+// finalize_reminder_send) keresztül - ugyanaz a rendelés ugyanarra az
+// átvételi napra legfeljebb egyszer kaphat sikeresen kiküldött emlékeztetőt,
+// még konkurens futás esetén is. A "sending" állapotban ragadt (stale)
+// rekordokból SOHA nem indítunk automatikus retry-t.
+//
+// Admin összesítő e-mail: KIKAPCSOLVA (nem hívódik sehol ebből az útvonalból).
+//
+// A runChunk paraméter opcionális: a Worker a csomagokat külön worker-
+// futásba küldi (szolgáltatás-binding), alapértelmezetten helyben futnak.
 export async function sendPickupReminders(
     supabase: SupabaseClient,
     pickupDateIso: string,
+    runChunk?: ReminderChunkRunner,
 ): Promise<ReminderRunResult> {
     const runAt = new Date();
     const targets = await getReminderOrderTargetsForDate(supabase, pickupDateIso);
@@ -301,11 +379,21 @@ export async function sendPickupReminders(
         };
     }
 
-    const outcomes = await processWithConcurrencyLimit(
-        targets,
-        MAX_CONCURRENT_SENDS,
-        (target) => processOneReminder(supabase, target.orderId, target.pickupDayId, runAt),
+    const runner: ReminderChunkRunner = runChunk
+        ?? ((chunk, now) => processReminderChunk(supabase, chunk, now));
+
+    const chunkOutcomes = await processWithConcurrencyLimit(
+        chunkTargets(targets, REMINDER_CHUNK_SIZE),
+        MAX_CONCURRENT_CHUNKS,
+        (chunk) => runChunkWithRetry(runner, chunk, runAt),
     );
+    const outcomes = chunkOutcomes.flat();
+
+    if (outcomes.length !== targets.length) {
+        // Ez nem fordulhat elő (minden csomag minden rendeléshez ad outcome-ot),
+        // de ha mégis, legyen hangos a napló.
+        console.error(`[reminder] HIBA: ${targets.length} rendelésből csak ${outcomes.length} kapott eredményt.`);
+    }
 
     const stats = summarizeReminderOutcomes(outcomes, targets.length);
     const failures: ReminderRunFailure[] = outcomes
@@ -314,24 +402,6 @@ export async function sendPickupReminders(
     const uncertain: ReminderRunUncertain[] = outcomes
         .filter((outcome): outcome is Extract<ReminderOutcome, { kind: "uncertain" }> => outcome.kind === "uncertain")
         .map(({ orderId, orderNumber, recipient, detail }) => ({ orderId, orderNumber, recipient, detail }));
-
-    // Pontos szabály: attemptedCount = 0 -> nincs admin összesítő,
-    // attemptedCount >= 1 -> pontosan egy megy ki. Az uncertainCount
-    // önmagában NEM triggerel admin e-mailt - de ha a feltétel úgyis
-    // teljesül, a stale/bizonytalan rekordok is szerepelnek az
-    // összesítőben (lásd lib/email/adminReminderSummary.ts). Az összesítő
-    // küldése (és annak esetleges hibája) a fent már kiszámolt
-    // stats/failures/uncertain eredményt nem módosíthatja - a
-    // sendAdminReminderSummary a saját hibáit maga is elnyeli, de ide egy
-    // extra try/catch is kerül védekezésül, hogy egy váratlan hiba se
-    // akadályozhassa meg a már véglegesített futási eredmény visszaadását.
-    if (shouldSendAdminReminderSummary(stats)) {
-        try {
-            await sendAdminReminderSummary({ runAt, pickupDateIso, stats, failures, uncertain });
-        } catch (error) {
-            console.error("[reminder] Az admin futásösszesítő e-mail küldése váratlanul elhasalt:", error);
-        }
-    }
 
     return { blocked: false, pickupDateIso, stats, failures, uncertain };
 }

@@ -111,16 +111,18 @@ function buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient,
         },
         '@/lib/email/reminderData': {
             getReminderOrderTargetsForDate: async () => targets,
-        },
-        '@/lib/email/orderNotificationData': {
-            loadOrderNotificationData: async (_supabase, lookup, kind, options) => {
-                loadCalls.push({ lookup, kind, options });
-                const info = orderData.get(lookup.orderId);
-                if (!info) throw new Error(`no fixture data for order ${lookup.orderId}`);
-                return {
-                    recipient: info.recipient,
-                    data: { orderId: lookup.orderId, orderNumber: info.orderNumber, county: info.county, items: [] },
-                };
+            loadReminderOrdersBatch: async (_supabase, orderIds) => {
+                loadCalls.push({ orderIds });
+                const result = new Map();
+                for (const id of orderIds) {
+                    const info = orderData.get(id);
+                    if (!info) continue;
+                    result.set(id, {
+                        recipient: info.recipient,
+                        data: { orderId: id, orderNumber: info.orderNumber, county: info.county, items: [] },
+                    });
+                }
+                return result;
             },
         },
         '@/lib/countyGroups': { isBacsKiskunCounty },
@@ -246,12 +248,12 @@ test('8: at most 5 orders are processed concurrently even with many eligible ord
     const smtp2goCalls = [];
     const modules = load('../lib/email/sendReminderEmail.ts', {
         '@/lib/email/reminder': { buildReminderEmail: (data) => ({ subject: 's', text: 't', html: 'h', orderNumber: data.orderNumber }) },
-        '@/lib/email/reminderData': { getReminderOrderTargetsForDate: async () => targets },
-        '@/lib/email/orderNotificationData': {
-            loadOrderNotificationData: async (_supabase, lookup) => {
-                const info = orderData.get(lookup.orderId);
-                return { recipient: info.recipient, data: { orderId: lookup.orderId, orderNumber: info.orderNumber, county: info.county, items: [] } };
-            },
+        '@/lib/email/reminderData': {
+            getReminderOrderTargetsForDate: async () => targets,
+            loadReminderOrdersBatch: async (_supabase, orderIds) => new Map(orderIds.map((id) => {
+                const info = orderData.get(id);
+                return [id, { recipient: info.recipient, data: { orderId: id, orderNumber: info.orderNumber, county: info.county, items: [] } }];
+            })),
         },
         '@/lib/countyGroups': { isBacsKiskunCounty },
         '@/lib/email/smtp2go': {
@@ -367,7 +369,8 @@ test('12-13: attemptedCount counts sent+failed only, never skipped, in a mixed r
     assert.equal(result.stats.attemptedCount, 2, 'the skipped order-70 must not be counted as an attempt');
 });
 
-// 14-15-16-17: admin összesítő feltétele.
+// 14-15-16-17: admin összesítő - KIKAPCSOLVA (Cloudflare Free subrequest limit),
+// egyetlen futási körülmény sem hívhatja meg sendAdminReminderSummary-t.
 test('14: attemptedCount = 0 (everything skipped) -> no admin summary is sent', async () => {
     const store = createMockReminderStore();
     await store.claim(80, 100);
@@ -388,7 +391,7 @@ test('14b: attemptedCount = 0 because zero eligible orders -> no admin summary',
     assert.equal(fx.adminSummaryCalls.length, 0);
 });
 
-test('15: attemptedCount >= 1 and every attempt succeeded -> exactly one admin summary', async () => {
+test('15: attemptedCount >= 1 and every attempt succeeded -> still NO admin summary (disabled)', async () => {
     const store = createMockReminderStore();
     const targets = [{ orderId: 90, pickupDayId: 100 }, { orderId: 91, pickupDayId: 100 }];
     const orderData = new Map([
@@ -399,25 +402,25 @@ test('15: attemptedCount >= 1 and every attempt succeeded -> exactly one admin s
 
     const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient, store });
     const result = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
-    assert.equal(fx.adminSummaryCalls.length, 1);
-    assert.equal(fx.adminSummaryCalls[0].stats.attemptedCount, 2);
+    assert.equal(fx.adminSummaryCalls.length, 0);
+    assert.equal(result.stats.attemptedCount, 2);
     assert.equal(result.stats.failedCount, 0);
 });
 
-test('16: attemptedCount >= 1 and every attempt failed -> exactly one admin summary', async () => {
+test('16: attemptedCount >= 1 and every attempt failed -> still NO admin summary (disabled)', async () => {
     const store = createMockReminderStore();
     const targets = [{ orderId: 92, pickupDayId: 100 }];
     const orderData = new Map([[92, { orderNumber: 'HO-0092', recipient: 'f1@example.hu', county: 'Csongrád-Csanád' }]]);
     const sendOutcomeByRecipient = new Map([['f1@example.hu', new Error('down')]]);
 
     const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient, store });
-    await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
-    assert.equal(fx.adminSummaryCalls.length, 1);
-    assert.equal(fx.adminSummaryCalls[0].stats.sentCount, 0);
-    assert.equal(fx.adminSummaryCalls[0].stats.failedCount, 1);
+    const result16 = await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
+    assert.equal(fx.adminSummaryCalls.length, 0);
+    assert.equal(result16.stats.sentCount, 0);
+    assert.equal(result16.stats.failedCount, 1);
 });
 
-test('17: mixed sent/failed run -> exactly one admin summary, with failures listed', async () => {
+test('17: mixed sent/failed run -> still NO admin summary (disabled)', async () => {
     const store = createMockReminderStore();
     const targets = [{ orderId: 93, pickupDayId: 100 }, { orderId: 94, pickupDayId: 100 }];
     const orderData = new Map([
@@ -428,9 +431,8 @@ test('17: mixed sent/failed run -> exactly one admin summary, with failures list
 
     const fx = buildFixtureBySendOutcome({ targets, orderData, sendOutcomeByRecipient, store });
     await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
-    assert.equal(fx.adminSummaryCalls.length, 1);
-    assert.equal(fx.adminSummaryCalls[0].failures.length, 1);
-    assert.equal(fx.adminSummaryCalls[0].failures[0].orderNumber, 'HO-0094');
+    assert.equal(fx.adminSummaryCalls.length, 0);
+    assert.equal(fx.smtp2goCalls.length, 2, 'both customer reminders are still attempted');
 });
 
 // 18: az admin összesítő küldésének hibája nem módosítja a reminder státuszokat.
@@ -441,12 +443,12 @@ test('18: a throwing admin-summary sender does not change the already-finalized 
 
     const modules = load('../lib/email/sendReminderEmail.ts', {
         '@/lib/email/reminder': { buildReminderEmail: (data) => ({ subject: 's', text: 't', html: 'h', orderNumber: data.orderNumber }) },
-        '@/lib/email/reminderData': { getReminderOrderTargetsForDate: async () => targets },
-        '@/lib/email/orderNotificationData': {
-            loadOrderNotificationData: async (_supabase, lookup) => {
-                const info = orderData.get(lookup.orderId);
-                return { recipient: info.recipient, data: { orderId: lookup.orderId, orderNumber: info.orderNumber, county: info.county, items: [] } };
-            },
+        '@/lib/email/reminderData': {
+            getReminderOrderTargetsForDate: async () => targets,
+            loadReminderOrdersBatch: async (_supabase, orderIds) => new Map(orderIds.map((id) => {
+                const info = orderData.get(id);
+                return [id, { recipient: info.recipient, data: { orderId: id, orderNumber: info.orderNumber, county: info.county, items: [] } }];
+            })),
         },
         '@/lib/countyGroups': { isBacsKiskunCounty },
         '@/lib/email/smtp2go': { sendSmtp2GoEmail: async () => ({ id: 'ok-msg' }) },
@@ -558,7 +560,7 @@ test('uncertainCount önmagában NEM triggerel admin összesítőt, ha ebben a f
 // Példa 3 az üzleti szabályból: attempted=2 (sent=1, failed=1), uncertain=1
 // -> VAN admin e-mail, és az uncertain a jelenlegi részletességgel szerepel
 // benne.
-test('ha attemptedCount >= 1, az admin összesítő elkészül ÉS a stale/uncertain rekordok is szerepelnek benne', async () => {
+test('ha attemptedCount >= 1, az admin összesítő KIKAPCSOLVA van, a stale/uncertain rekord a futási eredményben marad', async () => {
     const store = createMockReminderStore();
     const { STALE_SENDING_THRESHOLD_MS } = reminderStalenessModule;
     const staleAttemptedAt = new Date(Date.now() - STALE_SENDING_THRESHOLD_MS - 60_000).toISOString();
@@ -586,11 +588,11 @@ test('ha attemptedCount >= 1, az admin összesítő elkészül ÉS a stale/uncer
     assert.equal(result.stats.sentCount, 1);
     assert.equal(result.stats.failedCount, 1);
     assert.equal(result.stats.uncertainCount, 1);
-    assert.equal(fx.adminSummaryCalls.length, 1, 'attemptedCount >= 1 -> exactly one admin summary');
-    assert.equal(fx.adminSummaryCalls[0].uncertain.length, 1);
-    assert.equal(fx.adminSummaryCalls[0].uncertain[0].orderNumber, 'HO-0204');
-    assert.equal(fx.adminSummaryCalls[0].uncertain[0].recipient, 'uncertain2@example.hu');
-    assert.match(fx.adminSummaryCalls[0].uncertain[0].detail, /sending/);
+    assert.equal(fx.adminSummaryCalls.length, 0, 'admin summary is disabled - no call even with attemptedCount >= 1');
+    assert.equal(result.uncertain.length, 1, 'the stale record is still reported in the run result');
+    assert.equal(result.uncertain[0].orderNumber, 'HO-0204');
+    assert.equal(result.uncertain[0].recipient, 'uncertain2@example.hu');
+    assert.match(result.uncertain[0].detail, /sending/);
 });
 
 test('a bizonytalan (uncertain) jelzés szövege megjelenik a renderelt admin összesítőben is', async () => {
@@ -624,8 +626,8 @@ test('hotfix: the reminder runtime loads orders with serviceRole + asAdmin', asy
 
     await fx.sendPickupReminders(fakeSupabase, '2026-10-07');
 
-    assert.equal(fx.loadCalls.length, 1);
-    assert.deepEqual(fx.loadCalls[0].options, { asAdmin: true, serviceRole: true });
+    assert.equal(fx.loadCalls.length, 1, 'one batched load per chunk, not one per order');
+    assert.deepEqual(fx.loadCalls[0].orderIds, [1]);
 });
 
 // Hotfix 3: egy claim-hiba csak az adott rendelést érinti, a batch folytatódik.
@@ -656,11 +658,11 @@ test('hotfix 3: a claimReminderSend error only fails that order and the batch co
 
     assert.equal(result.stats.sentCount, 2);
     assert.equal(result.stats.failedCount, 1);
-    assert.equal(result.failures[0].orderNumber, '11');
+    assert.equal(result.failures[0].orderNumber, 'HO-0011', 'the chunk loads order data up front, so the real order number is reported');
     assert.match(result.failures[0].errorMessage, /timeout/);
     assert.equal(fx.smtp2goCalls.length, 2, 'the two healthy orders must still be sent');
     assert.equal(result.failures.length, 1);
-    assert.ok(fx.adminSummaryCalls.length === 1, 'admin summary must still be sent for a run with attempts');
+    assert.equal(fx.adminSummaryCalls.length, 0, 'admin summary is disabled - must not be sent even for a run with attempts');
 });
 
 // Hotfix 4: SMTP ELŐTTI hiba (itt: a rendelés adatbetöltése) -> failed, nincs SMTP-hívás.
@@ -695,8 +697,8 @@ test('hotfix 5: a finalize error after a successful SMTP send yields uncertain, 
     assert.equal(fx.smtp2goCalls.length, 1);
     assert.equal(result.stats.uncertainCount, 1);
     assert.equal(result.stats.failedCount, 0);
-    assert.equal(result.stats.attemptedCount, 1, 'an SMTP-accepted send is an attempt, so the admin summary is still produced');
-    assert.equal(fx.adminSummaryCalls.length, 1);
+    assert.equal(result.stats.attemptedCount, 1, 'an SMTP-accepted send is an attempt');
+    assert.equal(fx.adminSummaryCalls.length, 0, 'admin summary is disabled');
     assert.equal(result.uncertain.length, 1);
     assert.match(result.uncertain[0].detail, /msg-30/);
     assert.notEqual(store.getRow(30, 100).status, 'failed');
@@ -761,8 +763,8 @@ test('smtp 2: an SMTP2GO network/timeout error marks the record uncertain, never
 
     assert.equal(result.stats.uncertainCount, 1);
     assert.equal(result.stats.failedCount, 0);
-    assert.equal(result.stats.attemptedCount, 1, 'a network-uncertain send is a real attempt, so the admin summary is produced');
-    assert.equal(fx.adminSummaryCalls.length, 1);
+    assert.equal(result.stats.attemptedCount, 1, 'a network-uncertain send is a real attempt');
+    assert.equal(fx.adminSummaryCalls.length, 0, 'admin summary is disabled');
     assert.equal(store.getRow(51, 100).status, 'sending');
 });
 

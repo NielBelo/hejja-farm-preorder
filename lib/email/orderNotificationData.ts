@@ -36,7 +36,7 @@ export type LatestOrderNotification = LoadedOrderNotification & {
     submittedAt: string;
 };
 
-const notificationOrderSelect = `
+export const notificationOrderSelect = `
     id,
     user_id,
     season_parameter_id,
