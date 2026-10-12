@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
+import { getRequiredQuantity } from "@/lib/orderQuantity";
 import { BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
 import { getBacsKiskunPickupRangeInfo } from "@/lib/pickupInfo";
 import {
@@ -154,10 +155,7 @@ export default function OrderActions({
 
     // Ugyanaz az összegzés, mint a PreorderManager napváltás-ellenőrzésénél:
     // az összes szerkesztett tétel mennyiségét számoljuk.
-    const requiredQuantity = editedItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-    );
+    const requiredQuantity = getRequiredQuantity(editedItems);
 
     const {
         selectedPickupDayId,

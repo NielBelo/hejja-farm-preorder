@@ -11,6 +11,7 @@ import {
     normalizePackageId,
 } from "@/lib/orderPackaging";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
+import { getRemainingQuantity } from "@/lib/orderQuantity";
 import { DEFAULT_SIZE_PREFERENCE, normalizeSizePreference, SIZE_PREFERENCES } from "@/lib/sizePreferences";
 
 
@@ -153,26 +154,12 @@ export default function ProductSelector({
             item.quantity,
         );
 
-    const getRemainingQuantity = (items: OrderItem[], currentIndex: number) => {
-        const used = items.reduce((sum, item, index) => {
-            if (index === currentIndex) return sum;
-            return sum + item.quantity;
-        }, 0);
-
-        return Math.max(
-            1,
-            (maxAvailableQuantity ?? 100) - used
-        );
-    };
-
-
-
     const updateItem = (index: number, changes: Partial<OrderItem>) => {
         onItemEdited();
 
         setItems((prev) => {
 
-            const remaining = getRemainingQuantity(prev, index);
+            const remaining = getRemainingQuantity(prev, index, maxAvailableQuantity);
 
             const updated = prev.map((item, i) => {
                 if (i !== index) return item;

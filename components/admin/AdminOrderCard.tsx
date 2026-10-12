@@ -20,6 +20,7 @@ import { useOrderActionsManager } from "@/components/OrderActionsManager";
 import { usePickupDayChange, type PickupDay } from "@/lib/usePickupDayChange";
 import { updateAdminOrder } from "@/app/(protected)/admin/orders/actions";
 import { normalizeSizePreference } from "@/lib/sizePreferences";
+import { getRequiredQuantity } from "@/lib/orderQuantity";
 import { BACS_KISKUN_NOTE_LABEL } from "@/lib/countyGroups";
 
 type Product = {
@@ -286,10 +287,7 @@ export default function AdminOrderCard({
     // az összes szerkesztett tétel mennyiségét kell figyelembe venni
     // annak eldöntéséhez, hogy az új napon elfér-e a rendelés.
     // ------------------------------------------------------------
-    const requiredQuantity = editedItems.reduce(
-        (sum, item) => sum + item.quantity,
-        0
-    );
+    const requiredQuantity = getRequiredQuantity(editedItems);
 
     const {
         selectedPickupDayId,
