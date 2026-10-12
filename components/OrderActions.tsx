@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useOrderWindow } from "@/lib/useOrderWindow";
 import ProductSelector from "@/components/ProductSelector";
 import PickupDayChangeCard from "@/components/PickupDayChangeCard";
 import { useRouter } from "next/navigation";
@@ -82,6 +83,10 @@ export default function OrderActions({
     isPickupDayActive = true,
 }: OrderActionsProps) {
     const isDunavecse = pickupDayKind === "dunavecse";
+    // Az előrendelési időablak ugyanaz a szabály, mint a rendelési folyamatban
+    // (lib/useOrderWindow.ts). Lezárt vagy még nem kezdődött időablaknál a
+    // Módosítás / Törlés gombok és a szerkesztő nem renderelődnek.
+    const isWindowOpen = useOrderWindow(seasonStartDate, seasonEndDate);
     const [isEditing, setIsEditing] = useState(false);
     const {
         editingOrderId,
@@ -360,6 +365,10 @@ export default function OrderActions({
         router.refresh();
 
     };
+
+    if (!isWindowOpen) {
+        return null;
+    }
 
     return (
         <div className="w-full">

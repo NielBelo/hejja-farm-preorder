@@ -6,6 +6,7 @@ import CountdownCard from "@/components/CountdownCard";
 import CustomerFooter from "@/components/CustomerFooter";
 import Image from "next/image";
 import { getPickupDateStatus } from "@/lib/pickupDateStatus";
+import { isOrderInActiveSeason } from "@/lib/orderHistoryAccess";
 
 
 
@@ -34,6 +35,7 @@ type Order = {
   status: string;
   created_at: string;
   pickup_day_id: number;
+  season_parameter_id: number;
   current_version_id: number;
   pickup_days: {
     id: number;
@@ -105,6 +107,7 @@ export default async function HistoryPage({
             status,
             created_at,
             pickup_day_id,
+            season_parameter_id,
             current_version_id,
 
             pickup_days (
@@ -405,7 +408,7 @@ export default async function HistoryPage({
                         </span>
                       </div>
 
-                      {isCurrent && (
+                      {isCurrent && isOrderInActiveSeason(order.season_parameter_id, season?.id) && (
                         <OrderActions
                           orderId={order.id}
                           publicOrderNumber={order.public_order_number}
