@@ -113,6 +113,7 @@ export type AdminOrder = {
     current_version_id: number;
     user_id: string;
     pickup_day_id: number;
+    season_parameter_id: number | null;
     pickup_days: AdminPickupDay;
     order_versions: AdminOrderVersion;
     profile: AdminProfile | null;
@@ -305,7 +306,10 @@ export default function AdminOrderCard({
         reset: resetPickupDaySelection,
     } = usePickupDayChange({
         pickupDayId: order.pickup_day_id,
-        pickupDays,
+        // Csak a rendelés saját szezonjának napjai választhatók.
+        pickupDays: pickupDays.filter(
+            (day) => day.season_parameter_id === order.season_parameter_id
+        ),
         originalQuantity,
         requiredQuantity,
     });

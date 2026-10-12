@@ -175,6 +175,7 @@ export default async function HistoryPage({
     .select("*")
     .eq("is_active", true)
     .eq("kind", "normal")
+    .eq("season_parameter_id", season?.id ?? -1)
     .order("_group")
     .order("serial_number");
 

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { normalizePackageId } from "@/lib/orderPackaging";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
 import { getMaintenanceBlockError } from "@/lib/maintenance/guard";
+import { getCrossSeasonPickupDayError } from "@/lib/orderPickupDaySeason";
 
 export type AdminUpdateOrderItem = {
     product_id: number;
@@ -58,6 +59,11 @@ export async function updateAdminOrder(data: AdminUpdateOrderData) {
             success: false,
             error: `Egy tételben legfeljebb ${MAX_QUANTITY_PER_ITEM} darab csirke rendelhető.`,
         };
+    }
+
+    const seasonError = await getCrossSeasonPickupDayError(supabase, data.orderId, data.pickupDayId);
+    if (seasonError) {
+        return { success: false, error: seasonError };
     }
 
     const productIds = [...new Set(data.items.map((item) => item.product_id))];

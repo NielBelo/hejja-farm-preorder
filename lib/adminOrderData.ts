@@ -17,6 +17,7 @@ const orderSelect = `
     current_version_id,
     user_id,
     pickup_day_id,
+    season_parameter_id,
 
     pickup_days!orders_pickup_day_id_fkey!inner (
         id,

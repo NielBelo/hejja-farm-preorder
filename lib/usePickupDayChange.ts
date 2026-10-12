@@ -6,6 +6,7 @@ export type PickupDay = {
     id: number;
     year: number;
     season: number;
+    season_parameter_id?: number | null;
     serial_number: number;
     pickup_date: string;
     planned_stock: number | null;
