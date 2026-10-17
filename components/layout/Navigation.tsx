@@ -158,7 +158,7 @@ export default function Navigation({
             }}>
               <button type="button" aria-expanded={accountMenuOpen} aria-controls="account-menu"
                 onClick={() => setAccountMenuOpen((open) => !open)}
-                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${pathname.startsWith("/admin/accounts") ? "text-[rgb(49,171,2)]" : "text-gray-500/80 hover:text-gray-700"}`}>
+                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${pathname.startsWith("/admin/accounts") || pathname.startsWith("/admin/email-server") ? "text-[rgb(49,171,2)]" : "text-gray-500/80 hover:text-gray-700"}`}>
                 Fiók
                 <svg className={`h-4 w-4 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z" clipRule="evenodd" />
@@ -169,6 +169,8 @@ export default function Navigation({
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Szerkesztés</Link>
                 <Link href="/admin/accounts/invites" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/invites" ? "page" : undefined}
                   className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Meghívó</Link>
+                <Link href="/admin/email-server" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/email-server" ? "page" : undefined}
+                  className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">E-mail szerver</Link>
                 {isSuperAdmin && (
                   <Link href="/admin/accounts/maintenance" prefetch={false} onClick={() => setAccountMenuOpen(false)} aria-current={pathname === "/admin/accounts/maintenance" ? "page" : undefined}
                     className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800">Karbantartás</Link>
