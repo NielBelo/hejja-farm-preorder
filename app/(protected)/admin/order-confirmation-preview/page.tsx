@@ -20,9 +20,9 @@ import { getLatestOrderNotificationData } from "@/lib/email/orderNotificationDat
 // döntésből (lib/pickupInfo, lib/countyGroups) származik, mint éles
 // rendelésnél.
 const countyVariants = [
-    { label: "Tanyasi átvétel (Békés megyei vásárló)", county: "Békés" },
-    { label: "Városi átvétel (más megyei vásárló)", county: "Csongrád-Csanád" },
-    { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", county: "Bács-Kiskun" },
+    { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", county: "Csongrád-Csanád" },
+    { label: "Tanyasi átvétel – Békés megye", county: "Békés" },
+    { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", county: "Bács-Kiskun" },
 ];
 
 export default async function AdminOrderConfirmationPreviewPage() {
@@ -56,7 +56,7 @@ export default async function AdminOrderConfirmationPreviewPage() {
                 <div className="mt-2.5 flex items-center gap-4">
                     <span className="h-px flex-1 bg-gray-400" aria-hidden="true" />
                     <h1 className="shrink-0 text-md font-semibold tracking-wider text-gray-500">
-                        Rendelés-visszaigazolás (weboldal)
+                        Rendelés visszaigazolása
                     </h1>
                     <span className="h-px flex-1 bg-gray-400" aria-hidden="true" />
                 </div>

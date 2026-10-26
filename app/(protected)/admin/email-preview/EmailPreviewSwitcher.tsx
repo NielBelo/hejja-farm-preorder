@@ -19,12 +19,12 @@ type TemplateKey = "registration" | "registration-confirmation" | "registration-
 
 const templateLabels: Record<TemplateKey, string> = {
     registration: "Regisztráció",
-    "registration-confirmation": "Regisztráció megerősítése",
+    "registration-confirmation": "E-mail-cím megerősítése",
     "registration-invite": "Regisztrációs meghívó",
-    "order-created": "Új rendelés visszaigazolása",
+    "order-created": "Rendelés visszaigazolása",
     "order-updated": "Rendelés módosítása",
     "order-cancelled": "Rendelés törlése",
-    reminder: "Emlékeztető",
+    reminder: "Átvételi emlékeztető",
 };
 
 export default function EmailPreviewSwitcher({
@@ -65,14 +65,6 @@ export default function EmailPreviewSwitcher({
                                 <dt className="font-medium text-gray-500">Tárgy</dt>
                                 <dd className="font-medium text-gray-900">{preview.subject}</dd>
                             </div>
-                            {preview.modifiedAt && preview.modifiedAtLabel ? (
-                                <div className="grid grid-cols-[5rem_1fr] gap-3">
-                                    <dt className="font-medium text-gray-500">Módosítva</dt>
-                                    <dd className="text-gray-700">
-                                        <time dateTime={preview.modifiedAt}>{preview.modifiedAtLabel}</time>
-                                    </dd>
-                                </div>
-                            ) : null}
                         </dl>
                     </div>
 

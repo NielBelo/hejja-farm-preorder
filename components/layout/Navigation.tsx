@@ -19,6 +19,28 @@ const menuItems = [
   },
 ];
 
+const templateMenuGroups: { title: string; items: [string, string][] }[] = [
+  {
+    title: "Webes sablonok",
+    items: [
+      ["Regisztráció", "/admin/email-preview?template=registration"],
+      ["Rendelés visszaigazolása", "/admin/order-confirmation-preview"],
+    ],
+  },
+  {
+    title: "E-mail-sablonok",
+    items: [
+      ["Regisztrációs meghívó", "/admin/email-preview?template=registration-invite"],
+      ["E-mail-cím megerősítése", "/admin/email-preview?template=registration-confirmation"],
+      ["Szezonindítási értesítő", "/admin/season-launch-notification"],
+      ["Rendelés visszaigazolása", "/admin/email-preview?template=order-created"],
+      ["Rendelés módosítása", "/admin/email-preview?template=order-updated"],
+      ["Rendelés törlése", "/admin/email-preview?template=order-cancelled"],
+      ["Átvételi emlékeztető", "/admin/email-preview?template=reminder"],
+    ],
+  },
+];
+
 export default function Navigation({
   isAdmin,
   isSuperAdmin,
@@ -183,7 +205,7 @@ export default function Navigation({
                 type="button"
                 onClick={() => setEmailMenuOpen((open) => !open)}
                 className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
-                  pathname.startsWith("/admin/email-preview") || pathname.startsWith("/admin/order-confirmation-preview")
+                  pathname.startsWith("/admin/email-preview") || pathname.startsWith("/admin/order-confirmation-preview") || pathname.startsWith("/admin/season-launch-notification")
                     ? "text-[rgb(49,171,2)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }`}
@@ -205,25 +227,26 @@ export default function Navigation({
 
               {emailMenuOpen && (
                 <div className="absolute left-0 top-full z-50 mt-1 min-w-56 rounded-lg border border-gray-100 bg-white p-1 shadow-lg">
-                  {[
-                    ["Meghívó", "/admin/email-preview?template=registration-invite"],
-                    ["Regisztráció", "/admin/email-preview?template=registration"],
-                    ["Megerősítés", "/admin/email-preview?template=registration-confirmation"],
-                    ["Visszaigazolás előnézete", "/admin/order-confirmation-preview"],
-                    ["Új rendelés visszaigazolása", "/admin/email-preview?template=order-created"],
-                    ["Rendelés módosítása", "/admin/email-preview?template=order-updated"],
-                    ["Rendelés törlése", "/admin/email-preview?template=order-cancelled"],
-                    ["Emlékeztető", "/admin/email-preview?template=reminder"],
-                  ].map(([label, href]) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      prefetch={false}
-                      onClick={() => setEmailMenuOpen(false)}
-                      className="block rounded-md px-3 py-2 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
+                  {templateMenuGroups.map((group, groupIndex) => (
+                    <div
+                      key={group.title}
+                      className={groupIndex > 0 ? "mt-1 border-t border-gray-100 pt-1" : undefined}
                     >
-                      {label}
-                    </Link>
+                      <p className="px-3 pb-1 pt-2 text-[12px] font-medium tracking-normal text-[#4B5563]">
+                        {group.title}
+                      </p>
+                      {group.items.map(([label, href]) => (
+                        <Link
+                          key={href}
+                          href={href}
+                          prefetch={false}
+                          onClick={() => setEmailMenuOpen(false)}
+                          className="block rounded-md py-2 pl-6 pr-3 text-base text-gray-600 transition-all hover:bg-gray-50 hover:text-gray-800"
+                        >
+                          {label}
+                        </Link>
+                      ))}
+                    </div>
                   ))}
                 </div>
               )}

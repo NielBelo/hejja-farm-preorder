@@ -173,9 +173,9 @@ export default async function AdminEmailPreviewPage({
         "order-created": (createdOrderEmailBekes && createdOrderEmailVarosi && createdOrderEmailBacsKiskun) ? {
             subject: createdOrderEmailBekes.subject,
             variants: [
-                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: createdOrderEmailBekes.html },
-                { label: "Városi átvétel (más megyei vásárló)", html: createdOrderEmailVarosi.html },
-                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: createdOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: createdOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel – Békés megye", html: createdOrderEmailBekes.html },
+                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: createdOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Új rendelés visszaigazoló e-mail",
             height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
@@ -185,9 +185,9 @@ export default async function AdminEmailPreviewPage({
         "order-updated": (updatedOrderEmailBekes && updatedOrderEmailVarosi && updatedOrderEmailBacsKiskun) ? {
             subject: updatedOrderEmailBekes.subject,
             variants: [
-                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: updatedOrderEmailBekes.html },
-                { label: "Városi átvétel (más megyei vásárló)", html: updatedOrderEmailVarosi.html },
-                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: updatedOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: updatedOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel – Békés megye", html: updatedOrderEmailBekes.html },
+                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: updatedOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Rendelésmódosító e-mail",
             modifiedAt: latestUpdate?.modifiedAt,
@@ -199,9 +199,9 @@ export default async function AdminEmailPreviewPage({
         "order-cancelled": (cancelledOrderEmailBekes && cancelledOrderEmailVarosi && cancelledOrderEmailBacsKiskun) ? {
             subject: cancelledOrderEmailBekes.subject,
             variants: [
-                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: cancelledOrderEmailBekes.html },
-                { label: "Városi átvétel (más megyei vásárló)", html: cancelledOrderEmailVarosi.html },
-                { label: "DUNAVECSE (Bács-Kiskun megyei vásárló)", html: cancelledOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: cancelledOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel – Békés megye", html: cancelledOrderEmailBekes.html },
+                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: cancelledOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Rendeléstörlő e-mail",
             height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
@@ -211,8 +211,8 @@ export default async function AdminEmailPreviewPage({
         reminder: (reminderEmailBekes && reminderEmailVarosi) ? {
             subject: reminderEmailBekes.subject,
             variants: [
-                { label: "Tanyasi átvétel (Békés megyei vásárló)", html: reminderEmailBekes.html },
-                { label: "Városi átvétel (más megyei vásárló)", html: reminderEmailVarosi.html },
+                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: reminderEmailVarosi.html },
+                { label: "Tanyasi átvétel – Békés megye", html: reminderEmailBekes.html },
             ],
             iframeTitle: "Átvétel előtti emlékeztető e-mail",
             height: Math.max(760, 560 + (reminderSample?.data.items.length ?? 0) * 110),
