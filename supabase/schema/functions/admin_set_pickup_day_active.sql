@@ -6,9 +6,14 @@ CREATE OR REPLACE FUNCTION public.admin_set_pickup_day_active(target_id bigint, 
 AS $function$
 declare
   v_season_active boolean;
+  v_day_archived boolean;
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
+  end if;
+  select (archived_at is not null) into v_day_archived from public.pickup_days where id = target_id;
+  if v_day_archived then
+    raise exception 'Törölt átvételi nap nem módosítható, előbb állítsa vissza.' using errcode = '22023';
   end if;
   if admin_set_pickup_day_active.is_active then
     select sp.is_active into v_season_active

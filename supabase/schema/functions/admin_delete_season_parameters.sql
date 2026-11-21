@@ -1,9 +1,12 @@
-CREATE OR REPLACE FUNCTION public.admin_delete_season_parameters(target_id bigint)
+CREATE OR REPLACE FUNCTION public.admin_delete_season_parameters(target_id bigint, confirm_live_orders boolean DEFAULT false)
  RETURNS boolean
  LANGUAGE plpgsql
  SECURITY DEFINER
  SET search_path TO ''
 AS $function$
+declare
+  v_live_orders integer;
+  v_now timestamptz := now();
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
@@ -13,22 +16,38 @@ begin
     raise exception 'A szezon nem található.' using errcode = 'P0002';
   end if;
 
-  if exists (
-    select 1
-    from public.pickup_days p
-    join public.orders o on o.pickup_day_id = p.id
-    where p.season_parameter_id = target_id
-  ) then
-    raise exception 'A szezon nem törölhető, mert már vannak hozzá rendelések.' using errcode = '23503';
+  if exists (select 1 from public.season_parameters where id = target_id and archived_at is not null) then
+    raise exception 'A szezon már törölve van.' using errcode = '22023';
   end if;
 
-  delete from public.pickup_days where season_parameter_id = target_id;
-  delete from public.season_parameters where id = target_id;
+  -- A szezon napjainak zárolása az élő rendelések ellenőrzése előtt.
+  perform 1 from public.pickup_days where season_parameter_id = target_id for update;
+
+  select count(*) into v_live_orders
+  from public.orders o
+  join public.pickup_days p on p.id = o.pickup_day_id
+  where p.season_parameter_id = target_id and o.status = 'submitted';
+
+  if v_live_orders > 0 and not confirm_live_orders then
+    raise exception 'A szezonhoz % élő rendelés tartozik. A törléshez megerősítés szükséges.', v_live_orders
+      using errcode = '22023', hint = 'LIVE_ORDERS_CONFIRMATION_REQUIRED';
+  end if;
+
+  -- Soft delete: a szezon és az összes napja (a DUNAVECSE is) ugyanazzal az
+  -- időbélyeggel archiválódik, így a visszaállítás pontosan ezeket hozza
+  -- vissza. A rendelések érintetlenek maradnak.
+  update public.pickup_days
+    set archived_at = v_now, is_active = false
+    where season_parameter_id = target_id and archived_at is null;
+
+  update public.season_parameters
+    set archived_at = v_now, is_active = false
+    where id = target_id;
 
   return true;
 end;
 $function$;
 
-REVOKE ALL ON FUNCTION admin_delete_season_parameters(bigint) FROM PUBLIC, anon, authenticated, service_role;
-GRANT EXECUTE ON FUNCTION admin_delete_season_parameters(bigint) TO authenticated;
-GRANT EXECUTE ON FUNCTION admin_delete_season_parameters(bigint) TO service_role;
+REVOKE ALL ON FUNCTION admin_delete_season_parameters(bigint,boolean) FROM PUBLIC, anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION admin_delete_season_parameters(bigint,boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION admin_delete_season_parameters(bigint,boolean) TO service_role;

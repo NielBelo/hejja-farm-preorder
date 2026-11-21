@@ -18,15 +18,20 @@ declare
   v_local_pickup_time_start time := (season_data ->> 'localPickupTimeStart')::time;
   v_days jsonb := season_data -> 'pickupDays';
   v_active boolean := coalesce((season_data ->> 'active')::boolean, false);
+  v_confirm_live_orders boolean := coalesce((season_data ->> 'confirmLiveOrders')::boolean, false);
   v_day jsonb; v_date date; v_limit integer; v_day_active boolean;
+  v_has_small_limit boolean; v_has_large_limit boolean;
+  v_small_limit integer; v_large_limit integer;
   v_season_id bigint;
-  v_blocked_dates text;
+  v_live_dates text;
   v_last_normal_date date;
   v_existing_id bigint;
   v_old_planned_stock integer;
   v_old_available_stock integer;
   v_delta integer;
   v_new_available_stock integer;
+  v_live_small integer;
+  v_live_large integer;
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
@@ -43,19 +48,30 @@ begin
   if v_id is not null and not exists (select 1 from public.season_parameters where id = v_id) then
     raise exception 'A szezon nem található.' using errcode = 'P0002';
   end if;
+  if v_id is not null and exists (select 1 from public.season_parameters where id = v_id and archived_at is not null) then
+    raise exception 'A szezon törölt, mentés előtt állítsa vissza.' using errcode = '22023';
+  end if;
 
+  -- A form által már nem tartalmazott (nem archivált) normál napok: ezeket
+  -- fizikai törlés helyett archiváljuk. A sorok zárolása az élő rendelések
+  -- ellenőrzése előtt történik, hogy közben ne módosulhassanak.
   if v_id is not null then
+    perform 1 from public.pickup_days p
+      where p.season_parameter_id = v_id and p.kind = 'normal' and p.archived_at is null
+      for update;
+
     select string_agg(to_char(p.pickup_date, 'YYYY.MM.DD'), ', ' order by p.pickup_date)
-    into v_blocked_dates
+    into v_live_dates
     from public.pickup_days p
     where p.season_parameter_id = v_id
       and p.kind = 'normal'
-      and exists (select 1 from public.orders o where o.pickup_day_id = p.id)
+      and p.archived_at is null
+      and exists (select 1 from public.orders o where o.pickup_day_id = p.id and o.status = 'submitted')
       and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
 
-    if v_blocked_dates is not null then
-      raise exception 'A következő átvételi nap(ok)hoz már van rendelés, ezért nem törölhetők: %. Deaktiválja őket törlés helyett.', v_blocked_dates
-        using errcode = '22023';
+    if v_live_dates is not null and not v_confirm_live_orders then
+      raise exception 'A következő átvételi nap(ok)hoz élő rendelés tartozik: %. A törléshez megerősítés szükséges.', v_live_dates
+        using errcode = '22023', hint = 'LIVE_ORDERS_CONFIRMATION_REQUIRED';
     end if;
   end if;
 
@@ -83,14 +99,30 @@ begin
       where id = v_id
       returning id into v_season_id;
   end if;
-  delete from public.pickup_days p where p.season_parameter_id = v_season_id
-    and p.kind = 'normal'
-    and not exists (select 1 from public.orders o where o.pickup_day_id = p.id)
-    and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
+
+  -- Soft delete: a rendelések hivatkozásai érintetlenek maradnak, a nap
+  -- csak archiválódik (és inaktív lesz).
+  update public.pickup_days p
+    set archived_at = now(), is_active = false
+    where p.season_parameter_id = v_season_id
+      and p.kind = 'normal'
+      and p.archived_at is null
+      and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
+
   for v_day in select * from jsonb_array_elements(v_days) loop
     v_date := (v_day->>'date')::date; v_limit := (v_day->>'limit')::integer;
     v_day_active := coalesce((v_day->>'active')::boolean, true);
+    v_has_small_limit := v_day ? 'smallSizeLimit';
+    v_has_large_limit := v_day ? 'largeSizeLimit';
+    v_small_limit := nullif(v_day->>'smallSizeLimit', '')::integer;
+    v_large_limit := nullif(v_day->>'largeSizeLimit', '')::integer;
 
+    if v_small_limit < 0 or v_large_limit < 0 then
+      raise exception 'Érvénytelen szezonadatok.' using errcode = '22023';
+    end if;
+
+    -- Az archivált napot is megtaláljuk: ha az admin ugyanarra a dátumra
+    -- újra felveszi, a régi sor áll vissza (nem jön létre új sor).
     select id, planned_stock, available_stock
       into v_existing_id, v_old_planned_stock, v_old_available_stock
       from public.pickup_days
@@ -107,19 +139,38 @@ begin
           using errcode = '22023';
       end if;
 
+      select s.live_small_quantity, s.live_large_quantity
+        into v_live_small, v_live_large
+        from public.pickup_day_order_stats s
+        where s.pickup_day_id = v_existing_id;
+
+      if v_has_small_limit and v_small_limit is not null and v_small_limit < coalesce(v_live_small, 0) then
+        raise exception 'A(z) % kisebb méretű limitje (% db) kisebb, mint az erre a napra már rendelt kisebb méretű mennyiség (% db).',
+          to_char(v_date, 'YYYY.MM.DD'), v_small_limit, v_live_small
+          using errcode = '22023';
+      end if;
+      if v_has_large_limit and v_large_limit is not null and v_large_limit < coalesce(v_live_large, 0) then
+        raise exception 'A(z) % nagyobb méretű limitje (% db) kisebb, mint az erre a napra már rendelt nagyobb méretű mennyiség (% db).',
+          to_char(v_date, 'YYYY.MM.DD'), v_large_limit, v_live_large
+          using errcode = '22023';
+      end if;
+
       update public.pickup_days
         set planned_stock = v_limit, available_stock = v_new_available_stock,
-            is_active = v_day_active, year = v_year, season = v_season
+            is_active = v_day_active, year = v_year, season = v_season,
+            archived_at = null,
+            small_size_limit = case when v_has_small_limit then v_small_limit else small_size_limit end,
+            large_size_limit = case when v_has_large_limit then v_large_limit else large_size_limit end
         where id = v_existing_id;
     else
-      insert into public.pickup_days(year, season, pickup_date, planned_stock, available_stock, is_active, serial_number, _group, season_parameter_id, kind)
-      values(v_year, v_season, v_date, v_limit, v_limit, v_day_active, 1, 1, v_season_id, 'normal');
+      insert into public.pickup_days(year, season, pickup_date, planned_stock, available_stock, is_active, serial_number, _group, season_parameter_id, kind, small_size_limit, large_size_limit)
+      values(v_year, v_season, v_date, v_limit, v_limit, v_day_active, 1, 1, v_season_id, 'normal', v_small_limit, v_large_limit);
     end if;
   end loop;
 
   select max(pickup_date) into v_last_normal_date
     from public.pickup_days
-    where season_parameter_id = v_season_id and kind = 'normal';
+    where season_parameter_id = v_season_id and kind = 'normal' and archived_at is null;
 
   update public.pickup_days
     set pickup_date = v_last_normal_date, year = v_year, season = v_season
