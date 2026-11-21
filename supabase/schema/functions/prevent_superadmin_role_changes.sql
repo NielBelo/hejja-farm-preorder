@@ -15,6 +15,12 @@ begin
     end if;
   end if;
 
+  -- BEFORE DELETE triggernél a NEW üres: a `return new` NULL-t adna vissza,
+  -- ami csendben kihagyná a törlést. Törlésnél OLD-ot kell visszaadni.
+  if tg_op = 'DELETE' then
+    return old;
+  end if;
+
   return new;
 end;
 $function$;
