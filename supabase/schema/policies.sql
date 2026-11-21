@@ -20,6 +20,8 @@ ALTER TABLE public.reminder_sends ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.season_parameters ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.season_product_prices ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.user_consents ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
@@ -73,3 +75,4 @@ CREATE POLICY view_right ON public.products AS PERMISSIVE FOR SELECT TO public U
 
 CREATE POLICY view_right ON public.season_parameters AS PERMISSIVE FOR SELECT TO public USING (true);
 
+CREATE POLICY view_right ON public.season_product_prices AS PERMISSIVE FOR SELECT TO public USING (true);

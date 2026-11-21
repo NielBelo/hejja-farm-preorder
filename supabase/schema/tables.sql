@@ -58,7 +58,10 @@ CREATE TABLE public.pickup_days (
   _group text,
   is_active boolean,
   season_parameter_id bigint,
-  kind text DEFAULT 'normal'::text NOT NULL
+  kind text DEFAULT 'normal'::text NOT NULL,
+  archived_at timestamp with time zone,
+  small_size_limit integer,
+  large_size_limit integer
 );
 
 CREATE TABLE public.products (
@@ -119,7 +122,15 @@ CREATE TABLE public.season_parameters (
   time_window_end timestamp with time zone,
   pickup_time_start time without time zone,
   pickup_time_end time without time zone,
-  local_pickup_time_start time without time zone
+  local_pickup_time_start time without time zone,
+  archived_at timestamp with time zone
+);
+
+CREATE TABLE public.season_product_prices (
+  season_parameter_id bigint NOT NULL,
+  product_id bigint NOT NULL,
+  price integer NOT NULL,
+  created_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
 CREATE TABLE public.user_consents (
@@ -231,8 +242,42 @@ ALTER TABLE public.reminder_sends ADD CONSTRAINT reminder_sends_pickup_day_id_fk
 
 ALTER TABLE public.user_roles ADD CONSTRAINT user_roles_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
 
+ALTER TABLE public.pickup_days ADD CONSTRAINT pickup_days_small_size_limit_check CHECK (((small_size_limit IS NULL) OR (small_size_limit >= 0)));
+
+ALTER TABLE public.pickup_days ADD CONSTRAINT pickup_days_large_size_limit_check CHECK (((large_size_limit IS NULL) OR (large_size_limit >= 0)));
+
+ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_price_check CHECK ((price >= 0));
+
+ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_pkey PRIMARY KEY (season_parameter_id, product_id);
+
+ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_season_parameter_id_fkey FOREIGN KEY (season_parameter_id) REFERENCES season_parameters(id);
+
+ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id);
+
 CREATE INDEX reminder_sends_status_idx ON public.reminder_sends USING btree (status);
 
 CREATE UNIQUE INDEX pickup_days_normal_unique_date_per_season ON public.pickup_days USING btree (season_parameter_id, pickup_date) WHERE (kind = 'normal'::text);
 
 CREATE UNIQUE INDEX pickup_days_one_dunavecse_per_season ON public.pickup_days USING btree (season_parameter_id) WHERE (kind = 'dunavecse'::text);
+
+CREATE VIEW public.pickup_day_order_stats WITH (security_invoker = true) AS
+ SELECT pd.id AS pickup_day_id,
+    pd.season_parameter_id,
+    count(DISTINCT o.id) FILTER (WHERE (o.status = 'submitted'::text)) AS live_order_count,
+    count(DISTINCT o.id) AS total_order_count,
+    (COALESCE(sum(oi.quantity) FILTER (WHERE ((o.status = 'submitted'::text) AND (oi.size_preference = 'Átlagostól kisebb méret'::text))), (0)::bigint))::integer AS live_small_quantity,
+    (COALESCE(sum(oi.quantity) FILTER (WHERE ((o.status = 'submitted'::text) AND (oi.size_preference = 'Átlagostól nagyobb méret'::text))), (0)::bigint))::integer AS live_large_quantity
+   FROM ((pickup_days pd
+     LEFT JOIN orders o ON ((o.pickup_day_id = pd.id)))
+     LEFT JOIN order_items oi ON ((oi.order_version_id = o.current_version_id)))
+  GROUP BY pd.id, pd.season_parameter_id;
+
+CREATE VIEW public.season_order_stats WITH (security_invoker = true) AS
+ SELECT sp.id AS season_parameter_id,
+    (COALESCE(sum(s.live_order_count), (0)::numeric))::integer AS live_order_count,
+    (COALESCE(sum(s.total_order_count), (0)::numeric))::integer AS total_order_count,
+    (COALESCE(sum(s.live_small_quantity), (0)::numeric))::integer AS live_small_quantity,
+    (COALESCE(sum(s.live_large_quantity), (0)::numeric))::integer AS live_large_quantity
+   FROM (season_parameters sp
+     LEFT JOIN pickup_day_order_stats s ON ((s.season_parameter_id = sp.id)))
+  GROUP BY sp.id;
