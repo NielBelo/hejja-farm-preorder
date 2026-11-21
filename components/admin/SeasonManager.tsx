@@ -156,11 +156,23 @@ function StatChip({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-function OrderStatsCard({ orderCount, reservedQuantity }: { orderCount: number; reservedQuantity: number }) {
+function OrderStatsCard({
+  orderCount,
+  reservedQuantity,
+  hasOrderHistory,
+}: {
+  orderCount: number;
+  reservedQuantity: number;
+  hasOrderHistory?: boolean;
+}) {
   return (
     <div
       className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 shadow-sm"
-      title="Ehhez az átvételi naphoz tartozott rendelés, ezért a rendelési előzmény megőrzése miatt nem törölhető. Deaktiválja törlés helyett."
+      title={`Az átvételi naphoz tartozó aktív rendelések száma és a lefoglalt csirkék mennyisége.${
+        hasOrderHistory
+          ? " Ehhez a naphoz tartozott rendelés, ezért a rendelési előzmény megőrzése miatt nem törölhető. Deaktiválja törlés helyett."
+          : ""
+      }`}
     >
       <span className="font-semibold text-gray-800">{orderCount}</span>
       <span>aktív rendelés</span>
@@ -468,9 +480,15 @@ function Editor({
                 />
               )}
 
-              {d.hasOrderHistory ? (
-                <OrderStatsCard orderCount={d.orderCount ?? 0} reservedQuantity={d.reservedQuantity ?? 0} />
-              ) : (
+              {d.id != null && (
+                <OrderStatsCard
+                  orderCount={d.orderCount ?? 0}
+                  reservedQuantity={d.reservedQuantity ?? 0}
+                  hasOrderHistory={d.hasOrderHistory}
+                />
+              )}
+
+              {!d.hasOrderHistory && (
                 <button
                   type="button"
                   onClick={() => onChange({ ...value, pickupDays: value.pickupDays.filter((_, j) => j !== i) })}
@@ -526,9 +544,11 @@ function Editor({
               onChange={() => onToggleDunavecse?.(dunavecse)}
             />
 
-            {dunavecse.hasOrderHistory && (
-              <OrderStatsCard orderCount={dunavecse.orderCount} reservedQuantity={dunavecse.reservedQuantity} />
-            )}
+            <OrderStatsCard
+              orderCount={dunavecse.orderCount}
+              reservedQuantity={dunavecse.reservedQuantity}
+              hasOrderHistory={dunavecse.hasOrderHistory}
+            />
           </div>
           {dunavecseError && <p className="text-xs font-medium text-red-700">{dunavecseError}</p>}
         </div>
