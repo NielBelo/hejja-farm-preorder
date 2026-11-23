@@ -12,4 +12,3 @@ CREATE TRIGGER trg_enforce_daily_size_limit BEFORE INSERT OR UPDATE OF pickup_da
 
 CREATE TRIGGER trg_enforce_pickup_day_active BEFORE INSERT OR UPDATE OF pickup_day_id, current_version_id ON public.orders FOR EACH ROW EXECUTE FUNCTION enforce_pickup_day_active();
 
-CREATE TRIGGER trg_enforce_size_preference_limit BEFORE INSERT OR UPDATE OF pickup_day_id, current_version_id ON public.orders FOR EACH ROW EXECUTE FUNCTION enforce_size_preference_limit();

@@ -80,9 +80,7 @@ CREATE TABLE public.profiles (
   city text NOT NULL,
   created_at timestamp with time zone DEFAULT now(),
   email text NOT NULL,
-  county text,
-  special_size_preference text,
-  oroshazi_delivery boolean DEFAULT false NOT NULL
+  county text
 );
 
 CREATE TABLE public.registration_invites (
@@ -180,7 +178,6 @@ ALTER TABLE public.products ADD CONSTRAINT products_pkey PRIMARY KEY (id);
 
 ALTER TABLE public.profiles ADD CONSTRAINT profiles_pkey PRIMARY KEY (id);
 
-ALTER TABLE public.profiles ADD CONSTRAINT profiles_special_size_preference_check CHECK (((special_size_preference IS NULL) OR (special_size_preference = ANY (ARRAY['smaller'::text, 'larger'::text]))));
 
 ALTER TABLE public.registration_invites ADD CONSTRAINT registration_invites_email_check CHECK (((email = lower(TRIM(BOTH FROM email))) AND (email <> ''::text)));
 

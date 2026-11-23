@@ -7,7 +7,6 @@ AS $function$
 declare
   field_name text;
   requested_role text;
-  requested_size_preference text;
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
@@ -31,18 +30,12 @@ begin
     raise exception 'Érvénytelen jogosultsági beállítás.' using errcode = '22023';
   end if;
 
-  requested_size_preference := nullif(profile_data ->> 'special_size_preference', '');
-  if requested_size_preference is not null and requested_size_preference not in ('smaller', 'larger') then
-    raise exception 'Érvénytelen méretigény.' using errcode = '22023';
-  end if;
-
   update public.profiles set
     first_name = trim(profile_data ->> 'first_name'),
     last_name = trim(profile_data ->> 'last_name'),
     phone = profile_data ->> 'phone',
     county = trim(profile_data ->> 'county'),
-    city = trim(profile_data ->> 'city'),
-    special_size_preference = requested_size_preference
+    city = trim(profile_data ->> 'city')
   where id = target_user_id;
   if not found then
     raise exception 'A felhasználó személyes adatlapja nem található.' using errcode = 'P0002';
