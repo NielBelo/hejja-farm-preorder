@@ -121,7 +121,8 @@ CREATE TABLE public.season_parameters (
   pickup_time_start time without time zone,
   pickup_time_end time without time zone,
   local_pickup_time_start time without time zone,
-  archived_at timestamp with time zone
+  archived_at timestamp with time zone,
+  note text
 );
 
 CREATE TABLE public.season_product_prices (
@@ -196,6 +197,7 @@ ALTER TABLE public.reminder_sends ADD CONSTRAINT reminder_sends_sent_has_sent_at
 ALTER TABLE public.reminder_sends ADD CONSTRAINT reminder_sends_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'failed'::text])));
 
 ALTER TABLE public.season_parameters ADD CONSTRAINT seasons_pkey PRIMARY KEY (id);
+ALTER TABLE public.season_parameters ADD CONSTRAINT season_parameters_note_length_check CHECK (((note IS NULL) OR ((char_length(note) >= 1) AND (char_length(note) <= 100))));
 
 ALTER TABLE public.user_consents ADD CONSTRAINT user_consents_document_type_check CHECK ((document_type <> ''::text));
 
