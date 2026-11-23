@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
 import {
+  ArrowUturnLeftIcon,
   CalendarDaysIcon,
   CheckCircleIcon,
   CheckIcon,
@@ -10,7 +11,16 @@ import {
   TrashIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
-import { deleteSeason, saveSeason, setDunavecsePickupDayActive, type SeasonInput } from "@/app/(protected)/admin/seasons/actions";
+import {
+  deleteSeason,
+  restorePickupDay,
+  restoreSeason,
+  saveSeason,
+  setDunavecsePickupDayActive,
+  type PickupDay,
+  type SeasonInput,
+} from "@/app/(protected)/admin/seasons/actions";
+import { SEASON_NOTE_MAX_LENGTH } from "@/lib/seasonNote";
 
 // A DUNAVECSE (Bács-Kiskun) technikai nap - a normál pickupDays listától
 // külön, mert nem szerkeszthető/törölhető a form-on keresztül, csak
@@ -26,12 +36,31 @@ type DunavecseInfo = {
   hasOrderHistory: boolean;
 };
 
-type Season = SeasonInput & { id: string; created_at: string; dunavecse: DunavecseInfo | null };
+type ProductOption = { id: number; name: string };
 
-const blank = (): SeasonInput => ({
+// archived: törölt (soft delete) szezon; deletedDays: a szezon törölt napjai.
+type Season = SeasonInput & {
+  id: string;
+  created_at: string;
+  dunavecse: DunavecseInfo | null;
+  archived: boolean;
+  deletedDays: PickupDay[];
+};
+
+// A régi, szezononkénti ár (season_parameters.price) egyelőre kötelező: a
+// legkisebb azonosítójú termék (Egész) árát tükrözi.
+const withLegacyPrice = (input: SeasonInput, products: ProductOption[]): SeasonInput => {
+  const first = [...products].sort((a, b) => a.id - b.id)[0];
+  const price = input.prices?.find((entry) => entry.productId === first?.id)?.price;
+  return price === undefined ? input : { ...input, price };
+};
+
+const blank = (products: ProductOption[] = []): SeasonInput => ({
   year: new Date().getFullYear(),
   type: "Tavasz",
   price: 0,
+  prices: products.map((product) => ({ productId: product.id, price: 0 })),
+  note: "",
   weightMin: 2,
   weightMax: 3,
   orderStart: "",
@@ -39,7 +68,7 @@ const blank = (): SeasonInput => ({
   pickupTimeStart: "17:00",
   pickupTimeEnd: "18:00",
   localPickupTimeStart: "17:00",
-  pickupDays: [{ date: "", limit: 1, active: true }],
+  pickupDays: [{ date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null }],
   active: false,
 });
 
@@ -156,23 +185,11 @@ function StatChip({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-function OrderStatsCard({
-  orderCount,
-  reservedQuantity,
-  hasOrderHistory,
-}: {
-  orderCount: number;
-  reservedQuantity: number;
-  hasOrderHistory?: boolean;
-}) {
+function OrderStatsCard({ orderCount, reservedQuantity }: { orderCount: number; reservedQuantity: number }) {
   return (
     <div
       className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 shadow-sm"
-      title={`Az átvételi naphoz tartozó aktív rendelések száma és a lefoglalt csirkék mennyisége.${
-        hasOrderHistory
-          ? " Ehhez a naphoz tartozott rendelés, ezért a rendelési előzmény megőrzése miatt nem törölhető. Deaktiválja törlés helyett."
-          : ""
-      }`}
+      title="Az átvételi naphoz tartozó aktív rendelések száma és a lefoglalt csirkék mennyisége."
     >
       <span className="font-semibold text-gray-800">{orderCount}</span>
       <span>aktív rendelés</span>
@@ -288,8 +305,13 @@ function NumberField({
   min?: number;
 }) {
   const [text, setText] = useState(String(value));
-
-  useEffect(() => setText(String(value)), [value]);
+  // A külső érték változásakor a szöveg újraszinkronizálása renderelés közben
+  // történik (nem effektben), ahogy a React ajánlja.
+  const [syncedValue, setSyncedValue] = useState(value);
+  if (value !== syncedValue) {
+    setSyncedValue(value);
+    setText(String(value));
+  }
 
   return (
     <input
@@ -315,8 +337,29 @@ function NumberField({
   );
 }
 
+// Opcionális napi méretlimit: az üres mező "nincs korlát" (null).
+function LimitField({ value, onChange }: { value: number | null | undefined; onChange: (v: number | null) => void }) {
+  return (
+    <input
+      type="text"
+      inputMode="numeric"
+      placeholder="Korlátlan"
+      value={value ?? ""}
+      onChange={(e) => {
+        const raw = e.target.value.replace(/\D/g, "");
+        onChange(raw === "" ? null : Number(raw));
+      }}
+      className={inputClass}
+    />
+  );
+}
+
 function Editor({
   value,
+  products,
+  liveConfirmMessage,
+  onConfirmLive,
+  onDismissLive,
   onChange,
   onSave,
   onCancel,
@@ -328,6 +371,13 @@ function Editor({
   onToggleDunavecse,
 }: {
   value: SeasonInput;
+  products: ProductOption[];
+  // Ha a mentés élő rendelésű nap törlését is jelentené, a szerver megerősítést
+  // kér: ez a szöveg jelenik meg, a "Mentés megerősítéssel" gomb pedig
+  // confirmLiveOrders jelzéssel újraküldi a mentést.
+  liveConfirmMessage?: string | null;
+  onConfirmLive?: () => void;
+  onDismissLive?: () => void;
   onChange: (v: SeasonInput) => void;
   onSave: () => void;
   onCancel: () => void;
@@ -371,9 +421,45 @@ function Editor({
         onChange={(v) => onChange({ ...value, type: v as SeasonInput["type"] })}
       />
 
-      <label>
-        <span className={labelClass}>Kg-os ár (Ft)</span>
-        <NumberField value={value.price} onChange={(v) => onChange({ ...value, price: v })} />
+      <div className="grid gap-2 sm:col-span-2 sm:grid-cols-3">
+        {products.map((product) => (
+          <label key={product.id}>
+            <span className={labelClass}>{product.name} ára (Ft/kg)</span>
+            <NumberField
+              value={value.prices?.find((entry) => entry.productId === product.id)?.price ?? 0}
+              onChange={(v) =>
+                onChange(
+                  withLegacyPrice(
+                    {
+                      ...value,
+                      prices: [
+                        ...(value.prices ?? []).filter((entry) => entry.productId !== product.id),
+                        { productId: product.id, price: v },
+                      ],
+                    },
+                    products
+                  )
+                )
+              }
+            />
+          </label>
+        ))}
+      </div>
+
+      <label className="sm:col-span-2">
+        <span className={labelClass}>
+          Megjegyzés <span className="font-normal text-gray-400">(nem kötelező, csak az admin felületen látszik)</span>
+        </span>
+        <input
+          type="text"
+          maxLength={SEASON_NOTE_MAX_LENGTH}
+          value={value.note ?? ""}
+          onChange={(e) => onChange({ ...value, note: e.target.value })}
+          className={inputClass}
+        />
+        <span className="mt-1 block text-right text-xs text-gray-400">
+          {(value.note ?? "").length}/{SEASON_NOTE_MAX_LENGTH}
+        </span>
       </label>
 
       <div className="grid grid-cols-2 gap-2">
@@ -441,9 +527,13 @@ function Editor({
           Átvételi napok
           <InfoTip>
             <p>
-              Átvételi nap csak akkor törölhető, ha ahhoz sem aktív, sem lemondott rendelés nem tartozik. Ha már
-              tartozik hozzá rendelés, az átvételi nap nem törölhető, csak inaktiválható. A korábban leadott
-              rendelések ettől nem vesznek el.
+              A törölt átvételi nap nem vész el: a szezon kártyáján, a „Törölt napok” között visszaállítható
+              (inaktívként). A napra korábban leadott rendelések megmaradnak. Ha a naphoz élő rendelés tartozik,
+              mentéskor külön megerősítést kérünk.
+            </p>
+            <p className="mt-1.5">
+              A kisebb/nagyobb méret limit a napra rendelhető, átlagostól kisebb/nagyobb méretű csirkék legnagyobb
+              darabszáma. Üresen hagyva nincs korlát.
             </p>
             {value.active && (
               <p className="mt-1.5">
@@ -473,6 +563,16 @@ function Editor({
                 <NumberField min={1} value={d.limit} onChange={(v) => days((x, j) => (j === i ? { ...x, limit: v } : x))} />
               </label>
 
+              <label className="w-28">
+                <span className={labelClass}>Kisebb méret</span>
+                <LimitField value={d.smallSizeLimit} onChange={(v) => days((x, j) => (j === i ? { ...x, smallSizeLimit: v } : x))} />
+              </label>
+
+              <label className="w-28">
+                <span className={labelClass}>Nagyobb méret</span>
+                <LimitField value={d.largeSizeLimit} onChange={(v) => days((x, j) => (j === i ? { ...x, largeSizeLimit: v } : x))} />
+              </label>
+
               {value.active && (
                 <ActiveCheckbox
                   active={dayActive}
@@ -484,21 +584,18 @@ function Editor({
                 <OrderStatsCard
                   orderCount={d.orderCount ?? 0}
                   reservedQuantity={d.reservedQuantity ?? 0}
-                  hasOrderHistory={d.hasOrderHistory}
                 />
               )}
 
-              {!d.hasOrderHistory && (
-                <button
-                  type="button"
-                  onClick={() => onChange({ ...value, pickupDays: value.pickupDays.filter((_, j) => j !== i) })}
-                  disabled={value.pickupDays.length === 1}
-                  className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-                  aria-label="Átvételi nap törlése"
-                >
-                  <TrashIcon className="h-4 w-4" />
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => onChange({ ...value, pickupDays: value.pickupDays.filter((_, j) => j !== i) })}
+                disabled={value.pickupDays.length === 1}
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
+                aria-label="Átvételi nap törlése"
+              >
+                <TrashIcon className="h-4 w-4" />
+              </button>
             </div>
           );
         })}
@@ -506,7 +603,7 @@ function Editor({
         {value.pickupDays.length < 5 && (
           <button
             type="button"
-            onClick={() => onChange({ ...value, pickupDays: [...value.pickupDays, { date: "", limit: 1, active: true }] })}
+            onClick={() => onChange({ ...value, pickupDays: [...value.pickupDays, { date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null }] })}
             className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-[rgb(49,171,2)] hover:text-[rgb(49,171,2)]"
           >
             <PlusIcon className="h-4 w-4" />
@@ -544,11 +641,7 @@ function Editor({
               onChange={() => onToggleDunavecse?.(dunavecse)}
             />
 
-            <OrderStatsCard
-              orderCount={dunavecse.orderCount}
-              reservedQuantity={dunavecse.reservedQuantity}
-              hasOrderHistory={dunavecse.hasOrderHistory}
-            />
+            <OrderStatsCard orderCount={dunavecse.orderCount} reservedQuantity={dunavecse.reservedQuantity} />
           </div>
           {dunavecseError && <p className="text-xs font-medium text-red-700">{dunavecseError}</p>}
         </div>
@@ -563,6 +656,33 @@ function Editor({
         />
         <span className="text-sm font-medium text-gray-700">Szezon aktiválása</span>
       </label>
+
+      {liveConfirmMessage && (
+        <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 sm:col-span-2">
+          <p className="text-sm font-medium text-amber-900">{liveConfirmMessage}</p>
+          <p className="mt-1 text-xs text-amber-800">
+            A törölt nap visszaállítható, a napra leadott rendelések megmaradnak és élők maradnak.
+          </p>
+          <div className="mt-3 flex gap-2">
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onConfirmLive}
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
+            >
+              {saving ? "Mentés…" : "Mentés megerősítéssel"}
+            </button>
+            <button
+              type="button"
+              disabled={saving}
+              onClick={onDismissLive}
+              className="rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
+            >
+              Mégse
+            </button>
+          </div>
+        </div>
+      )}
 
       {error && (
         <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 sm:col-span-2">
@@ -590,8 +710,8 @@ function Editor({
   );
 }
 
-export default function SeasonManager({ seasons }: { seasons: Season[] }) {
-  const [form, setForm] = useState(blank());
+export default function SeasonManager({ seasons, products }: { seasons: Season[]; products: ProductOption[] }) {
+  const [form, setForm] = useState(blank(products));
   const [open, setOpen] = useState(false);
   // expandedId: melyik szezon kártyája van lenyitva (egyszerre csak egy).
   // editingId: az adott (lenyitott) kártya éppen szerkesztő nézetben van-e -
@@ -603,6 +723,10 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [liveConfirmMessage, setLiveConfirmMessage] = useState<string | null>(null);
+  // restoringKey: "season-<id>" vagy "day-<id>" - melyik visszaállítás fut.
+  const [restoringKey, setRestoringKey] = useState<string | null>(null);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const [dunavecseTogglingId, setDunavecseTogglingId] = useState<number | null>(null);
   const [dunavecseError, setDunavecseError] = useState<string | null>(null);
 
@@ -618,14 +742,16 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
     setOpen(false);
     setExpandedId(null);
     setEditingId(null);
-    setForm(blank());
+    setForm(blank(products));
     setError(null);
+    setLiveConfirmMessage(null);
   };
 
   const cancelSeasonEdit = () => {
     setEditingId(null);
-    setForm(blank());
+    setForm(blank(products));
     setError(null);
+    setLiveConfirmMessage(null);
   };
 
   const toggleExpand = (id: string) => {
@@ -635,11 +761,11 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
     if (expandedId === id) {
       setExpandedId(null);
       setEditingId(null);
-      setForm(blank());
+      setForm(blank(products));
     } else {
       setExpandedId(id);
       setEditingId(null);
-      setForm(blank());
+      setForm(blank(products));
     }
   };
 
@@ -649,23 +775,42 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
     // egy alapértelmezett órát/percet, hogy ne legyen üres választható elem -
     // de ha ezt nem szinkronizálnánk vissza a form állapotába, a mentés az
     // űrlapon látszólag már kitöltött mezőket is üresként utasítaná el.
+    // Az árak minden termékhez szerepelnek a formban (a hiányzó, pl. újonnan
+    // felvett termék ára 0-ról indul), a szezon extra mezői (törölt napok,
+    // DUNAVECSE stb.) nem kerülnek a mentési kérésbe.
     setForm({
-      ...s,
+      id: s.id,
+      year: s.year,
+      type: s.type,
+      price: s.price,
+      prices: products.map((product) => ({
+        productId: product.id,
+        price: s.prices?.find((entry) => entry.productId === product.id)?.price ?? 0,
+      })),
+      note: s.note ?? "",
+      weightMin: s.weightMin,
+      weightMax: s.weightMax,
+      orderStart: s.orderStart,
+      orderEnd: s.orderEnd,
       pickupTimeStart: s.pickupTimeStart || "17:00",
       pickupTimeEnd: s.pickupTimeEnd || "18:00",
       localPickupTimeStart: s.localPickupTimeStart || "17:00",
       pickupDays: s.pickupDays.map((d) => ({ ...d })),
+      active: s.active,
     });
     setEditingId(s.id);
     setError(null);
+    setLiveConfirmMessage(null);
   };
 
-  const save = async () => {
+  const save = async (confirmLiveOrders = false) => {
     setSaving(true);
     setError(null);
+    setLiveConfirmMessage(null);
     try {
-      const r = await saveSeason(form);
+      const r = await saveSeason({ ...form, confirmLiveOrders });
       if (r.success) closeEditor();
+      else if (r.needsConfirmation) setLiveConfirmMessage(r.error);
       else setError(r.error);
     } catch (e) {
       setError(e instanceof Error ? e.message : "A szezon mentése váratlan hiba miatt sikertelen.");
@@ -674,16 +819,26 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
     }
   };
 
+  const restore = async (key: string, run: () => ReturnType<typeof restoreSeason>) => {
+    setRestoringKey(key);
+    setRestoreError(null);
+    const r = await run();
+    if (!r.success) setRestoreError(r.error);
+    setRestoringKey(null);
+  };
+
+  // A törlés megerősítő panelje már kiírja, ha élő rendelés tartozik a
+  // szezonhoz; a megerősítés ezért confirmLiveOrders = true jelzéssel megy ki.
   const remove = async (id: string) => {
     setDeletingId(id);
     setDeleteError(null);
-    const r = await deleteSeason(id);
+    const r = await deleteSeason(id, true);
     if (r.success) {
       setConfirmDeleteId(null);
       if (expandedId === id) {
         setExpandedId(null);
         setEditingId(null);
-        setForm(blank());
+        setForm(blank(products));
       }
     } else setDeleteError(r.error);
     setDeletingId(null);
@@ -694,7 +849,7 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
       <section className={cardHighlightClass(open)}>
         <button
           type="button"
-          onClick={() => (open ? closeEditor() : (setForm(blank()), setExpandedId(null), setEditingId(null), setOpen(true)))}
+          onClick={() => (open ? closeEditor() : (setForm(blank(products)), setExpandedId(null), setEditingId(null), setOpen(true)))}
           className="flex w-full items-center gap-3 text-left"
         >
           <PlusIcon className="h-5 w-5 text-[rgb(49,171,2)]" />
@@ -702,25 +857,26 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
           <span className="text-gray-400">{open ? "−" : "+"}</span>
         </button>
 
-        {open && <Editor value={form} onChange={setForm} onSave={save} onCancel={closeEditor} saving={saving} error={error} />}
+        {open && <Editor value={form} products={products} onChange={setForm} onSave={() => save()} onCancel={closeEditor} saving={saving} error={error} />}
       </section>
 
       <section>
         <h2 className="mb-2 text-lg font-semibold text-gray-800">Korábbi és aktuális szezonok</h2>
 
         <div className="grid gap-3">
-          {seasons.map((s) => {
+          {seasons.filter((s) => !s.archived).map((s) => {
             const expanded = expandedId === s.id;
             const isEditing = editingId === s.id;
             const activeDaysCount = s.pickupDays.filter((d) => d.active !== false).length;
             const totalOrders = s.pickupDays.reduce((sum, d) => sum + (d.orderCount ?? 0), 0);
             const totalReserved = s.pickupDays.reduce((sum, d) => sum + (d.reservedQuantity ?? 0), 0);
-            // A törlés a rendelési előzmény megőrzése miatt bármilyen (akár
-            // lemondott) rendelést figyelembe vesz, nem csak az aktív
-            // (submitted) foglalásokat tükröző totalOrders statisztikát - ez
-            // a DUNAVECSE napra is vonatkozik, hiszen a szezon törlése a
-            // hozzá tartozó DUNAVECSE napot is törölné.
-            const canDelete = !s.pickupDays.some((d) => d.hasOrderHistory) && !s.dunavecse?.hasOrderHistory;
+            // A szezon törlése (soft delete) bármikor lehetséges. Az élő (aktív)
+            // rendelések - a törölt napokéi és a DUNAVECSE napéi is - külön
+            // figyelmeztetést kapnak a törlés megerősítésekor.
+            const liveOrders =
+              totalOrders +
+              (s.dunavecse?.orderCount ?? 0) +
+              s.deletedDays.reduce((sum, d) => sum + (d.orderCount ?? 0), 0);
 
             return (
               <article key={s.id} className={cardHighlightClass(expanded)}>
@@ -732,9 +888,16 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                     aria-controls={`season-${s.id}`}
                     className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
                   >
-                    <span className="flex items-center gap-2 font-semibold text-gray-800">
-                      <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400" />
-                      {s.year} {s.type}
+                    <span className="min-w-0 max-w-full">
+                      <span className="flex items-center gap-2 font-semibold text-gray-800">
+                        <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400" />
+                        {s.year} {s.type}
+                      </span>
+                      {s.note && (
+                        <span className="mt-0.5 block truncate pl-7 text-xs font-normal text-gray-500" title={s.note}>
+                          {s.note}
+                        </span>
+                      )}
                     </span>
                     <span className="flex flex-wrap items-center gap-1.5">
                       <StatChip
@@ -763,8 +926,12 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                     {isEditing ? (
                       <Editor
                         value={form}
+                        products={products}
+                        liveConfirmMessage={liveConfirmMessage}
+                        onConfirmLive={() => save(true)}
+                        onDismissLive={() => setLiveConfirmMessage(null)}
                         onChange={setForm}
-                        onSave={save}
+                        onSave={() => save()}
                         onCancel={cancelSeasonEdit}
                         saving={saving}
                         error={error}
@@ -777,9 +944,20 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                       <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
                         <div className="grid gap-3 sm:grid-cols-2">
                           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Ár és súly</p>
+                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Árak és súly</p>
                             <p className="mt-1 text-sm text-gray-700">
-                              <span className="font-medium text-gray-900">{s.price} Ft/kg</span> · {s.weightMin}–{s.weightMax} kg
+                              {products.map((product, index) => (
+                                <span key={product.id}>
+                                  {index > 0 && " · "}
+                                  {product.name}:{" "}
+                                  <span className="font-medium text-gray-900">
+                                    {s.prices?.find((entry) => entry.productId === product.id)?.price ?? "–"} Ft/kg
+                                  </span>
+                                </span>
+                              ))}
+                            </p>
+                            <p className="mt-0.5 text-sm text-gray-700">
+                              Súly: {s.weightMin}–{s.weightMax} kg
                             </p>
                           </div>
                           <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
@@ -794,6 +972,12 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                               Városi: {s.pickupTimeStart || "–"}–{s.pickupTimeEnd || "–"} · Tanyasi: {s.localPickupTimeStart || "–"}
                             </p>
                           </div>
+                          {s.note && (
+                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2">
+                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Megjegyzés</p>
+                              <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-700">{s.note}</p>
+                            </div>
+                          )}
                         </div>
 
                         <div>
@@ -810,7 +994,9 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                                     <p className="truncate text-sm font-medium text-gray-700">{formatDate(d.date)}</p>
                                     <p className="text-xs text-gray-500">
                                       Napi limit: {d.limit} db
-                                      {d.orderCount ? ` · ${d.orderCount} rendelés · ${d.reservedQuantity ?? 0} db csirke` : ""}
+                                      {d.smallSizeLimit != null ? ` · kisebb méret: ${d.smallSizeLimit} db` : ""}
+                                      {d.largeSizeLimit != null ? ` · nagyobb méret: ${d.largeSizeLimit} db` : ""}
+                                      {d.orderCount ?` · ${d.orderCount} rendelés · ${d.reservedQuantity ?? 0} db csirke` : ""}
                                     </p>
                                   </div>
                                   <StatusBadge active={dayActive} />
@@ -853,6 +1039,45 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                           </div>
                         )}
 
+                        {s.deletedDays.length > 0 && (
+                          <div>
+                            <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                              Törölt napok
+                              <InfoTip>
+                                <p>
+                                  A visszaállított nap inaktívként kerül vissza, a rá leadott rendelések változatlanok.
+                                  Aktiválni a szezon szerkesztésénél lehet.
+                                </p>
+                              </InfoTip>
+                            </p>
+                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                              {s.deletedDays.map((d) => (
+                                <div
+                                  key={d.id}
+                                  className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-gray-300 bg-white p-2.5"
+                                >
+                                  <div className="min-w-0">
+                                    <p className="truncate text-sm font-medium text-gray-500 line-through">{formatDate(d.date)}</p>
+                                    <p className="text-xs text-gray-500">
+                                      {d.orderCount ? `${d.orderCount} élő rendelés` : "Nincs élő rendelés"}
+                                    </p>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={restoringKey !== null}
+                                    onClick={() => d.id != null && restore(`day-${d.id}`, () => restorePickupDay(d.id as number))}
+                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                                  >
+                                    <ArrowUturnLeftIcon aria-hidden="true" className="h-4 w-4" />
+                                    {restoringKey === `day-${d.id}` ? "Visszaállítás…" : "Visszaállítás"}
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                            {restoreError && <p className="mt-2 text-xs font-medium text-red-700">{restoreError}</p>}
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
                           <button
                             type="button"
@@ -861,30 +1086,39 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
                           >
                             Módosítás
                           </button>
-                          {canDelete && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setDeleteError(null);
-                                setConfirmDeleteId(s.id);
-                              }}
-                              className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
-                            >
-                              Törlés
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setDeleteError(null);
+                              setConfirmDeleteId(s.id);
+                            }}
+                            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                          >
+                            Törlés
+                          </button>
                         </div>
 
                         <div className="flex items-start gap-2 rounded-lg bg-gray-50 p-2.5 text-xs text-gray-500">
                           <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" />
-                          <span>Csak olyan szezon törölhető, amelyhez sem aktív, sem lemondott rendelés nem tartozik.</span>
+                          <span>
+                            A szezon bármikor törölhető. A törölt szezon a lap alján, a „Törölt szezonok” között
+                            visszaállítható (inaktívként), a rendelések megmaradnak.
+                          </span>
                         </div>
 
                         {confirmDeleteId === s.id && (
                           <div className="rounded-lg border border-red-200 bg-red-50 p-3">
                             <p className="text-sm text-red-700">
-                              Biztosan törli ezt a szezont az összes átvételi napjával együtt? Ez a művelet nem vonható vissza.
+                              Biztosan törli ezt a szezont az összes átvételi napjával együtt? A szezon később
+                              visszaállítható.
                             </p>
+                            {liveOrders > 0 && (
+                              <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm font-medium text-amber-900">
+                                Figyelem: a szezonhoz {liveOrders} élő rendelés tartozik. A rendelések nem törlődnek, de a
+                                szezon törlése után a vásárlók már nem tudják módosítani őket (lemondani továbbra is tudják).
+                                {s.active ? " A szezon jelenleg aktív." : ""}
+                              </p>
+                            )}
                             {deleteError && <p className="mt-2 text-sm font-medium text-red-700">{deleteError}</p>}
                             <div className="mt-3 flex gap-2">
                               <button
@@ -915,6 +1149,47 @@ export default function SeasonManager({ seasons }: { seasons: Season[] }) {
           })}
         </div>
       </section>
+
+      {seasons.some((s) => s.archived) && (
+        <section>
+          <h2 className="mb-2 text-lg font-semibold text-gray-800">Törölt szezonok</h2>
+          <div className="grid gap-3">
+            {seasons
+              .filter((s) => s.archived)
+              .map((s) => (
+                <article key={s.id} className="rounded-xl border border-dashed border-gray-300 bg-white p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="flex items-center gap-2 font-semibold text-gray-500">
+                        <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400" />
+                        <span className="line-through">
+                          {s.year} {s.type}
+                        </span>
+                        <span className="rounded-full border border-gray-300 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500 no-underline">
+                          Törölve
+                        </span>
+                      </p>
+                      {s.note && <p className="mt-0.5 truncate pl-7 text-xs text-gray-500" title={s.note}>{s.note}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      disabled={restoringKey !== null}
+                      onClick={() => restore(`season-${s.id}`, () => restoreSeason(s.id))}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
+                    >
+                      <ArrowUturnLeftIcon aria-hidden="true" className="h-4 w-4" />
+                      {restoringKey === `season-${s.id}` ? "Visszaállítás…" : "Visszaállítás"}
+                    </button>
+                  </div>
+                </article>
+              ))}
+          </div>
+          <p className="mt-2 text-xs text-gray-500">
+            A visszaállított szezon és napjai inaktívként kerülnek vissza. Aktiválni a szezon szerkesztésénél lehet.
+          </p>
+          {restoreError && <p className="mt-2 text-sm font-medium text-red-700">{restoreError}</p>}
+        </section>
+      )}
     </div>
   );
 }
