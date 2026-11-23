@@ -12,6 +12,7 @@ import {
 } from "@/lib/orderPackaging";
 import { MAX_QUANTITY_PER_ITEM } from "@/lib/orderLimits";
 import { getRemainingQuantity } from "@/lib/orderQuantity";
+import { getSizeRemaining, type SizeAvailability } from "@/lib/sizeAvailability";
 import { DEFAULT_SIZE_PREFERENCE, normalizeSizePreference, SIZE_PREFERENCES } from "@/lib/sizePreferences";
 
 
@@ -56,7 +57,17 @@ type ProductSelectorProps = {
     onItemOpen?: () => void;
     /** Bács-Kiskun vármegyei vásárlóknál a megjegyzés-mező fölötti szöveg speciális - lásd lib/countyGroups.ts BACS_KISKUN_NOTE_LABEL. */
     noteLabel?: string;
+    /**
+     * Az adott napon még rendelhető kisebb/nagyobb méretű csirkék darabszáma
+     * (null = az adott méretre nincs korlát; a saját, már leadott rendelés
+     * mennyiségét a hívó előre visszaadja). A darabszám a vásárlónak nem
+     * jelenik meg, csak a mennyiségválasztót korlátozza.
+     */
+    sizeAvailability?: SizeAvailability | null;
+    /** Termékazonosító -> ár (Ft/kg); a termékkártyán jelenik meg. */
+    productPrices?: Record<number, number>;
 };
+
 
 const DEFAULT_NOTE = DEFAULT_SIZE_PREFERENCE;
 const SIZE_PREFERENCE_LABELS: Record<typeof SIZE_PREFERENCES[number], string> = {
@@ -102,6 +113,8 @@ export default function ProductSelector({
     collapseAllSignal,
     onItemOpen,
     noteLabel = "Opcionális megjegyzés a csomaghoz",
+    sizeAvailability = null,
+    productPrices,
 }: ProductSelectorProps) {
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -116,6 +129,10 @@ export default function ProductSelector({
             : [emptyItem(!isPickupDaySelected)];
 
     const [items, setItems] = useState<OrderItem[]>(buildInitialItems);
+
+    // Ha a már megadott mennyiség nem fér bele a választott méret keretébe,
+    // a vásárló megerősítése után a mennyiség a maximumra módosul.
+    const [sizeOverwrite, setSizeOverwrite] = useState<{ index: number; size: string; max: number } | null>(null);
 
     // A szülő jelzései (összecsukás, alaphelyzetbe állítás) renderelés közben
     // kerülnek a state-be, nem effektben: így nincs felesleges, kaszkádoló
@@ -160,6 +177,13 @@ export default function ProductSelector({
         setItems((prev) => {
 
             const remaining = getRemainingQuantity(prev, index, maxAvailableQuantity);
+            const sizeRemaining = getSizeRemaining(
+                prev,
+                index,
+                changes.selectedNote ?? prev[index].selectedNote,
+                sizeAvailability,
+            );
+            const sizeCap = sizeRemaining === null ? Infinity : Math.max(1, sizeRemaining);
 
             const updated = prev.map((item, i) => {
                 if (i !== index) return item;
@@ -168,6 +192,7 @@ export default function ProductSelector({
                     changes.quantity !== undefined
                         ? Math.min(
                             remaining,
+                            sizeCap,
                             MAX_QUANTITY_PER_ITEM,
                             Math.max(1, changes.quantity)
                         )
@@ -198,6 +223,23 @@ export default function ProductSelector({
 
             return updated;
         });
+    };
+
+    const selectSize = (index: number, size: (typeof SIZE_PREFERENCES)[number]) => {
+        const remaining = getSizeRemaining(items, index, size, sizeAvailability);
+
+        if (remaining === null || items[index].quantity <= remaining) {
+            updateItem(index, { selectedNote: size });
+            return;
+        }
+
+        if (remaining > 0) setSizeOverwrite({ index, size, max: remaining });
+    };
+
+    const confirmSizeOverwrite = () => {
+        if (!sizeOverwrite) return;
+        updateItem(sizeOverwrite.index, { selectedNote: sizeOverwrite.size, quantity: sizeOverwrite.max });
+        setSizeOverwrite(null);
     };
 
     const resetItem = (index: number) => {
@@ -551,6 +593,12 @@ export default function ProductSelector({
                                                         <p className="mt-1 text-base text-gray-500">
                                                             {product.description}
                                                         </p>
+
+                                                        {productPrices?.[product.id] !== undefined && (
+                                                            <p className="mt-1 text-base font-semibold text-gray-700">
+                                                                {productPrices[product.id].toLocaleString("hu-HU")} Ft/kg
+                                                            </p>
+                                                        )}
                                                     </div>
 
                                                     {product.image_url && (
@@ -679,23 +727,31 @@ export default function ProductSelector({
                                         <div className="grid gap-3">
                                             {SIZE_PREFERENCES.map((option) => {
                                                 const selected = item.selectedNote === option;
+                                                const soldOut =
+                                                    !selected && getSizeRemaining(items, index, option, sizeAvailability) === 0;
 
                                                 return (
                                                     <button
                                                         type="button"
                                                         key={option}
-                                                        onClick={() =>
-                                                            updateItem(index, { selectedNote: option })
-                                                        }
+                                                        disabled={soldOut}
+                                                        onClick={() => selectSize(index, option)}
                                                         className={`
                               rounded-xl border p-4 text-left text-base transition-all
                               ${selected
                                                                 ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                                : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
+                                                                : soldOut
+                                                                    ? "cursor-not-allowed border-2 border-gray-200 bg-gray-100 text-gray-400"
+                                                                    : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                             }
                             `}
                                                     >
                                                         {SIZE_PREFERENCE_LABELS[option]}
+                                                        {soldOut && (
+                                                            <span className="mt-1 block text-sm">
+                                                                Erre a napra ebből a méretből már nem rendelhető.
+                                                            </span>
+                                                        )}
                                                     </button>
                                                 );
                                             })}
@@ -732,6 +788,37 @@ export default function ProductSelector({
                     </div>
                 );
             })}
+
+            {sizeOverwrite && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-lg rounded-xl bg-white p-8 shadow-xl">
+                        <h2 className="text-2xl font-semibold text-gray-800">Figyelem!</h2>
+
+                        <p className="mt-4 text-lg leading-7 text-gray-600">
+                            A kiválasztott méretből erre a napra legfeljebb {sizeOverwrite.max} db rendelhető. Ha
+                            folytatja, a megadott mennyiség erre az értékre módosul.
+                        </p>
+
+                        <div className="mt-8 flex justify-end gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setSizeOverwrite(null)}
+                                className="rounded-lg border border-gray-300 px-5 py-3 text-base font-semibold text-gray-700 hover:bg-gray-100"
+                            >
+                                Mégse
+                            </button>
+
+                            <button
+                                type="button"
+                                onClick={confirmSizeOverwrite}
+                                className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
+                            >
+                                OK, mennyiség módosítása
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

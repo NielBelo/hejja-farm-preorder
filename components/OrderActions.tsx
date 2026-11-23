@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useOrderWindow } from "@/lib/useOrderWindow";
 import ProductSelector from "@/components/ProductSelector";
+import type { SizeAvailabilityRow } from "@/components/PreorderManager";
 import PickupDayChangeCard from "@/components/PickupDayChangeCard";
 import { useRouter } from "next/navigation";
 import { useOrderActionsManager } from "@/components/OrderActionsManager";
@@ -66,6 +67,10 @@ type OrderActionsProps = {
     seasonStartDate?: string | null;
     seasonEndDate?: string | null;
     isPickupDayActive?: boolean;
+    /** Naponként a még rendelhető kisebb/nagyobb méretű csirkék (lásd PreorderManager SizeAvailabilityRow). */
+    sizeAvailabilityRows?: SizeAvailabilityRow[];
+    /** Termékazonosító -> ár (Ft/kg). */
+    productPrices?: Record<number, number>;
 };
 
 export default function OrderActions({
@@ -82,6 +87,8 @@ export default function OrderActions({
     seasonStartDate,
     seasonEndDate,
     isPickupDayActive = true,
+    sizeAvailabilityRows = [],
+    productPrices,
 }: OrderActionsProps) {
     const isDunavecse = pickupDayKind === "dunavecse";
     // Az előrendelési időablak ugyanaz a szabály, mint a rendelési folyamatban
@@ -189,6 +196,30 @@ export default function OrderActions({
     );
 
     const pickupDayChanged = selectedPickupDayId !== pickupDayId;
+
+    // A választott nap méretkerete. A saját, már leadott rendelés tételei is
+    // foglalják a keretet, ezért a rendelés eredeti napján ezek visszaadódnak
+    // (ugyanígy a készletnél: availableStock + originalQuantity).
+    const selectedSizeRow = sizeAvailabilityRows.find((row) => row.pickup_day_id === selectedPickupDayId);
+    const ownQuantityOfSize = (size: string) =>
+        pickupDayChanged
+            ? 0
+            : items.reduce(
+                  (sum, item) => (normalizeSizePreference(item.size_preference) === size ? sum + item.quantity : sum),
+                  0
+              );
+    const sizeAvailability = selectedSizeRow
+        ? {
+              small:
+                  selectedSizeRow.small_remaining === null
+                      ? null
+                      : selectedSizeRow.small_remaining + ownQuantityOfSize("Átlagostól kisebb méret"),
+              large:
+                  selectedSizeRow.large_remaining === null
+                      ? null
+                      : selectedSizeRow.large_remaining + ownQuantityOfSize("Átlagostól nagyobb méret"),
+          }
+        : null;
 
     const hasChanges =
         pickupDayChanged ||
@@ -540,6 +571,8 @@ export default function OrderActions({
                         products={products}
                         packages={packages}
                         maxAvailableQuantity={maxAvailableQuantity}
+                        sizeAvailability={sizeAvailability}
+                        productPrices={productPrices}
                         resetKey={0}
                         isPickupDaySelected={true}
                         pickupDate={pickupDayForDisplay?.pickup_date ?? pickupDate}

@@ -5,6 +5,7 @@ import SeasonOrderInfo from "@/components/SeasonOrderInfo";
 import PreorderIntro from "@/components/PreorderIntro";
 import CustomerFooter from "@/components/CustomerFooter";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
+import { createClient } from "@/lib/supabase/server";
 
 
 export default async function PreorderPage() {
@@ -24,6 +25,22 @@ export default async function PreorderPage() {
   const { data: products } = await supabase
     .from("products")
     .select("id, name, description, image_url");
+
+  // Termékenkénti árak (Ft/kg) az aktív szezonhoz.
+  const { data: priceRows } = await supabase
+    .from("season_product_prices")
+    .select("product_id, price")
+    .eq("season_parameter_id", season?.id ?? -1);
+  const productPrices = Object.fromEntries(
+    (priceRows ?? []).map((row) => [row.product_id as number, row.price as number])
+  );
+
+  // Naponként a még rendelhető kisebb/nagyobb méretű csirkék (a hívó
+  // jogosultságával, ezért a bejelentkezett klienssel kérjük le).
+  const authedSupabase = await createClient();
+  const { data: sizeAvailabilityRows } = await authedSupabase.rpc(
+    "get_pickup_day_size_availability"
+  );
 
   const { data: packages } = await supabase
     .from("packages")
@@ -80,6 +97,8 @@ export default async function PreorderPage() {
           pickupDays={pickupDays ?? []}
           dunavecseDay={dunavecseDay ?? null}
           userCounty={currentUser?.county ?? null}
+          sizeAvailabilityRows={sizeAvailabilityRows ?? []}
+          productPrices={productPrices}
         />
       </main>
       <CustomerFooter />

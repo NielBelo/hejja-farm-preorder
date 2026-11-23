@@ -75,6 +75,15 @@ type Season = {
     local_pickup_time_start: string | null;
 };
 
+// A get_pickup_day_size_availability() sorai: naponként a még rendelhető
+// kisebb/nagyobb méretű csirkék száma (null = nincs korlát az adott méretre).
+// A korlát nélküli napok nem szerepelnek a listában.
+export type SizeAvailabilityRow = {
+    pickup_day_id: number;
+    small_remaining: number | null;
+    large_remaining: number | null;
+};
+
 const ORDERING_CLOSED_MESSAGE =
     "Jelenleg nincs lehetőség előrendelésre! A rendelés leadása csak a rendelési időszakban lehetséges.";
 
@@ -85,6 +94,8 @@ export default function PreorderManager({
     pickupDays,
     dunavecseDay = null,
     userCounty,
+    sizeAvailabilityRows = [],
+    productPrices,
 }: {
     season: Season;
     products: Product[];
@@ -92,6 +103,8 @@ export default function PreorderManager({
     pickupDays: PickupDay[];
     dunavecseDay?: DunavecseDay | null;
     userCounty?: string | null;
+    sizeAvailabilityRows?: SizeAvailabilityRow[];
+    productPrices?: Record<number, number>;
 }) {
     // A vármegye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
     // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun vármegyei
@@ -116,6 +129,9 @@ export default function PreorderManager({
 
     const [currentPickupDays, setCurrentPickupDays] =
         useState<PickupDay[]>(pickupDays);
+
+    const [currentSizeAvailabilityRows, setCurrentSizeAvailabilityRows] =
+        useState<SizeAvailabilityRow[]>(sizeAvailabilityRows);
 
     const [currentDunavecseDay, setCurrentDunavecseDay] =
         useState<DunavecseDay | null>(dunavecseDay);
@@ -145,6 +161,14 @@ export default function PreorderManager({
         selectedPickupDay,
         dunavecsePickupDay,
     });
+
+    // A kiválasztott nap méretkerete (nincs sor = az adott napon nincs korlát).
+    const selectedSizeRow = displayPickupDay
+        ? currentSizeAvailabilityRows.find((row) => row.pickup_day_id === displayPickupDay.id)
+        : undefined;
+    const sizeAvailability = selectedSizeRow
+        ? { small: selectedSizeRow.small_remaining, large: selectedSizeRow.large_remaining }
+        : null;
 
     const handlePickupDayChange = (day: PickupDay) => {
         if (
@@ -252,6 +276,17 @@ export default function PreorderManager({
 
             setCurrentDunavecseDay(dunavecse ?? null);
         }
+
+        const { data: sizeRows, error: sizeError } = await supabase.rpc(
+            "get_pickup_day_size_availability"
+        );
+
+        if (sizeError) {
+            console.error("Méretkeret frissítési hiba:", sizeError);
+            return;
+        }
+
+        setCurrentSizeAvailabilityRows((sizeRows ?? []) as SizeAvailabilityRow[]);
     };
 
 
@@ -484,6 +519,8 @@ export default function PreorderManager({
                     products={products}
                     packages={packages}
                     maxAvailableQuantity={displayPickupDay?.available_stock ?? null}
+                    sizeAvailability={sizeAvailability}
+                    productPrices={productPrices}
                     resetKey={resetKey}
                     isPickupDaySelected={displayPickupDay !== null}
                     pickupDate={displayPickupDay?.pickup_date ?? null}
