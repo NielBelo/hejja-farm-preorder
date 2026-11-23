@@ -24,7 +24,6 @@ const valid = {
     county: 'Pest',
     city: 'Budapest',
     role: 'user',
-    oroshazi_delivery: false,
 };
 
 test('normalizes names and phone and returns the permitted account options', () => {
@@ -33,7 +32,6 @@ test('normalizes names and phone and returns the permitted account options', () 
     assert.equal(account.phone, '+36301234567');
     assert.equal(account.city, 'Budapest');
     assert.equal(account.role, 'user');
-    assert.equal(account.oroshazi_delivery, false);
 });
 test('rejects missing required fields, malformed inputs and invalid phones', () => {
     for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }, { ...valid, role: 'owner' }]) {
@@ -46,7 +44,7 @@ test('accepts the same separator-tolerant phone format as the customer profile e
 });
 test('includes only the supported admin options and ignores unrelated input', () => {
     const result = validation.validateAdminAccount({ ...valid, email: 'other@example.com', role: 'admin', consents: [] });
-    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'oroshazi_delivery', 'phone', 'role']);
+    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'phone', 'role']);
     assert.equal(result.account.role, 'admin');
 });
 
@@ -79,13 +77,12 @@ test('invalid target or input cannot reach the database mutation', async () => {
     assert.equal((await updateAdminAccount(targetId, {})).success, false);
     assert.equal(calls.length, 0);
 });
-test('successful save writes validated profile, role and size options to the target user', async () => {
+test('successful save writes validated profile and role to the target user', async () => {
     const { updateAdminAccount, calls } = actionFixture();
     const result = await updateAdminAccount(targetId, { ...valid, role: 'admin' });
     assert.equal(result.success, true);
     assert.deepEqual(calls, [
         ['update_admin_account_profile', { target_user_id: targetId, profile_data: result.account }],
-        ['update_admin_oroshazi_delivery', { target_user_id: targetId, enabled: false }],
     ]);
 });
 test('database errors are not reported as successful saves', async () => {

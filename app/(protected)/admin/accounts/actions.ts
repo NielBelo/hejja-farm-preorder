@@ -22,14 +22,6 @@ export async function updateAdminAccount(userId: string, input: unknown) {
     if (error || !data) {
         return { success: false as const, error: "A személyes adatok mentése sikertelen. Kérjük, próbálja újra." };
     }
-    const { error: deliveryError } = await supabase.rpc("update_admin_oroshazi_delivery", {
-        target_user_id: userId,
-        enabled: validated.account!.oroshazi_delivery,
-    });
-    if (deliveryError) {
-        console.error("Orosházi kiszállítási jogosultság mentési hiba:", deliveryError.code);
-        return { success: false as const, error: "Az orosházi kiszállítási beállítás mentése sikertelen. Kérjük, próbálja újra." };
-    }
     revalidatePath("/admin/accounts");
     revalidatePath("/admin/orders");
     revalidatePath("/admin/pickup");

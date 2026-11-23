@@ -4,9 +4,9 @@ import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
 import { deleteAdminAccount, deleteAdminInvite } from "@/app/(protected)/admin/accounts/actions";
 import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
-import { CheckBadgeIcon, ChevronDownIcon, DocumentCheckIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PaperAirplaneIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, ChevronDownIcon, DocumentCheckIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PaperAirplaneIcon, PhoneIcon, ShieldCheckIcon, UserCircleIcon, UserIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
-import { accountName, accountStatusLabels, filterAccounts, specialNeedLabels, type AdminAccount } from "@/lib/adminAccountData";
+import { accountName, accountStatusLabels, filterAccounts, type AdminAccount } from "@/lib/adminAccountData";
 
 const dateFormatter = new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Budapest" });
 function date(value: string | null) {
@@ -38,7 +38,7 @@ function ProfileField({ label, value, icon: Icon }: {
         </div>
     </div>;
 }
-function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof TruckIcon }) {
+function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof ShieldCheckIcon }) {
     return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-500"}`}>
         <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(49,171,2)]" : "text-gray-400"}`} />
         <span>{label}</span><span className="ml-auto text-xs font-medium">{enabled ? "Aktív" : "Nincs"}</span>
@@ -67,13 +67,12 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
     const [statuses, setStatuses] = useState<string[]>([]);
     const [roles, setRoles] = useState<string[]>([]);
     const [counties, setCounties] = useState<string[]>([]);
-    const [specialNeeds, setSpecialNeeds] = useState<string[]>([]);
     const [openId, setOpenId] = useState<string | null>(null);
     const [confirmingAccount, setConfirmingAccount] = useState<AdminAccount | null>(null);
     const [deleting, setDeleting] = useState(false);
     const [deleteError, setDeleteError] = useState<string | null>(null);
-    const filtered = filterAccounts(accounts, search, statuses, roles, counties, specialNeeds);
-    const selectionCount = statuses.length + roles.length + counties.length + specialNeeds.length + (search.trim() ? 1 : 0);
+    const filtered = filterAccounts(accounts, search, statuses, roles, counties);
+    const selectionCount = statuses.length + roles.length + counties.length + (search.trim() ? 1 : 0);
     const countyOptions = [...new Set(accounts.map((account) => account.county || "__missing"))]
         .sort((a, b) => a.localeCompare(b, "hu"))
         .map((value) => ({ value, label: value === "__missing" ? "Nincs megadva" : value }));
@@ -85,7 +84,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                     <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />Felhasználók szűrése
                     {selectionCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectionCount}</span>}
                 </h2>
-                <button type="button" disabled={!selectionCount || editing} onClick={() => { setSearch(""); setStatuses([]); setRoles([]); setCounties([]); setSpecialNeeds([]); setOpenId(null); }}
+                <button type="button" disabled={!selectionCount || editing} onClick={() => { setSearch(""); setStatuses([]); setRoles([]); setCounties([]); setOpenId(null); }}
                     className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
                     <XMarkIcon aria-hidden="true" className="h-4 w-4" />Szűrők törlése
                 </button>
@@ -98,7 +97,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                 <OrderFilterDropdown label="Állapot" options={Object.entries(accountStatusLabels).map(([value, label]) => ({ value, label }))} selected={statuses} disabled={editing} onChange={(values) => { setStatuses(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Vármegye" options={countyOptions} selected={counties} disabled={editing} onChange={(values) => { setCounties(values); setOpenId(null); }} />
-                <OrderFilterDropdown label="Speciális igény" options={Object.entries(specialNeedLabels).map(([value, label]) => ({ value, label }))} selected={specialNeeds} disabled={editing} onChange={(values) => { setSpecialNeeds(values); setOpenId(null); }} />
             </div>
             <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
                 <p role="status" aria-live="polite"><span className="font-semibold text-zinc-700">{filtered.length}</span> / {accounts.length} fiók és meghívott</p>
@@ -126,9 +124,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         <span className="flex flex-wrap items-center gap-2">
                             <span className="break-words font-semibold text-gray-800">{accountName(account)}</span>
                             <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
-                            {account.oroshazi_delivery && <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
-                                <TruckIcon aria-hidden="true" className="h-3.5 w-3.5" />Orosházi kiszállítás
-                            </span>}
                         </span>
                         <span className="mt-1.5 block break-words text-sm text-gray-500">{[account.email, account.county, account.city].filter(Boolean).join(" · ")}</span>
                     </span>
@@ -157,7 +152,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             <p className="mb-3 text-xs text-gray-500">Csak az adminisztráció számára megjelenő beállítások.</p>
                             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                 <Privilege label="Adminisztrátori jog" enabled={account.role === "admin"} icon={ShieldCheckIcon} />
-                                <Privilege label="Orosházi kiszállítás" enabled={account.oroshazi_delivery} icon={TruckIcon} />
                             </div>
                         </section>}
                         <section className="border-t border-gray-100 pt-3">

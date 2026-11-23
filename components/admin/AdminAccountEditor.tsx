@@ -1,6 +1,6 @@
 "use client";
 
-import { CheckIcon, ChevronDownIcon, ShieldCheckIcon, TruckIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, ChevronDownIcon, ShieldCheckIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { updateAdminAccount } from "@/app/(protected)/admin/accounts/actions";
 import { validateAdminAccount, type AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
@@ -62,7 +62,6 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         county: account.county ?? "",
         city: account.city ?? "",
         role: account.role === "admin" ? "admin" : "user",
-        oroshazi_delivery: account.oroshazi_delivery ?? false,
     };
     const [form, setForm] = useState(initial);
     const [saving, setSaving] = useState(false);
@@ -116,13 +115,6 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
                         <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />Adminisztrátori jog
                     </label>
                 )}
-                <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        <label className={privilegeCardClass(form.oroshazi_delivery)}>
-                            <input type="checkbox" checked={form.oroshazi_delivery} onChange={(event) => setForm((current) => ({ ...current, oroshazi_delivery: event.target.checked }))}
-                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                            <TruckIcon aria-hidden="true" className="h-4 w-4 text-emerald-500" />Orosházi kiszállítás
-                        </label>
-                </div>
             </section>
         </fieldset>
         <p className="mt-2 text-xs text-gray-500">E-mail cím: {account.email || "Nincs megadva"} · Az e-mail címet a fiók tulajdonosa módosíthatja a személyes adatainál.</p>

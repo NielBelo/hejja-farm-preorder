@@ -10,7 +10,6 @@ export type AccountProfileInput = {
 
 export type AdminAccountUpdateInput = AccountProfileInput & {
     role: "user" | "admin";
-    oroshazi_delivery: boolean;
 };
 
 export function validateAdminAccount(input: unknown): { account: AdminAccountUpdateInput; error?: never } | { error: string; account?: never } {
@@ -33,13 +32,10 @@ export function validateAdminAccount(input: unknown): { account: AdminAccountUpd
         return { error: "Érvénytelen jogosultsági beállítás." };
     }
 
-    if (typeof values.oroshazi_delivery !== "boolean") return { error: "Érvénytelen kiszállítási beállítás." };
-
     return {
         account: {
             ...profile,
             role: values.role,
-            oroshazi_delivery: values.oroshazi_delivery,
         },
     };
 }
