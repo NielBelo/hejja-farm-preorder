@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import {
     ChevronRightIcon,
@@ -103,26 +103,43 @@ export default function ProductSelector({
     onItemOpen,
     noteLabel = "Opcionális megjegyzés a csomaghoz",
 }: ProductSelectorProps) {
-    const [items, setItems] = useState<OrderItem[]>(() =>
+    const itemHasContent = (item: OrderItem) =>
+        item.selectedProductId !== null ||
+        item.selectedPackageId !== null ||
+        item.note.trim() !== "" ||
+        item.quantity !== 1 ||
+        item.selectedNote !== DEFAULT_NOTE;
+
+    const buildInitialItems = () =>
         initialItems && initialItems.length > 0
             ? initialItems.map((item) => ({ ...item, selectedNote: normalizeSizePreference(item.selectedNote) }))
-            : [emptyItem(true)]
-    );
+            : [emptyItem(!isPickupDaySelected)];
 
-    const isFirstCollapseAllSignal = useRef(true);
-    useEffect(() => {
-        if (isFirstCollapseAllSignal.current) {
-            isFirstCollapseAllSignal.current = false;
-            return;
+    const [items, setItems] = useState<OrderItem[]>(buildInitialItems);
+
+    // A szülő jelzései (összecsukás, alaphelyzetbe állítás) renderelés közben
+    // kerülnek a state-be, nem effektben: így nincs felesleges, kaszkádoló
+    // újrarenderelés. A sorrend számít: az alaphelyzetbe állítás az
+    // összecsukás után fut, ezért ha egyszerre érkeznek, az győz.
+    const [seenCollapseAllSignal, setSeenCollapseAllSignal] = useState(collapseAllSignal);
+    if (collapseAllSignal !== seenCollapseAllSignal) {
+        setSeenCollapseAllSignal(collapseAllSignal);
+        if (collapseAllSignal !== undefined) {
+            setItems((prev) =>
+                prev.map((item) => ({ ...item, collapsed: true, showValidation: false }))
+            );
         }
+    }
 
-        if (collapseAllSignal === undefined) return;
-
-        setItems((prev) =>
-            prev.map((item) => ({ ...item, collapsed: true, showValidation: false }))
-        );
-    }, [collapseAllSignal]);
-
+    const [seenReset, setSeenReset] = useState({ resetKey, isPickupDaySelected, initialItems });
+    if (
+        seenReset.resetKey !== resetKey ||
+        seenReset.isPickupDaySelected !== isPickupDaySelected ||
+        seenReset.initialItems !== initialItems
+    ) {
+        setSeenReset({ resetKey, isPickupDaySelected, initialItems });
+        setItems(buildInitialItems());
+    }
 
     useEffect(() => {
         const hasChanges = items.some(item => itemHasContent(item));
@@ -130,23 +147,6 @@ export default function ProductSelector({
         onOrderChangesChange(hasChanges);
         onItemsChange(items);
     }, [items, onOrderChangesChange, onItemsChange]);
-    useEffect(() => {
-        if (initialItems && initialItems.length > 0) {
-            setItems(initialItems.map((item) => ({ ...item, selectedNote: normalizeSizePreference(item.selectedNote) })));
-            return;
-        }
-
-        setItems([
-            emptyItem(!isPickupDaySelected)
-        ]);
-    }, [resetKey, isPickupDaySelected, initialItems]);
-
-    const itemHasContent = (item: OrderItem) =>
-        item.selectedProductId !== null ||
-        item.selectedPackageId !== null ||
-        item.note.trim() !== "" ||
-        item.quantity !== 1 ||
-        item.selectedNote !== DEFAULT_NOTE;
 
     const itemRequiresPackaging = (item: OrderItem) =>
         canChoosePackaging(

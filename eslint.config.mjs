@@ -12,7 +12,17 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Generált kimenetek: az OpenNext build és a helyreállítási bundle-ök.
+    ".open-next/**",
+    "scripts/.recovery/**",
   ]),
+  {
+    // A CommonJS tesztek és a Node-szkriptek require()-t használnak.
+    files: ["**/*.cjs", "scripts/**"],
+    rules: {
+      "@typescript-eslint/no-require-imports": "off",
+    },
+  },
 ]);
 
 export default eslintConfig;

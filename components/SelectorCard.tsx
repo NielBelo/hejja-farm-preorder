@@ -5,7 +5,12 @@ export default function SelectorCard({
   description,
   selected,
   onClick,
-}: any) {
+}: {
+  name: string;
+  description: string | null;
+  selected: boolean;
+  onClick: () => void;
+}) {
   return (
     <div
       onClick={onClick}

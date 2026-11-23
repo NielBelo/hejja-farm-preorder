@@ -3,7 +3,13 @@
 import { useState } from 'react';
 import SelectorCard from '@/components/SelectorCard';
 
-export default function ProductsClient({ products }: any) {
+type Product = {
+  id: number;
+  name: string;
+  description: string | null;
+};
+
+export default function ProductsClient({ products }: { products: Product[] }) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
 
   return (
@@ -16,7 +22,7 @@ export default function ProductsClient({ products }: any) {
         </h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {products.map((p: any) => (
+          {products.map((p) => (
             <SelectorCard
               key={p.id}
               name={p.name}

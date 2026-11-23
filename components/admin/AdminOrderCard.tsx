@@ -2,7 +2,6 @@
 
 import {
     useCallback,
-    useEffect,
     useMemo,
     useState,
 } from "react";
@@ -184,7 +183,11 @@ export default function AdminOrderCard({
     // Ha a rendeléskártya bezáródik,
     // az előzmény nézet is alaphelyzetbe kerül
     // ------------------------------------------------------------
-    useEffect(() => {
+    // (Renderelés közbeni szinkronizálás, nem effektben, hogy ne legyen
+    // felesleges újrarenderelés.)
+    const [wasOpen, setWasOpen] = useState(isOpen);
+    if (isOpen !== wasOpen) {
+        setWasOpen(isOpen);
         if (!isOpen) {
             setIsUserDetailsOpen(false);
             setIsHistoryOpen(false);
@@ -192,13 +195,13 @@ export default function AdminOrderCard({
             setHistoryError(null);
             setIsHistoryLoading(false);
         }
-    }, [isOpen]);
+    }
 
     // ------------------------------------------------------------
     // Aktuális rendelési tételek
     // ------------------------------------------------------------
-    const items =
-        order.order_versions?.order_items ?? [];
+    const orderItems = order.order_versions?.order_items;
+    const items = useMemo(() => orderItems ?? [], [orderItems]);
 
     const totalQuantity = items.reduce(
         (sum, item) => sum + item.quantity,
@@ -396,10 +399,7 @@ export default function AdminOrderCard({
     // ------------------------------------------------------------
     // ProductSelector callbackek
     // ------------------------------------------------------------
-    const handleOrderChangesChange = useCallback(
-        (_hasChanges: boolean) => { },
-        []
-    );
+    const handleOrderChangesChange = useCallback(() => { }, []);
 
     const handleItemsChange = useCallback(
         (newItems: EditedOrderItem[]) => {
