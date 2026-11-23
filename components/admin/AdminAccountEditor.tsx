@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowsPointingInIcon, ArrowsPointingOutIcon, CheckIcon, ChevronDownIcon, ShieldCheckIcon, TruckIcon } from "@heroicons/react/24/outline";
+import { CheckIcon, ChevronDownIcon, ShieldCheckIcon, TruckIcon } from "@heroicons/react/24/outline";
 import { useEffect, useRef, useState } from "react";
 import { updateAdminAccount } from "@/app/(protected)/admin/accounts/actions";
 import { validateAdminAccount, type AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
@@ -62,10 +62,6 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         county: account.county ?? "",
         city: account.city ?? "",
         role: account.role === "admin" ? "admin" : "user",
-        // Régebbi RPC-válaszokból ez a mező hiányozhat. A hiányzó érték
-        // ugyanazt jelenti, mint hogy nincs külön méretigény, ezért a
-        // mentéshez mindig explicit nullt küldünk.
-        special_size_preference: account.special_size_preference ?? null,
         oroshazi_delivery: account.oroshazi_delivery ?? false,
     };
     const [form, setForm] = useState(initial);
@@ -121,16 +117,6 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
                     </label>
                 )}
                 <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                        <label className={privilegeCardClass(form.special_size_preference === "smaller")}>
-                            <input type="checkbox" checked={form.special_size_preference === "smaller"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "smaller" : null }))}
-                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                            <ArrowsPointingInIcon aria-hidden="true" className="h-4 w-4 text-sky-500" />Kisebb méret preferáció
-                        </label>
-                        <label className={privilegeCardClass(form.special_size_preference === "larger")}>
-                            <input type="checkbox" checked={form.special_size_preference === "larger"} onChange={(event) => setForm((current) => ({ ...current, special_size_preference: event.target.checked ? "larger" : null }))}
-                                className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
-                            <ArrowsPointingOutIcon aria-hidden="true" className="h-4 w-4 text-amber-500" />Nagyobb méret preferáció
-                        </label>
                         <label className={privilegeCardClass(form.oroshazi_delivery)}>
                             <input type="checkbox" checked={form.oroshazi_delivery} onChange={(event) => setForm((current) => ({ ...current, oroshazi_delivery: event.target.checked }))}
                                 className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />

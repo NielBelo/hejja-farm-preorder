@@ -11,7 +11,6 @@ export type CurrentUser = {
   county: string;
   isAdmin: boolean;
   isSuperAdmin: boolean;
-  specialSizePreference: "smaller" | "larger" | null;
 };
 
 export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
@@ -33,7 +32,7 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
 
   const { data: profile, error } = await supabase
     .from("profiles")
-    .select("first_name, last_name, phone, city, county, special_size_preference")
+    .select("first_name, last_name, phone, city, county")
     .eq("id", user.id)
     .single();
 
@@ -51,6 +50,5 @@ export const getCurrentUser = cache(async (): Promise<CurrentUser | null> => {
     county: profile.county,
     isAdmin: userRole?.role === "admin",
     isSuperAdmin: userRole?.role === "admin" && userRole?.is_superadmin === true,
-    specialSizePreference: profile.special_size_preference ?? null,
   };
 });

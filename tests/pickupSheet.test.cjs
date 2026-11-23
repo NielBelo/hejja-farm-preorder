@@ -36,7 +36,6 @@ const {
     getPickupDateOptions,
     normalizePickupDate,
     sortPickupOrders,
-    summarizeCustomerSizePreferenceGroups,
     summarizePackage,
     summarizePickupOrders,
     summarizePickupStock,
@@ -228,38 +227,6 @@ test('shows only the collector packaging in the printed pickup sheet, everything
     assert.equal(summarizePrintPackage('Egyedi csomagolás'), '');
     assert.equal(summarizePrintPackage('Egyenként'), '');
     assert.equal(summarizePrintPackage(null), '');
-});
-
-test('groups whole orders by the customer size preference set in the admin profile, ignoring per-item size preference', () => {
-    const orders = [
-        {
-            ...order(1, 'Kiss Anna', '2026-09-27', 'R-1'),
-            specialSizePreference: 'larger',
-            items: [
-                { quantity: 6, products: { name: 'Egész csirke' }, size_preference: 'Átlagostól inkább kisebbet kérek, ha lehet' },
-                { quantity: 4, products: { name: 'Darabolt csirke' }, size_preference: 'Átlagos méret megfelelő' },
-            ],
-        },
-        {
-            ...order(2, 'Nagy Béla', '2026-09-27', 'R-2'),
-            specialSizePreference: 'smaller',
-            items: [
-                { quantity: 3, products: { name: 'Egész csirke' }, size_preference: 'Átlagostól inkább nagyobbat kérek, ha lehet' },
-            ],
-        },
-        {
-            ...order(3, 'Tóth Pál', '2026-09-27', 'R-3'),
-            specialSizePreference: null,
-            items: [
-                { quantity: 9, products: { name: 'Egész csirke' } },
-            ],
-        },
-    ];
-
-    assert.deepEqual(summarizeCustomerSizePreferenceGroups(orders), {
-        larger: { total: 10, whole: 6, chopped: 4 },
-        smaller: { total: 3, whole: 3, chopped: 0 },
-    });
 });
 
 test('builds quantity and percentage distributions for the charts', () => {

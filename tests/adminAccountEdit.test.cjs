@@ -15,7 +15,8 @@ function load(relativePath, imports = {}) {
     });
     return exports;
 }
-const validation = load('../lib/adminAccountEdit.ts');
+const phoneNumberModule = load('../lib/phoneNumber.ts');
+const validation = load('../lib/adminAccountEdit.ts', { '@/lib/phoneNumber': phoneNumberModule });
 const valid = {
     first_name: ' Ágnes ',
     last_name: 'Héjja',
@@ -23,7 +24,6 @@ const valid = {
     county: 'Pest',
     city: 'Budapest',
     role: 'user',
-    special_size_preference: null,
     oroshazi_delivery: false,
 };
 
@@ -33,11 +33,10 @@ test('normalizes names and phone and returns the permitted account options', () 
     assert.equal(account.phone, '+36301234567');
     assert.equal(account.city, 'Budapest');
     assert.equal(account.role, 'user');
-    assert.equal(account.special_size_preference, null);
     assert.equal(account.oroshazi_delivery, false);
 });
 test('rejects missing required fields, malformed inputs and invalid phones', () => {
-    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }, { ...valid, role: 'owner' }, { ...valid, special_size_preference: 'medium' }]) {
+    for (const value of [null, {}, { ...valid, first_name: ' ' }, { ...valid, county: '' }, { ...valid, phone: '36 30 123 45678' }, { ...valid, city: 'x'.repeat(101) }, { ...valid, role: 'owner' }]) {
         assert.ok(validation.validateAdminAccount(value).error);
     }
 });
@@ -46,10 +45,9 @@ test('accepts the same separator-tolerant phone format as the customer profile e
     assert.equal(account.phone, '+36301234567');
 });
 test('includes only the supported admin options and ignores unrelated input', () => {
-    const result = validation.validateAdminAccount({ ...valid, email: 'other@example.com', role: 'admin', special_size_preference: 'larger', consents: [] });
-    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'oroshazi_delivery', 'phone', 'role', 'special_size_preference']);
+    const result = validation.validateAdminAccount({ ...valid, email: 'other@example.com', role: 'admin', consents: [] });
+    assert.deepEqual(Object.keys(result.account).sort(), ['city', 'county', 'first_name', 'last_name', 'oroshazi_delivery', 'phone', 'role']);
     assert.equal(result.account.role, 'admin');
-    assert.equal(result.account.special_size_preference, 'larger');
 });
 
 function actionFixture({ signedIn = true, admin = true, rpcError = null } = {}) {

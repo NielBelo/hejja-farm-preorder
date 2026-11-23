@@ -7,7 +7,6 @@ export type AdminAccount = {
     phone: string | null;
     county: string | null;
     city: string | null;
-    special_size_preference: "smaller" | "larger" | null;
     oroshazi_delivery: boolean;
     role: string;
     is_superadmin: boolean;
@@ -29,8 +28,6 @@ export const accountStatusLabels = {
 };
 
 export const specialNeedLabels = {
-    smaller: "Kisebb méret preferáció",
-    larger: "Nagyobb méret preferáció",
     oroshazi: "Orosházi kiszállítás",
     none: "Nincs speciális igény",
 };
@@ -41,8 +38,6 @@ export function accountName(account: AdminAccount) {
 
 export function accountSpecialNeeds(account: AdminAccount): (keyof typeof specialNeedLabels)[] {
     const needs: (keyof typeof specialNeedLabels)[] = [];
-    if (account.special_size_preference === "smaller") needs.push("smaller");
-    if (account.special_size_preference === "larger") needs.push("larger");
     if (account.oroshazi_delivery) needs.push("oroshazi");
     return needs.length ? needs : ["none"];
 }

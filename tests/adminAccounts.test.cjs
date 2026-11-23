@@ -11,9 +11,9 @@ const data = { exports: {} };
 new Function('exports', compiled)(data.exports);
 const { filterAccounts, accountName, accountSpecialNeeds } = data.exports;
 const accounts = [
-    { id: '1', first_name: 'Ágnes', last_name: 'Héjja', email: 'agnes@example.hu', phone: '+36301234567', county: 'Csongrád-Csanád', city: 'Szeged', status: 'registered', role: 'admin', special_size_preference: 'smaller', oroshazi_delivery: false },
-    { id: '2', first_name: 'Béla', last_name: 'Kiss', email: 'bela@example.hu', county: 'Pest', status: 'unconfirmed', role: 'user', special_size_preference: null, oroshazi_delivery: true },
-    { id: '3', email: 'meghivott@example.hu', county: null, status: 'invited', role: 'user', special_size_preference: null, oroshazi_delivery: false },
+    { id: '1', first_name: 'Ágnes', last_name: 'Héjja', email: 'agnes@example.hu', phone: '+36301234567', county: 'Csongrád-Csanád', city: 'Szeged', status: 'registered', role: 'admin', oroshazi_delivery: false },
+    { id: '2', first_name: 'Béla', last_name: 'Kiss', email: 'bela@example.hu', county: 'Pest', status: 'unconfirmed', role: 'user', oroshazi_delivery: true },
+    { id: '3', email: 'meghivott@example.hu', county: null, status: 'invited', role: 'user', oroshazi_delivery: false },
 ];
 
 test('search combines accent-insensitive name and contact terms', () => {
@@ -33,14 +33,13 @@ test('sent invitations have a dedicated, filterable status', () => {
 test('cleared filters return every account', () => {
     assert.equal(filterAccounts(accounts, '  ', [], [], [], []).length, 3);
 });
-test('special needs are derived from size preference and Orosháza delivery', () => {
-    assert.deepEqual(accountSpecialNeeds(accounts[0]), ['smaller']);
+test('special needs are derived from Orosháza delivery', () => {
+    assert.deepEqual(accountSpecialNeeds(accounts[0]), ['none']);
     assert.deepEqual(accountSpecialNeeds(accounts[1]), ['oroshazi']);
     assert.deepEqual(accountSpecialNeeds(accounts[2]), ['none']);
 });
 test('special need filter matches any selected need, including "none"', () => {
-    assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['smaller']).map(a => a.id), ['1']);
     assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['oroshazi']).map(a => a.id), ['2']);
-    assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['none']).map(a => a.id), ['3']);
-    assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['smaller', 'oroshazi']).map(a => a.id), ['1', '2']);
+    assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['none']).map(a => a.id), ['1', '3']);
+    assert.deepEqual(filterAccounts(accounts, '', [], [], [], ['none', 'oroshazi']).map(a => a.id), ['1', '2', '3']);
 });

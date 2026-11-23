@@ -125,7 +125,7 @@ input[type="number"] {
     margin-top: 25.5mm;
 
     @top-center {
-      content: "Rendelésátvételi lista · " var(--pickup-print-date, "") "\A" var(--pickup-print-summary, "") "\A" var(--pickup-print-size-stats, "");
+      content: "Rendelésátvételi lista · " var(--pickup-print-date, "") "\A" var(--pickup-print-summary, "");
       white-space: pre-line;
       color: #374151;
       font-size: 10pt;

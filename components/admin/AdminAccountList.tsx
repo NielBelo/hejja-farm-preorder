@@ -4,7 +4,7 @@ import { useState } from "react";
 import AdminAccountEditor from "@/components/admin/AdminAccountEditor";
 import { deleteAdminAccount, deleteAdminInvite } from "@/app/(protected)/admin/accounts/actions";
 import type { AdminAccountUpdateInput } from "@/lib/adminAccountEdit";
-import { ArrowsPointingInIcon, ArrowsPointingOutIcon, CheckBadgeIcon, ChevronDownIcon, DocumentCheckIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PaperAirplaneIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
+import { CheckBadgeIcon, ChevronDownIcon, DocumentCheckIcon, EnvelopeIcon, FunnelIcon, MapIcon, MapPinIcon, PaperAirplaneIcon, PhoneIcon, ShieldCheckIcon, TruckIcon, UserCircleIcon, UserIcon, UserPlusIcon, XMarkIcon } from "@heroicons/react/24/outline";
 import OrderFilterDropdown from "@/components/admin/OrderFilterDropdown";
 import { accountName, accountStatusLabels, filterAccounts, specialNeedLabels, type AdminAccount } from "@/lib/adminAccountData";
 
@@ -22,11 +22,6 @@ function accountBadge(account: AdminAccount) {
     if (account.is_superadmin) return { label: "Szuper adminisztrátor", className: "bg-violet-50 text-violet-700" };
     if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-violet-50 text-violet-700" };
     return { label: "Vásárló", className: "bg-blue-50 text-blue-700" };
-}
-function sizePreferenceBadge(preference: AdminAccount["special_size_preference"]) {
-    if (preference === "larger") return { label: "Nagyobb méret", className: "bg-green-100 text-green-800" };
-    if (preference === "smaller") return { label: "Kisebb méret", className: "bg-red-100 text-red-800" };
-    return null;
 }
 function ProfileField({ label, value, icon: Icon }: {
     label: string;
@@ -124,7 +119,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
             const open = openId === account.id;
             const panelId = `account-${encodeURIComponent(account.id)}`;
             const badge = accountBadge(account);
-            const sizeBadge = sizePreferenceBadge(account.special_size_preference);
             return <article key={account.id} className={`overflow-hidden rounded-xl bg-white shadow-sm transition-all ${open ? "border-2 border-blue-400 ring-2 ring-blue-100" : "border border-gray-200"}`}>
                 <h2><button type="button" disabled={editing} aria-expanded={open} aria-controls={panelId} onClick={() => setOpenId(open ? null : account.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/70 focus-visible:outline-blue-400">
                     <UserCircleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-gray-400" />
@@ -132,7 +126,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         <span className="flex flex-wrap items-center gap-2">
                             <span className="break-words font-semibold text-gray-800">{accountName(account)}</span>
                             <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${badge.className}`}>{badge.label}</span>
-                            {sizeBadge && <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${sizeBadge.className}`}>{sizeBadge.label}</span>}
                             {account.oroshazi_delivery && <span className="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
                                 <TruckIcon aria-hidden="true" className="h-3.5 w-3.5" />Orosházi kiszállítás
                             </span>}
@@ -164,8 +157,6 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             <p className="mb-3 text-xs text-gray-500">Csak az adminisztráció számára megjelenő beállítások.</p>
                             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
                                 <Privilege label="Adminisztrátori jog" enabled={account.role === "admin"} icon={ShieldCheckIcon} />
-                                <Privilege label="Kisebb méret preferáció" enabled={account.special_size_preference === "smaller"} icon={ArrowsPointingInIcon} />
-                                <Privilege label="Nagyobb méret preferáció" enabled={account.special_size_preference === "larger"} icon={ArrowsPointingOutIcon} />
                                 <Privilege label="Orosházi kiszállítás" enabled={account.oroshazi_delivery} icon={TruckIcon} />
                             </div>
                         </section>}

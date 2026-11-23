@@ -157,8 +157,10 @@ test('két szolgáltató közös időrendi listában, szűrők együtt', async (
 });
 
 test('végpontok közti lapozás a kurzorokkal: nincs kihagyott/duplikált sor, a Resend after-rel folytat', async () => {
-    const smtpEvents = Array.from({ length: 70 }, (_, i) => smtp(`s${i}`, new Date(Date.UTC(2026, 9, 14, 12) - i * 11000).toISOString(), 'delivered'));
-    const resendAll = Array.from({ length: 230 }, (_, i) => resend(`r${String(i).padStart(3, '0')}`, new Date(Date.UTC(2026, 9, 14, 12) - i * 7000).toISOString(), 'sent'));
+    // Az SMTP2GO csak az utolsó pár nap előzményeit kéri le, ezért a dátumok a mához igazodnak.
+    const base = Date.now() - 3_600_000;
+    const smtpEvents = Array.from({ length: 70 }, (_, i) => smtp(`s${i}`, new Date(base - i * 11000).toISOString(), 'delivered'));
+    const resendAll = Array.from({ length: 230 }, (_, i) => resend(`r${String(i).padStart(3, '0')}`, new Date(base - i * 7000).toISOString(), 'sent'));
     await withFetch((url) => {
         if (url.includes('smtp2go')) return jsonResponse({ data: { events: smtpEvents } });
         const params = new URL(url).searchParams;

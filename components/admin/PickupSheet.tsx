@@ -6,7 +6,6 @@ import {
     formatPhoneNumber,
     getInitialPickupDate,
     getPickupDistributions,
-    summarizeCustomerSizePreferenceGroups,
     summarizePickupOrders,
     summarizePickupStock,
     summarizePrintPackage,
@@ -236,25 +235,14 @@ export default function PickupSheet({
     const wholeChickenCount = distributions.products.find((entry) => entry.label === "Egész")?.quantity ?? 0;
     const choppedChickenCount = distributions.products.find((entry) => entry.label === "Darab")?.quantity ?? 0;
     const printSummaryLabel = `Összesítés: ${summary.chickenCount} csirke (${wholeChickenCount} egész · ${choppedChickenCount} darabolt) · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
-    const sizePreferenceStats = useMemo(
-        () => summarizeCustomerSizePreferenceGroups(visibleOrders),
-        [visibleOrders]
-    );
-    // A "|" körüli térköz nem sorolható fel közönséges szóközökkel, mert a
-    // nyomtatási fejléc "white-space: pre-line" szabálya összevonja az
-    // egymást követő szóközöket - ezért nem törhető szóközt (U+00A0) kell
-    // használni, ami ezt a szabályt nem érinti.
-    const printSizeStatsLabel = `Speciális: 🟢 ${sizePreferenceStats.larger.total} csirke (${sizePreferenceStats.larger.whole} egész · ${sizePreferenceStats.larger.chopped} darabolt)   |   🔴 ${sizePreferenceStats.smaller.total} csirke (${sizePreferenceStats.smaller.whole} egész · ${sizePreferenceStats.smaller.chopped} darabolt)`;
 
     useEffect(() => {
         const root = document.documentElement;
         const previousDate = root.style.getPropertyValue("--pickup-print-date");
         const previousSummary = root.style.getPropertyValue("--pickup-print-summary");
-        const previousSizeStats = root.style.getPropertyValue("--pickup-print-size-stats");
 
         root.style.setProperty("--pickup-print-date", JSON.stringify(activeDateLabel));
         root.style.setProperty("--pickup-print-summary", JSON.stringify(printSummaryLabel));
-        root.style.setProperty("--pickup-print-size-stats", JSON.stringify(printSizeStatsLabel));
 
         return () => {
             if (previousDate) root.style.setProperty("--pickup-print-date", previousDate);
@@ -262,11 +250,8 @@ export default function PickupSheet({
 
             if (previousSummary) root.style.setProperty("--pickup-print-summary", previousSummary);
             else root.style.removeProperty("--pickup-print-summary");
-
-            if (previousSizeStats) root.style.setProperty("--pickup-print-size-stats", previousSizeStats);
-            else root.style.removeProperty("--pickup-print-size-stats");
         };
-    }, [activeDateLabel, printSummaryLabel, printSizeStatsLabel]);
+    }, [activeDateLabel, printSummaryLabel]);
 
     return (
         <div className="pickup-print-page">
@@ -376,7 +361,7 @@ export default function PickupSheet({
                     <DistributionChart title="Méret eloszlása" entries={distributions.sizes} />
                 </div>
 
-                <div className="mt-3 grid items-stretch gap-4 sm:grid-cols-3">
+                <div className="mt-3 grid items-stretch gap-4">
                     <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
                         <h2 className="text-center text-sm font-semibold text-gray-700">Napi összesítés</h2>
                         <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
@@ -391,42 +376,6 @@ export default function PickupSheet({
                             <div className="px-1">
                                 <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
                                 <span className="text-xs">tétel</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
-                        <h2 className="text-center text-sm font-semibold text-gray-700">🟢 Nagyobb méretigény</h2>
-                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.total}</strong>
-                                <span className="text-xs">csirke</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.whole}</strong>
-                                <span className="text-xs">egész</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.larger.chopped}</strong>
-                                <span className="text-xs">darabolt</span>
-                            </div>
-                        </div>
-                    </section>
-
-                    <section aria-live="polite" className="h-full rounded-lg border border-gray-300 bg-white px-4 py-4 shadow-sm">
-                        <h2 className="text-center text-sm font-semibold text-gray-700">🔴 Kisebb méretigény</h2>
-                        <div className="mt-3 grid grid-cols-3 divide-x divide-gray-300 text-center text-gray-600">
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.total}</strong>
-                                <span className="text-xs">csirke</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.whole}</strong>
-                                <span className="text-xs">egész</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{sizePreferenceStats.smaller.chopped}</strong>
-                                <span className="text-xs">darabolt</span>
                             </div>
                         </div>
                     </section>
@@ -472,11 +421,7 @@ export default function PickupSheet({
                         </thead>
                         {visibleOrders.map((order, orderIndex) => {
                             const rows = order.items.length > 0 ? order.items : [null];
-                            const rowBackground = order.specialSizePreference === "larger"
-                                ? "bg-green-100"
-                                : order.specialSizePreference === "smaller"
-                                    ? "bg-red-100"
-                                    : orderIndex % 2 === 0 ? "bg-white" : "bg-gray-200";
+                            const rowBackground = orderIndex % 2 === 0 ? "bg-white" : "bg-gray-200";
                             return (
                                 <tbody key={order.id} className="break-inside-avoid">
                                     {rows.map((item, itemIndex) => (

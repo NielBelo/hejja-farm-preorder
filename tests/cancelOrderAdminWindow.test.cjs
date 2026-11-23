@@ -6,8 +6,10 @@ const path = require('node:path');
 // A cancel_order migráció strukturális ellenőrzése: a törzs az ÉLES definícióval
 // (rollback fájl) egyezik, kivéve az admin-kivételt az időablak-ellenőrzésnél.
 const root = path.join(__dirname, '..');
-const migration = fs.readFileSync(path.join(root, 'supabase/migrations/20261012000000_cancel_order_admin_window_exception.sql'), 'utf8');
-const rollback = fs.readFileSync(path.join(root, 'supabase/rollback/20261012_before_cancel_order_admin_window_exception.sql'), 'utf8');
+// Windowson az autocrlf miatt CRLF a munkamásolat; az összehasonlításhoz LF kell.
+const readLf = (file) => fs.readFileSync(file, 'utf8').replace(/\r\n/g, '\n');
+const migration = readLf(path.join(root, 'supabase/migrations/20261012000000_cancel_order_admin_window_exception.sql'));
+const rollback = readLf(path.join(root, 'supabase/rollback/20261012_before_cancel_order_admin_window_exception.sql'));
 
 function functionBody(text) {
     const start = text.indexOf('CREATE OR REPLACE FUNCTION public.cancel_order(p_order_id bigint)');

@@ -22,7 +22,6 @@ export default function PickupDaySelector({
     startDate,
     endDate,
     bypassWindow = false,
-    blockedPickupDayIds = [],
 }: {
     pickupDays: PickupDay[];
     selectedPickupDayId: number | null;
@@ -32,17 +31,10 @@ export default function PickupDaySelector({
     // Admin szerkesztésnél a rendelési időablak nem korlátozza a módosítást,
     // ugyanúgy, ahogy a tételek szerkesztése sem admin esetén.
     bypassWindow?: boolean;
-    // Azok a nap id-k, amelyeken már más vásárlónak van rendelése ugyanazzal
-    // a méretpreferenciával, mint a jelenlegi felhasználóé - ez egy rejtett
-    // belső szabály, ezért ezek a napok egyszerűen nem szerepelnek a
-    // felkínált napok között (nem jelenik meg disabled kártya vagy
-    // magyarázó szöveg hozzájuk).
-    blockedPickupDayIds?: number[];
 }) {
     const isWindowOpen = useOrderWindow(startDate, endDate);
     const isOrderingOpen = bypassWindow || isWindowOpen;
-    const displayedPickupDays = pickupDays
-        .filter((day) => !blockedPickupDayIds.includes(day.id))
+    const displayedPickupDays = [...pickupDays]
         .sort(
             (first, second) =>
                 new Date(first.pickup_date).getTime() -

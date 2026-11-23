@@ -75,11 +75,6 @@ type Season = {
     local_pickup_time_start: string | null;
 };
 
-type SizePreferenceLock = {
-    pickup_day_id: number;
-    preference: "smaller" | "larger";
-};
-
 const ORDERING_CLOSED_MESSAGE =
     "Jelenleg nincs lehetőség előrendelésre! A rendelés leadása csak a rendelési időszakban lehetséges.";
 
@@ -90,8 +85,6 @@ export default function PreorderManager({
     pickupDays,
     dunavecseDay = null,
     userCounty,
-    userSizePreference = null,
-    sizePreferenceLocks = [],
 }: {
     season: Season;
     products: Product[];
@@ -99,8 +92,6 @@ export default function PreorderManager({
     pickupDays: PickupDay[];
     dunavecseDay?: DunavecseDay | null;
     userCounty?: string | null;
-    userSizePreference?: "smaller" | "larger" | null;
-    sizePreferenceLocks?: SizePreferenceLock[];
 }) {
     // A vármegye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
     // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun vármegyei
@@ -154,15 +145,6 @@ export default function PreorderManager({
         selectedPickupDay,
         dunavecsePickupDay,
     });
-
-    const [currentSizePreferenceLocks, setCurrentSizePreferenceLocks] =
-        useState<SizePreferenceLock[]>(sizePreferenceLocks);
-
-    const blockedPickupDayIds = userSizePreference
-        ? currentSizePreferenceLocks
-              .filter((lock) => lock.preference === userSizePreference)
-              .map((lock) => lock.pickup_day_id)
-        : [];
 
     const handlePickupDayChange = (day: PickupDay) => {
         if (
@@ -270,17 +252,6 @@ export default function PreorderManager({
 
             setCurrentDunavecseDay(dunavecse ?? null);
         }
-
-        const { data: locks, error: locksError } = await supabase.rpc(
-            "get_size_preference_locks"
-        );
-
-        if (locksError) {
-            console.error("Méretpreferencia-korlátok frissítési hiba:", locksError);
-            return;
-        }
-
-        setCurrentSizePreferenceLocks(locks ?? []);
     };
 
 
@@ -499,7 +470,6 @@ export default function PreorderManager({
                         pickupDays={currentPickupDays}
                         selectedPickupDayId={selectedPickupDay?.id ?? null}
                         onSelectPickupDay={handlePickupDayChange}
-                        blockedPickupDayIds={blockedPickupDayIds}
                     />
                 )}
             </div>
