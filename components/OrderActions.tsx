@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import { useOrderWindow } from "@/lib/useOrderWindow";
 import ProductSelector from "@/components/ProductSelector";
+import SizeFitDialog from "@/components/SizeFitDialog";
+import { fitItemsToSizeAvailability, type SizeFitResult } from "@/lib/sizeAvailability";
 import type { SizeAvailabilityRow } from "@/components/PreorderManager";
 import PickupDayChangeCard from "@/components/PickupDayChangeCard";
 import { useRouter } from "next/navigation";
@@ -108,6 +110,14 @@ export default function OrderActions({
 
     const [editedItems, setEditedItems] = useState<EditedOrderItem[]>([]);
 
+    // Napváltáskor a méretkerethez igazított tételek (null = az eredeti
+    // tételekből indul a szerkesztő); szerkesztés megkezdésekor/megszakításakor törlődik.
+    const [fittedItems, setFittedItems] = useState<EditedOrderItem[] | null>(null);
+    const [pendingSizeFit, setPendingSizeFit] = useState<{
+        day: PickupDay;
+        fit: SizeFitResult<EditedOrderItem>;
+    } | null>(null);
+
     const [isSaving, setIsSaving] = useState(false);
     const [saveError, setSaveError] = useState<string | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null);
@@ -197,6 +207,47 @@ export default function OrderActions({
 
     const pickupDayChanged = selectedPickupDayId !== pickupDayId;
 
+    // Ugyanaz a számítás tetszőleges naphoz: a rendelés eredeti napján a saját
+    // tételek mennyisége visszaadódik a keretbe.
+    const getSizeAvailabilityForDay = (dayId: number) => {
+        const row = sizeAvailabilityRows.find((entry) => entry.pickup_day_id === dayId);
+        if (!row) return null;
+        const own = (size: string) =>
+            dayId !== pickupDayId
+                ? 0
+                : items.reduce(
+                      (sum, item) => (normalizeSizePreference(item.size_preference) === size ? sum + item.quantity : sum),
+                      0
+                  );
+        return {
+            small: row.small_remaining === null ? null : row.small_remaining + own("Átlagostól kisebb méret"),
+            large: row.large_remaining === null ? null : row.large_remaining + own("Átlagostól nagyobb méret"),
+        };
+    };
+
+    // Napválasztáskor a készletellenőrzést a hook végzi; ha a méretkeret miatt
+    // tételek csökkennének vagy kimaradnának, előbb megerősítést kérünk.
+    const handleSelectDay = (day: PickupDay) => {
+        if (day.id !== selectedPickupDayId && requiredQuantity <= (day.available_stock ?? 0)) {
+            const fit = fitItemsToSizeAvailability(editedItems, getSizeAvailabilityForDay(day.id));
+
+            if (fit.changed) {
+                setPendingSizeFit({ day, fit });
+                return;
+            }
+        }
+
+        handleSelectPickupDay(day);
+    };
+
+    const confirmSizeFit = () => {
+        if (!pendingSizeFit) return;
+
+        setFittedItems(pendingSizeFit.fit.items);
+        handleSelectPickupDay(pendingSizeFit.day);
+        setPendingSizeFit(null);
+    };
+
     // A választott nap méretkerete. A saját, már leadott rendelés tételei is
     // foglalják a keretet, ezért a rendelés eredeti napján ezek visszaadódnak
     // (ugyanígy a készletnél: availableStock + originalQuantity).
@@ -262,6 +313,7 @@ export default function OrderActions({
         setSaveSuccess(null);
         setEmailWarning(null);
         resetPickupDaySelection();
+        setFittedItems(null);
 
         startEditing(orderId);
         setIsEditing(true);
@@ -270,6 +322,7 @@ export default function OrderActions({
     const handleCancelEdit = () => {
         setIsEditing(false);
         resetPickupDaySelection();
+        setFittedItems(null);
         stopEditing();
     };
     const router = useRouter();
@@ -401,6 +454,15 @@ export default function OrderActions({
 
     return (
         <div className="w-full">
+
+            {pendingSizeFit && (
+                <SizeFitDialog
+                    reducedCount={pendingSizeFit.fit.reducedCount}
+                    removedCount={pendingSizeFit.fit.removedCount}
+                    onConfirm={confirmSizeFit}
+                    onCancel={() => setPendingSizeFit(null)}
+                />
+            )}
 
             {showCancelModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
@@ -557,7 +619,7 @@ export default function OrderActions({
                             pickupDaysForPicker={pickupDaysForPicker}
                             selectedPickupDayId={selectedPickupDayId}
                             pickupDayForDisplay={pickupDayForDisplay}
-                            onSelectPickupDay={handleSelectPickupDay}
+                            onSelectPickupDay={handleSelectDay}
                             seasonStartDate={seasonStartDate}
                             seasonEndDate={seasonEndDate}
                             insufficientStockDay={insufficientStockDay}
@@ -577,7 +639,7 @@ export default function OrderActions({
                         isPickupDaySelected={true}
                         pickupDate={pickupDayForDisplay?.pickup_date ?? pickupDate}
                         noteLabel={isDunavecse ? BACS_KISKUN_NOTE_LABEL : undefined}
-                        initialItems={initialItems}
+                        initialItems={fittedItems ?? initialItems}
                         onOrderChangesChange={() => { }}
                         onItemsChange={setEditedItems}
                         onItemEdited={() => { }}

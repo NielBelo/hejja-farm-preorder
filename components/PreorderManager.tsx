@@ -4,6 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import CountdownCard from "@/components/CountdownCard";
 import InfoModal from "@/components/InfoModal";
 import PickupDaySelector from "@/components/PickupDaySelector";
+import SizeFitDialog from "@/components/SizeFitDialog";
+import { fitItemsToSizeAvailability, type SizeFitResult } from "@/lib/sizeAvailability";
 import ProductSelector from "@/components/ProductSelector";
 import OrderConfirmationSummary from "@/components/OrderConfirmationSummary";
 import { createClient } from "@/lib/supabase/client";
@@ -56,6 +58,7 @@ type OrderItem = {
     collapsed: boolean;
     touched: boolean;
     showValidation: boolean;
+    validationPosition: "top" | "bottom";
 };
 
 type SubmittedOrder = {
@@ -190,6 +193,17 @@ export default function PreorderManager({
                 setShowDayChangeModal(true);
                 return;
             }
+
+            const dayRow = currentSizeAvailabilityRows.find((row) => row.pickup_day_id === day.id);
+            const fit = fitItemsToSizeAvailability(
+                orderItems,
+                dayRow ? { small: dayRow.small_remaining, large: dayRow.large_remaining } : null
+            );
+
+            if (fit.changed) {
+                setPendingSizeFit({ day, fit });
+                return;
+            }
         }
 
         setSelectedPickupDay(day);
@@ -202,6 +216,7 @@ export default function PreorderManager({
 
         setSelectedPickupDay(pendingPickupDay);
         setTermsAccepted(false);
+        setFittedItems(undefined);
         setResetKey((prev) => prev + 1);
 
         setLastSubmittedOrder(null);
@@ -210,12 +225,32 @@ export default function PreorderManager({
 
     };
 
+    const confirmSizeFit = () => {
+        if (!pendingSizeFit) return;
+
+        setSelectedPickupDay(pendingSizeFit.day);
+        setTermsAccepted(false);
+        setLastSubmittedOrder(null);
+        setFittedItems(pendingSizeFit.fit.items);
+        setResetKey((prev) => prev + 1);
+        setPendingSizeFit(null);
+    };
+
     const cancelPickupDayChange = () => {
         setPendingPickupDay(null);
         setShowDayChangeModal(false);
     };
 
     const [resetKey, setResetKey] = useState(0);
+
+    // A napváltáskor a méretkerethez igazított tételek: a szerkesztő ezekből
+    // indul újra. Minden más alaphelyzetbe állításnál (resetKey) törölni kell.
+    const [fittedItems, setFittedItems] = useState<OrderItem[] | undefined>(undefined);
+
+    const [pendingSizeFit, setPendingSizeFit] = useState<{
+        day: PickupDay;
+        fit: SizeFitResult<OrderItem>;
+    } | null>(null);
 
     const [pendingPickupDay, setPendingPickupDay] =
         useState<PickupDay | null>(null);
@@ -372,6 +407,7 @@ export default function PreorderManager({
                 submittedAt: new Date(),
                 emailRecipient: result.emailRecipient,
             });
+            setFittedItems(undefined);
             setResetKey((prev) => prev + 1);
             setOrderItems([]);
             setHasOrderChanges(false);
@@ -522,6 +558,7 @@ export default function PreorderManager({
                     sizeAvailability={sizeAvailability}
                     productPrices={productPrices}
                     resetKey={resetKey}
+                    initialItems={fittedItems}
                     isPickupDaySelected={displayPickupDay !== null}
                     pickupDate={displayPickupDay?.pickup_date ?? null}
                     noteLabel={isBacsKiskun ? BACS_KISKUN_NOTE_LABEL : undefined}
@@ -650,6 +687,15 @@ export default function PreorderManager({
                         </p>
                     </section>
                 </InfoModal>
+            )}
+
+            {pendingSizeFit && (
+                <SizeFitDialog
+                    reducedCount={pendingSizeFit.fit.reducedCount}
+                    removedCount={pendingSizeFit.fit.removedCount}
+                    onConfirm={confirmSizeFit}
+                    onCancel={() => setPendingSizeFit(null)}
+                />
             )}
 
             {showDayChangeModal && (
