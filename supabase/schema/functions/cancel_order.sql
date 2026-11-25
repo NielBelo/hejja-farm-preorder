@@ -50,6 +50,7 @@ BEGIN
         v_order_status
     FROM public.orders AS o
     WHERE o.id = p_order_id
+      AND o.archived_at IS NULL
     FOR UPDATE;
 
     IF NOT FOUND THEN

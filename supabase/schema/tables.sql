@@ -28,7 +28,8 @@ CREATE TABLE public.orders (
   public_order_number text NOT NULL,
   current_version_id bigint,
   cancelled_at timestamp with time zone,
-  cancelled_by uuid
+  cancelled_by uuid,
+  archived_at timestamp with time zone
 );
 
 CREATE TABLE public.packages (
@@ -265,9 +266,12 @@ CREATE VIEW public.pickup_day_order_stats WITH (security_invoker = true) AS
     count(DISTINCT o.id) FILTER (WHERE (o.status = 'submitted'::text)) AS live_order_count,
     count(DISTINCT o.id) AS total_order_count,
     (COALESCE(sum(oi.quantity) FILTER (WHERE ((o.status = 'submitted'::text) AND (oi.size_preference = 'Átlagostól kisebb méret'::text))), (0)::bigint))::integer AS live_small_quantity,
-    (COALESCE(sum(oi.quantity) FILTER (WHERE ((o.status = 'submitted'::text) AND (oi.size_preference = 'Átlagostól nagyobb méret'::text))), (0)::bigint))::integer AS live_large_quantity
+    (COALESCE(sum(oi.quantity) FILTER (WHERE ((o.status = 'submitted'::text) AND (oi.size_preference = 'Átlagostól nagyobb méret'::text))), (0)::bigint))::integer AS live_large_quantity,
+    (( SELECT count(*) AS count
+           FROM orders a
+          WHERE ((a.pickup_day_id = pd.id) AND (a.archived_at IS NOT NULL))))::integer AS archived_order_count
    FROM ((pickup_days pd
-     LEFT JOIN orders o ON ((o.pickup_day_id = pd.id)))
+     LEFT JOIN orders o ON (((o.pickup_day_id = pd.id) AND (o.archived_at IS NULL))))
      LEFT JOIN order_items oi ON ((oi.order_version_id = o.current_version_id)))
   GROUP BY pd.id, pd.season_parameter_id;
 

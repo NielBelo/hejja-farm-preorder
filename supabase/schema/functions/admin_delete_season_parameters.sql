@@ -26,19 +26,28 @@ begin
   select count(*) into v_live_orders
   from public.orders o
   join public.pickup_days p on p.id = o.pickup_day_id
-  where p.season_parameter_id = target_id and o.status = 'submitted';
+  where p.season_parameter_id = target_id and o.status = 'submitted' and o.archived_at is null;
 
   if v_live_orders > 0 and not confirm_live_orders then
-    raise exception 'A szezonhoz % élő rendelés tartozik. A törléshez megerősítés szükséges.', v_live_orders
+    raise exception 'A szezonhoz % élő rendelés tartozik. A szezon törlésekor a napjainak rendelései is törlődnek (a vásárlók értesítése nélkül, az előzményeikből eltűnnek), a szezon visszaállításakor visszakerülnek. A törléshez megerősítés szükséges.', v_live_orders
       using errcode = '22023', hint = 'LIVE_ORDERS_CONFIRMATION_REQUIRED';
   end if;
 
   -- Soft delete: a szezon és az összes napja (a DUNAVECSE is) ugyanazzal az
   -- időbélyeggel archiválódik, így a visszaállítás pontosan ezeket hozza
-  -- vissza. A rendelések érintetlenek maradnak.
+  -- vissza. A napok rendelései is törlődnek (soft delete, ugyanazzal az
+  -- időbélyeggel, a vásárlók értesítése nélkül); a visszaállításkor visszakerülnek.
   update public.pickup_days
     set archived_at = v_now, is_active = false
     where season_parameter_id = target_id and archived_at is null;
+
+  update public.orders o
+    set archived_at = v_now
+    from public.pickup_days p
+    where o.pickup_day_id = p.id
+      and p.season_parameter_id = target_id
+      and p.archived_at = v_now
+      and o.archived_at is null;
 
   update public.season_parameters
     set archived_at = v_now, is_active = false

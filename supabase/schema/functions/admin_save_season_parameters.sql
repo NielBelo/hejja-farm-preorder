@@ -28,6 +28,7 @@ declare
   v_existing_id bigint;
   v_old_planned_stock integer;
   v_old_available_stock integer;
+  v_old_archived_at timestamptz;
   v_delta integer;
   v_new_available_stock integer;
   v_live_small integer;
@@ -100,11 +101,11 @@ begin
     where p.season_parameter_id = v_id
       and p.kind = 'normal'
       and p.archived_at is null
-      and exists (select 1 from public.orders o where o.pickup_day_id = p.id and o.status = 'submitted')
+      and exists (select 1 from public.orders o where o.pickup_day_id = p.id and o.status = 'submitted' and o.archived_at is null)
       and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
 
     if v_live_dates is not null and not v_confirm_live_orders then
-      raise exception 'A következő átvételi nap(ok)hoz élő rendelés tartozik: %. A törléshez megerősítés szükséges.', v_live_dates
+      raise exception 'A következő átvételi nap(ok)hoz élő rendelés tartozik: %. A nap törlésekor a rendelései is törlődnek (a vásárlók értesítése nélkül, az előzményeikből eltűnnek), a nap visszaállításakor visszakerülnek. A törléshez megerősítés szükséges.', v_live_dates
         using errcode = '22023', hint = 'LIVE_ORDERS_CONFIRMATION_REQUIRED';
     end if;
   end if;
@@ -156,6 +157,17 @@ begin
       and p.archived_at is null
       and not exists (select 1 from jsonb_array_elements(v_days) x where (x->>'date')::date = p.pickup_date);
 
+  -- A most törölt napok rendelései is törlődnek (soft delete, a nap
+  -- időbélyegével), a vásárlók értesítése nélkül; a nap visszaállításakor
+  -- ugyanezek a rendelések automatikusan visszakerülnek.
+  update public.orders o
+    set archived_at = p.archived_at
+    from public.pickup_days p
+    where o.pickup_day_id = p.id
+      and p.season_parameter_id = v_season_id
+      and p.archived_at = now()
+      and o.archived_at is null;
+
   for v_day in select * from jsonb_array_elements(v_days) loop
     v_date := (v_day->>'date')::date; v_limit := (v_day->>'limit')::integer;
     v_day_active := coalesce((v_day->>'active')::boolean, true);
@@ -170,13 +182,21 @@ begin
 
     -- Az archivált napot is megtaláljuk: ha az admin ugyanarra a dátumra
     -- újra felveszi, a régi sor áll vissza (nem jön létre új sor).
-    select id, planned_stock, available_stock
-      into v_existing_id, v_old_planned_stock, v_old_available_stock
+    select id, planned_stock, available_stock, archived_at
+      into v_existing_id, v_old_planned_stock, v_old_available_stock, v_old_archived_at
       from public.pickup_days
       where season_parameter_id = v_season_id and pickup_date = v_date and kind = 'normal'
       for update;
 
     if found then
+      -- A visszaállított (korábban törölt) nap rendelései is visszakerülnek;
+      -- ez a méretlimit-ellenőrzés előtt történik, hogy azok is beleszámítsanak.
+      if v_old_archived_at is not null then
+        update public.orders
+          set archived_at = null
+          where pickup_day_id = v_existing_id and archived_at = v_old_archived_at;
+      end if;
+
       v_delta := v_limit - v_old_planned_stock;
       v_new_available_stock := v_old_available_stock + v_delta;
 

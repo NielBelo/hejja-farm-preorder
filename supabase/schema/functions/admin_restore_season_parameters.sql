@@ -26,6 +26,16 @@ begin
   -- Csak a szezonnal EGYÜTT (ugyanazzal az időbélyeggel) törölt napok jönnek
   -- vissza; a korábban külön törölt napok archiváltak maradnak. Minden
   -- inaktívan áll vissza, az admin kapcsolja be tudatosan.
+  -- A napokkal együtt törölt rendelések is visszakerülnek (a napok
+  -- visszaállítása előtt, a közös időbélyeg alapján).
+  update public.orders o
+    set archived_at = null
+    from public.pickup_days p
+    where o.pickup_day_id = p.id
+      and p.season_parameter_id = target_id
+      and p.archived_at = v_archived_at
+      and o.archived_at = v_archived_at;
+
   update public.pickup_days
     set archived_at = null, is_active = false
     where season_parameter_id = target_id and archived_at = v_archived_at;

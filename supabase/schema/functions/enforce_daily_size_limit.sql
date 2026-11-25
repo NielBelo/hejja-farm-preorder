@@ -59,6 +59,7 @@ begin
   join public.order_items oi on oi.order_version_id = o.current_version_id
   where o.pickup_day_id = new.pickup_day_id
     and o.status = 'submitted'
+    and o.archived_at is null
     and o.id <> new.id;
 
   if v_small_limit is not null and v_other_small + v_mine_small > v_small_limit then

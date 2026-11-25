@@ -26,6 +26,7 @@ BEGIN
     INTO v_order
     FROM public.orders
     WHERE id = p_order_id
+      AND archived_at IS NULL
     FOR UPDATE;
 
     IF NOT FOUND THEN

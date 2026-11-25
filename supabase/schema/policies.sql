@@ -57,7 +57,7 @@ CREATE POLICY "Users can view items of own orders" ON public.order_items AS PERM
      JOIN orders o ON ((o.id = ov.order_id)))
   WHERE ((ov.id = order_items.order_version_id) AND (o.user_id = auth.uid())))));
 
-CREATE POLICY "Users can view own orders" ON public.orders AS PERMISSIVE FOR SELECT TO authenticated USING ((auth.uid() = user_id));
+CREATE POLICY "Users can view own orders" ON public.orders AS PERMISSIVE FOR SELECT TO authenticated USING (((auth.uid() = user_id) AND (archived_at IS NULL)));
 
 CREATE POLICY "Users can view own role" ON public.user_roles AS PERMISSIVE FOR SELECT TO public USING ((auth.uid() = user_id));
 

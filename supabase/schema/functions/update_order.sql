@@ -106,6 +106,7 @@ begin
         v_order_status
     from public.orders
     where id = p_order_id
+      and archived_at is null
     for update;
 
     if not found then

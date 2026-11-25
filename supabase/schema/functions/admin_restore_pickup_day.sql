@@ -40,6 +40,11 @@ begin
     raise exception 'Egy szezonban legfeljebb 5 átvételi nap lehet; előbb töröljön egy másikat.' using errcode = '22023';
   end if;
 
+  -- A nap törlésekor törölt rendelések automatikusan visszakerülnek.
+  update public.orders
+    set archived_at = null
+    where pickup_day_id = target_id and archived_at = v_archived_at;
+
   -- Visszaállítás után a nap inaktív, az admin kapcsolja be tudatosan.
   update public.pickup_days set archived_at = null, is_active = false where id = target_id;
 
