@@ -3,20 +3,16 @@ import { useEffect, useRef, useState } from "react";
 import {
   ArrowUturnLeftIcon,
   CalendarDaysIcon,
-  CheckCircleIcon,
   CheckIcon,
   ChevronDownIcon,
   InformationCircleIcon,
   PlusIcon,
   TrashIcon,
-  XCircleIcon,
 } from "@heroicons/react/24/outline";
 import {
   deleteSeason,
-  restorePickupDay,
   restoreSeason,
   saveSeason,
-  setDunavecsePickupDayActive,
   type PickupDay,
   type SeasonInput,
 } from "@/app/(protected)/admin/seasons/actions";
@@ -89,10 +85,23 @@ const labelClass = "block text-sm font-medium text-gray-600";
 // kiemelés kizárólag a kártya keretén jelenik meg, amikor az adott
 // szezon éppen nyitva van vagy szerkesztés alatt áll - ugyanaz a kék,
 // mint az Előzmények oldal kártya-kiemelése (EditableOrderCard.tsx).
-const statusBadgeClass = (active: boolean) =>
-  `inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm font-semibold shadow-sm transition ${
-    active ? "border-green-200 bg-green-50 text-green-700" : "border-gray-300 bg-gray-100 text-gray-500"
-  }`;
+// Csak jelző (nem kattintható): lapos szöveg színes ponttal, keret, háttér és
+// árnyék nélkül, hogy ne tűnjön gombnak. A fix szélesség miatt az Aktív /
+// Inaktív / Törölve felirat nem tolja el a sort.
+const statusIndicatorClass = "inline-flex w-20 shrink-0 items-center gap-2 text-sm font-semibold";
+// Minimalista színkódolás: a szakaszokat nem a háttér, hanem a keret egy vékony,
+// színes sávja (bal oldal) és a hozzá illő címszín jelöli. A teljes osztálynevek
+// szerepelnek a forrásban, hogy a Tailwind biztosan legenerálja őket.
+const ACCENTS = {
+  gray: { bar: "border-l-gray-500", text: "text-gray-500" },
+  blue: { bar: "border-l-blue-600", text: "text-blue-600" },
+  green: { bar: "border-l-green-600", text: "text-green-600" },
+  orange: { bar: "border-l-orange-600", text: "text-orange-600" },
+  purple: { bar: "border-l-purple-600", text: "text-purple-600" },
+  pink: { bar: "border-l-pink-600", text: "text-pink-600" },
+} as const;
+type Accent = keyof typeof ACCENTS;
+
 const cardHighlightClass = (highlighted: boolean) =>
   `rounded-xl bg-white p-4 transition-all ${
     highlighted
@@ -100,12 +109,122 @@ const cardHighlightClass = (highlighted: boolean) =>
       : "border border-gray-200 shadow-sm"
   }`;
 
-function StatusBadge({ active }: { active: boolean }) {
-  const Icon = active ? CheckCircleIcon : XCircleIcon;
+// A megtekintő nézet építőkockái: címkézett adatsorok kártyában, és címkézett
+// mezők egy napon belül, hogy az adatok ne follyanak össze.
+function SectionLabel({ children, accent }: { children: React.ReactNode; accent?: Accent }) {
   return (
-    <span className={statusBadgeClass(active)}>
-      <Icon className="h-4 w-4" />
+    <p className={`text-xs font-semibold uppercase tracking-wide ${accent ? ACCENTS[accent].text : "text-gray-400"}`}>
+      {children}
+    </p>
+  );
+}
+
+function InfoCard({ title, rows, accent }: { title: string; rows: [string, React.ReactNode][]; accent: Accent }) {
+  return (
+    <div className={`rounded-lg border border-l-[3px] border-gray-200 ${ACCENTS[accent].bar} bg-white p-3`}>
+      <SectionLabel accent={accent}>{title}</SectionLabel>
+      <dl className="mt-2 divide-y divide-gray-100">
+        {rows.map(([label, value]) => (
+          <div key={label} className="flex items-baseline justify-between gap-3 py-1.5 first:pt-0 last:pb-0">
+            <dt className="text-sm text-gray-500">{label}</dt>
+            <dd className="text-right text-sm font-semibold tabular-nums text-gray-900">{value}</dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+// Egy szakasz a szerkesztőben: címke fent, a mezők kártyában.
+function EditorSection({
+  title,
+  hint,
+  accent,
+  children,
+}: {
+  title: string;
+  hint?: React.ReactNode;
+  accent: Accent;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={`rounded-xl border border-l-4 border-gray-200 ${ACCENTS[accent].bar} bg-white px-4 py-3`}>
+      <div className="mb-2 flex items-center gap-1">
+        <SectionLabel accent={accent}>{title}</SectionLabel>
+        {hint}
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function Fact({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0">
+      <dt className="text-xs text-gray-500">{label}</dt>
+      <dd className="mt-0.5 text-sm font-semibold tabular-nums text-gray-900">{value}</dd>
+    </div>
+  );
+}
+
+// Egy átvételi nap kártyája: fejlécben a dátum és az állapot, alatta a
+// címkézett számok.
+function DayCard({
+  title,
+  status,
+  facts,
+  muted = false,
+  accent = "orange",
+}: {
+  title: React.ReactNode;
+  status: React.ReactNode;
+  facts: [string, React.ReactNode][];
+  muted?: boolean;
+  accent?: Accent;
+}) {
+  return (
+    <div
+      className={`rounded-lg border border-l-[3px] bg-white ${
+        muted ? `border-dashed border-gray-300 ${ACCENTS.gray.bar}` : `border-gray-200 ${ACCENTS[accent].bar}`
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-gray-100 px-3 py-2">
+        <p className={`min-w-0 truncate text-sm font-semibold ${muted ? "text-gray-500 line-through" : "text-gray-800"}`}>
+          {title}
+        </p>
+        {status}
+      </div>
+      <dl className="grid grid-cols-2 gap-x-4 gap-y-2.5 px-3 py-2.5 sm:grid-cols-5">
+        {facts.map(([label, value]) => (
+          <Fact key={label} label={label} value={value} />
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+const formatCount = (value: number) => value.toLocaleString("hu-HU");
+const formatLimit = (value: number | null | undefined) => (value == null ? "Korlátlan" : `${formatCount(value)} db`);
+// A limit és mellette zárójelben a már rendelt mennyiség.
+const formatLimitUsage = (limit: number | null | undefined, ordered: number | undefined) =>
+  `${formatLimit(limit)} (rendelve: ${formatCount(ordered ?? 0)} db)`;
+
+function StatusBadge({ active }: { active: boolean }) {
+  return (
+    <span className={`${statusIndicatorClass} ${active ? "text-green-600" : "text-gray-500"}`}>
+      <span aria-hidden="true" className={`h-2 w-2 shrink-0 rounded-full ${active ? "bg-green-600" : "bg-gray-500"}`} />
       {active ? "Aktív" : "Inaktív"}
+    </span>
+  );
+}
+
+// A törölt (archivált) nap/szezon jelzője: ugyanolyan lapos jelző, mint az
+// Aktív/Inaktív, ugyanakkora hellyel.
+function DeletedBadge() {
+  return (
+    <span className={`${statusIndicatorClass} text-red-600`}>
+      <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-red-600" />
+      Törölve
     </span>
   );
 }
@@ -125,8 +244,8 @@ function ActiveCheckbox({
 }) {
   return (
     <label
-      className={`flex h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition ${
-        active ? "border-green-200 bg-green-50 text-green-700" : "border-gray-300 bg-gray-100 text-gray-500"
+      className={`flex h-11 w-28 shrink-0 items-center justify-center gap-1.5 rounded-lg border px-3 text-sm font-semibold transition ${
+        active ? "border-green-600 bg-white text-green-600" : "border-gray-300 bg-white text-gray-500"
       } ${disabled || loading ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
     >
       <input
@@ -185,18 +304,39 @@ function StatChip({ value, label }: { value: string | number; label: string }) {
   );
 }
 
-function OrderStatsCard({ orderCount, reservedQuantity }: { orderCount: number; reservedQuantity: number }) {
+// Csak tájékoztató sor (nem beviteli mező): az átvételi naphoz tartozó aktív
+// rendelések száma és a lefoglalt csirkék mennyisége.
+function OrderStatsLine({
+  orderCount,
+  reservedQuantity,
+  smallQuantity,
+  largeQuantity,
+  className = "",
+}: {
+  orderCount: number;
+  reservedQuantity: number;
+  smallQuantity?: number;
+  largeQuantity?: number;
+  className?: string;
+}) {
   return (
-    <div
-      className="flex h-11 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 text-xs font-medium text-gray-600 shadow-sm"
-      title="Az átvételi naphoz tartozó aktív rendelések száma és a lefoglalt csirkék mennyisége."
-    >
-      <span className="font-semibold text-gray-800">{orderCount}</span>
-      <span>aktív rendelés</span>
-      <span className="text-gray-300">·</span>
-      <span className="font-semibold text-gray-800">{reservedQuantity}</span>
-      <span>db csirke</span>
-    </div>
+    <p className={`text-xs text-gray-500 ${className}`}>
+      Aktív rendelés: <span className="font-semibold text-gray-700">{orderCount}</span>
+      <span className="mx-1.5 text-gray-300">·</span>
+      Lefoglalt csirke: <span className="font-semibold text-gray-700">{reservedQuantity} db</span>
+      {smallQuantity !== undefined && (
+        <>
+          <span className="mx-1.5 text-gray-300">·</span>
+          Kisebb méretű: <span className="font-semibold text-gray-700">{smallQuantity} db</span>
+        </>
+      )}
+      {largeQuantity !== undefined && (
+        <>
+          <span className="mx-1.5 text-gray-300">·</span>
+          Nagyobb méretű: <span className="font-semibold text-gray-700">{largeQuantity} db</span>
+        </>
+      )}
+    </p>
   );
 }
 
@@ -357,6 +497,7 @@ function LimitField({ value, onChange }: { value: number | null | undefined; onC
 function Editor({
   value,
   products,
+  deletedDays = [],
   liveConfirmMessage,
   onConfirmLive,
   onDismissLive,
@@ -366,12 +507,12 @@ function Editor({
   saving,
   error,
   dunavecse,
-  dunavecseToggling,
-  dunavecseError,
-  onToggleDunavecse,
 }: {
   value: SeasonInput;
   products: ProductOption[];
+  // A szezon törölt (archivált) napjai: csak szerkesztés közben állíthatók
+  // vissza, úgy, hogy a nap visszakerül az űrlapba, és a Mentés állítja vissza.
+  deletedDays?: PickupDay[];
   // Ha a mentés élő rendelésű nap törlését is jelentené, a szerver megerősítést
   // kér: ez a szöveg jelenik meg, a "Mentés megerősítéssel" gomb pedig
   // confirmLiveOrders jelzéssel újraküldi a mentést.
@@ -384,12 +525,36 @@ function Editor({
   saving: boolean;
   error?: string | null;
   dunavecse?: DunavecseInfo | null;
-  dunavecseToggling?: boolean;
-  dunavecseError?: string | null;
-  onToggleDunavecse?: (d: DunavecseInfo) => void;
 }) {
   const days = (fn: (d: SeasonInput["pickupDays"][number], i: number) => SeasonInput["pickupDays"][number]) =>
     onChange({ ...value, pickupDays: value.pickupDays.map(fn) });
+
+  // Az aktiválás nem kapcsolja be a napokat: figyelmeztetésben mutatjuk, melyek
+  // maradnak inaktívak (a technikai DUNAVECSE napot is külön kell aktiválni).
+  const inactiveDays = value.pickupDays.filter((d) => d.active === false);
+  const inactiveDayNames = [
+    ...inactiveDays.map((d) => (d.date ? formatDate(d.date) : "új nap")),
+    ...(dunavecse && !(value.dunavecseActive ?? dunavecse.active) ? ["DUNAVECSE"] : []),
+  ];
+  const inactiveDayCount = inactiveDayNames.length;
+
+  // A már leadott rendelések alá egyik limit sem csökkenthető (a szerver is
+  // ellenőrzi; itt mentés előtt jelezzük). Emelés és korlátlanra állítás mindig
+  // lehetséges.
+  const dayLimitProblem = (d: SeasonInput["pickupDays"][number]) => {
+    if (d.id == null) return null;
+    if ((d.reservedQuantity ?? 0) > d.limit) {
+      return `A napi limit nem lehet kisebb a már lefoglalt mennyiségnél (${d.reservedQuantity} db).`;
+    }
+    if (d.smallSizeLimit != null && d.smallSizeLimit < (d.liveSmallQuantity ?? 0)) {
+      return `A kisebb méret limit nem lehet kisebb a már rendelt kisebb méretű mennyiségnél (${d.liveSmallQuantity} db).`;
+    }
+    if (d.largeSizeLimit != null && d.largeSizeLimit < (d.liveLargeQuantity ?? 0)) {
+      return `A nagyobb méret limit nem lehet kisebb a már rendelt nagyobb méretű mennyiségnél (${d.liveLargeQuantity} db).`;
+    }
+    return null;
+  };
+  const hasLimitProblem = value.pickupDays.some((d) => dayLimitProblem(d) !== null);
 
   // Egy meglévő szezon éve elméletileg kívül eshet az alapértelmezett
   // tartományon (pl. régebbi szezon szerkesztésekor); ilyenkor a jelenlegi
@@ -398,142 +563,160 @@ function Editor({
 
   return (
     <form
-      className="mt-4 grid gap-3 sm:grid-cols-2"
+      className="mt-3 space-y-3"
       onSubmit={(e) => {
         e.preventDefault();
         onSave();
       }}
     >
-      <Listbox
-        label="Év"
-        value={String(value.year)}
-        options={yearOptions.map((year) => ({ value: String(year), label: String(year) }))}
-        onChange={(v) => onChange({ ...value, year: Number(v) })}
-      />
+      <EditorSection title="Alapadatok" accent="gray">
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Listbox
+            label="Év"
+            value={String(value.year)}
+            options={yearOptions.map((year) => ({ value: String(year), label: String(year) }))}
+            onChange={(v) => onChange({ ...value, year: Number(v) })}
+          />
 
-      <Listbox
-        label="Szezon"
-        value={value.type}
-        options={[
-          { value: "Tavasz", label: "Tavasz" },
-          { value: "Ősz", label: "Ősz" },
-        ]}
-        onChange={(v) => onChange({ ...value, type: v as SeasonInput["type"] })}
-      />
+          <Listbox
+            label="Szezon"
+            value={value.type}
+            options={[
+              { value: "Tavasz", label: "Tavasz" },
+              { value: "Ősz", label: "Ősz" },
+            ]}
+            onChange={(v) => onChange({ ...value, type: v as SeasonInput["type"] })}
+          />
 
-      <div className="grid gap-2 sm:col-span-2 sm:grid-cols-3">
-        {products.map((product) => (
-          <label key={product.id}>
-            <span className={labelClass}>{product.name} ára (Ft/kg)</span>
-            <NumberField
-              value={value.prices?.find((entry) => entry.productId === product.id)?.price ?? 0}
-              onChange={(v) =>
-                onChange(
-                  withLegacyPrice(
-                    {
-                      ...value,
-                      prices: [
-                        ...(value.prices ?? []).filter((entry) => entry.productId !== product.id),
-                        { productId: product.id, price: v },
-                      ],
-                    },
-                    products
+          <label className="sm:col-span-2">
+            <span className={labelClass}>
+              Megjegyzés <span className="font-normal text-gray-400">(nem kötelező, csak az admin felületen látszik)</span>
+            </span>
+            <input
+              type="text"
+              maxLength={SEASON_NOTE_MAX_LENGTH}
+              value={value.note ?? ""}
+              onChange={(e) => onChange({ ...value, note: e.target.value })}
+              className={inputClass}
+            />
+            <span className="mt-1 block text-right text-xs text-gray-400">
+              {(value.note ?? "").length}/{SEASON_NOTE_MAX_LENGTH}
+            </span>
+          </label>
+        </div>
+      </EditorSection>
+
+      <EditorSection title="Árak" accent="green">
+        <div className="grid gap-3 sm:grid-cols-3">
+          {products.map((product) => (
+            <label key={product.id}>
+              <span className={labelClass}>{product.name} (Ft/kg)</span>
+              <NumberField
+                value={value.prices?.find((entry) => entry.productId === product.id)?.price ?? 0}
+                onChange={(v) =>
+                  onChange(
+                    withLegacyPrice(
+                      {
+                        ...value,
+                        prices: [
+                          ...(value.prices ?? []).filter((entry) => entry.productId !== product.id),
+                          { productId: product.id, price: v },
+                        ],
+                      },
+                      products
+                    )
                   )
-                )
-              }
+                }
+              />
+            </label>
+          ))}
+        </div>
+      </EditorSection>
+
+      <EditorSection title="Előrendelés" accent="blue">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label>
+            <span className={labelClass}>Előrendelés kezdete</span>
+            <input
+              type="date"
+              value={value.orderStart}
+              onChange={(e) => onChange({ ...value, orderStart: e.target.value })}
+              className={inputClass}
             />
           </label>
-        ))}
-      </div>
 
-      <label className="sm:col-span-2">
-        <span className={labelClass}>
-          Megjegyzés <span className="font-normal text-gray-400">(nem kötelező, csak az admin felületen látszik)</span>
-        </span>
-        <input
-          type="text"
-          maxLength={SEASON_NOTE_MAX_LENGTH}
-          value={value.note ?? ""}
-          onChange={(e) => onChange({ ...value, note: e.target.value })}
-          className={inputClass}
-        />
-        <span className="mt-1 block text-right text-xs text-gray-400">
-          {(value.note ?? "").length}/{SEASON_NOTE_MAX_LENGTH}
-        </span>
-      </label>
+          <label>
+            <span className={labelClass}>Előrendelés vége</span>
+            <input
+              type="date"
+              value={value.orderEnd}
+              onChange={(e) => onChange({ ...value, orderEnd: e.target.value })}
+              className={inputClass}
+            />
+          </label>
 
-      <div className="grid grid-cols-2 gap-2">
-        <label>
-          <span className={labelClass}>Min. súly (kg)</span>
-          <NumberField decimal min={0.1} value={value.weightMin} onChange={(v) => onChange({ ...value, weightMin: v })} />
-        </label>
-        <label>
-          <span className={labelClass}>Max. súly (kg)</span>
-          <NumberField decimal min={0.1} value={value.weightMax} onChange={(v) => onChange({ ...value, weightMax: v })} />
-        </label>
-      </div>
+          <label>
+            <span className={labelClass}>Min. súly (kg)</span>
+            <NumberField decimal min={0.1} value={value.weightMin} onChange={(v) => onChange({ ...value, weightMin: v })} />
+          </label>
 
-      <label>
-        <span className={labelClass}>Előrendelés kezdete</span>
-        <input
-          type="date"
-          value={value.orderStart}
-          onChange={(e) => onChange({ ...value, orderStart: e.target.value })}
-          className={inputClass}
-        />
-      </label>
+          <label>
+            <span className={labelClass}>Max. súly (kg)</span>
+            <NumberField decimal min={0.1} value={value.weightMax} onChange={(v) => onChange({ ...value, weightMax: v })} />
+          </label>
+        </div>
+      </EditorSection>
 
-      <label>
-        <span className={labelClass}>Előrendelés vége</span>
-        <input
-          type="date"
-          value={value.orderEnd}
-          onChange={(e) => onChange({ ...value, orderEnd: e.target.value })}
-          className={inputClass}
-        />
-      </label>
-
-      <div className="rounded-lg border border-gray-200 bg-gray-50/70 p-3 sm:col-span-2">
-        <p className="text-xs font-semibold text-gray-600">Átvételi időpontok</p>
-
-        <div className="mt-2 grid gap-3 sm:grid-cols-2">
-          <div>
-            <span className={`${labelClass} inline-flex items-center gap-1`}>
-              Városi átvétel kezdete
+      <EditorSection title="Átvételi időpontok" accent="purple">
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="rounded-lg border border-gray-200 p-3">
+            <div className="inline-flex items-center gap-1 text-sm font-semibold text-gray-800">
+              Városi átvétel
               <InfoTip>Minden átvételi napra vonatkozik. A Békés és Bács-Kiskun megyei vásárlók kivételével.</InfoTip>
-            </span>
-            <TimeSelect value={value.pickupTimeStart} onChange={(v) => onChange({ ...value, pickupTimeStart: v })} />
+            </div>
+            <div className="mt-2 grid gap-3 sm:grid-cols-2">
+              <div>
+                <span className={labelClass}>Kezdete</span>
+                <TimeSelect value={value.pickupTimeStart} onChange={(v) => onChange({ ...value, pickupTimeStart: v })} />
+              </div>
+              <div>
+                <span className={labelClass}>Vége</span>
+                <TimeSelect value={value.pickupTimeEnd} onChange={(v) => onChange({ ...value, pickupTimeEnd: v })} />
+              </div>
+            </div>
           </div>
-          <div>
-            <span className={`${labelClass} inline-flex items-center gap-1`}>
-              Városi átvétel vége
-              <InfoTip>Minden átvételi napra vonatkozik. A Békés és Bács-Kiskun megyei vásárlók kivételével.</InfoTip>
-            </span>
-            <TimeSelect value={value.pickupTimeEnd} onChange={(v) => onChange({ ...value, pickupTimeEnd: v })} />
+
+          <div className="rounded-lg border border-gray-200 p-3">
+            <div className="inline-flex items-center gap-1 text-sm font-semibold text-gray-800">
+              Tanyasi átvétel
+              <InfoTip>Minden átvételi napra vonatkozik, kizárólag a Békés megyei vásárlók számára.</InfoTip>
+            </div>
+            <div className="mt-2">
+              <span className={labelClass}>Kezdete</span>
+              <TimeSelect
+                value={value.localPickupTimeStart}
+                onChange={(v) => onChange({ ...value, localPickupTimeStart: v })}
+              />
+            </div>
           </div>
         </div>
+      </EditorSection>
 
-        <div className="mt-3 border-t border-gray-200 pt-3">
-          <span className={`${labelClass} inline-flex items-center gap-1`}>
-            Tanyasi átvétel kezdete
-            <InfoTip>Minden átvételi napra vonatkozik, kizárólag a Békés megyei vásárlók számára.</InfoTip>
-          </span>
-          <TimeSelect value={value.localPickupTimeStart} onChange={(v) => onChange({ ...value, localPickupTimeStart: v })} />
-        </div>
-      </div>
-
-      <div className="space-y-2 sm:col-span-2">
-        <div className={`${labelClass} inline-flex items-center gap-1`}>
-          Átvételi napok
+      <EditorSection
+        title="Átvételi napok"
+        accent="orange"
+        hint={
           <InfoTip>
             <p>
-              A törölt átvételi nap nem vész el: a szezon kártyáján, a „Törölt napok” között visszaállítható
-              (inaktívként). A napra korábban leadott rendelések megmaradnak. Ha a naphoz élő rendelés tartozik,
-              mentéskor külön megerősítést kérünk.
+              A törölt átvételi nap nem vész el: az alábbi „Törölt napok” listából visszaállítható (inaktívként).
+              A napra korábban leadott rendelések megmaradnak. Ha a naphoz élő rendelés tartozik, mentéskor külön
+              megerősítést kérünk.
             </p>
             <p className="mt-1.5">
               A kisebb/nagyobb méret limit a napra rendelhető, átlagostól kisebb/nagyobb méretű csirkék legnagyobb
-              darabszáma. Üresen hagyva nincs korlát.
+              darabszáma. Üresen hagyva nincs korlát. A limit a nap aktív voltában is módosítható (emelhető,
+              csökkenthető, korlátlanra állítható), de nem lehet kisebb a már leadott rendelések mennyiségénél, és a
+              leadott rendeléseket a módosítás nem érinti.
             </p>
             {value.active && (
               <p className="mt-1.5">
@@ -542,80 +725,146 @@ function Editor({
               </p>
             )}
           </InfoTip>
+        }
+      >
+        <div className="space-y-2">
+          {value.pickupDays.map((d, i) => {
+            const dayActive = d.active !== false;
+            return (
+              <div key={i} className="rounded-lg border border-gray-200 px-3 py-2.5">
+                <div className="flex flex-wrap items-end gap-x-3 gap-y-2">
+                  <label className="w-40">
+                    <span className={labelClass}>Dátum</span>
+                    <input
+                      type="date"
+                      value={d.date}
+                      onChange={(e) => days((x, j) => (j === i ? { ...x, date: e.target.value } : x))}
+                      className={inputClass}
+                    />
+                  </label>
+
+                  <label className="w-24">
+                    <span className={labelClass}>Napi limit</span>
+                    <NumberField min={1} value={d.limit} onChange={(v) => days((x, j) => (j === i ? { ...x, limit: v } : x))} />
+                  </label>
+
+                  <label className="w-36">
+                    <span className={labelClass}>Kisebb méret limit</span>
+                    <LimitField
+                      value={d.smallSizeLimit}
+                      onChange={(v) => days((x, j) => (j === i ? { ...x, smallSizeLimit: v } : x))}
+                    />
+                  </label>
+
+                  <label className="w-36">
+                    <span className={labelClass}>Nagyobb méret limit</span>
+                    <LimitField
+                      value={d.largeSizeLimit}
+                      onChange={(v) => days((x, j) => (j === i ? { ...x, largeSizeLimit: v } : x))}
+                    />
+                  </label>
+
+                  {value.active && (
+                    <ActiveCheckbox
+                      active={dayActive}
+                      onChange={() => days((x, j) => (j === i ? { ...x, active: !dayActive } : x))}
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() => onChange({ ...value, pickupDays: value.pickupDays.filter((_, j) => j !== i) })}
+                    disabled={value.pickupDays.length === 1}
+                    className="ml-auto flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-gray-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
+                    aria-label="Átvételi nap törlése"
+                  >
+                    <TrashIcon className="h-4 w-4" />
+                  </button>
+                </div>
+
+                {d.id != null && (
+                  <OrderStatsLine
+                    className="mt-1.5"
+                    orderCount={d.orderCount ?? 0}
+                    reservedQuantity={d.reservedQuantity ?? 0}
+                    smallQuantity={d.liveSmallQuantity ?? 0}
+                    largeQuantity={d.liveLargeQuantity ?? 0}
+                  />
+                )}
+
+                {dayLimitProblem(d) && (
+                  <p role="alert" className="mt-1.5 text-xs font-medium text-red-600">
+                    {dayLimitProblem(d)}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+
+          {value.pickupDays.length < 5 && (
+            <button
+              type="button"
+              onClick={() =>
+                onChange({
+                  ...value,
+                  pickupDays: [
+                    ...value.pickupDays,
+                    { date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null },
+                  ],
+                })
+              }
+              className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-[rgb(49,171,2)] hover:text-[rgb(49,171,2)]"
+            >
+              <PlusIcon className="h-4 w-4" />
+              Átvételi nap hozzáadása
+            </button>
+          )}
         </div>
 
-        {value.pickupDays.map((d, i) => {
-          const dayActive = d.active !== false;
-          return (
-            <div key={i} className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
-              <label className="min-w-[10rem] flex-1">
-                <span className={labelClass}>Dátum</span>
-                <input
-                  type="date"
-                  value={d.date}
-                  onChange={(e) => days((x, j) => (j === i ? { ...x, date: e.target.value } : x))}
-                  className={inputClass}
-                />
-              </label>
-
-              <label className="w-24">
-                <span className={labelClass}>Napi limit</span>
-                <NumberField min={1} value={d.limit} onChange={(v) => days((x, j) => (j === i ? { ...x, limit: v } : x))} />
-              </label>
-
-              <label className="w-28">
-                <span className={labelClass}>Kisebb méret</span>
-                <LimitField value={d.smallSizeLimit} onChange={(v) => days((x, j) => (j === i ? { ...x, smallSizeLimit: v } : x))} />
-              </label>
-
-              <label className="w-28">
-                <span className={labelClass}>Nagyobb méret</span>
-                <LimitField value={d.largeSizeLimit} onChange={(v) => days((x, j) => (j === i ? { ...x, largeSizeLimit: v } : x))} />
-              </label>
-
-              {value.active && (
-                <ActiveCheckbox
-                  active={dayActive}
-                  onChange={() => days((x, j) => (j === i ? { ...x, active: !dayActive } : x))}
-                />
-              )}
-
-              {d.id != null && (
-                <OrderStatsCard
-                  orderCount={d.orderCount ?? 0}
-                  reservedQuantity={d.reservedQuantity ?? 0}
-                />
-              )}
-
-              <button
-                type="button"
-                onClick={() => onChange({ ...value, pickupDays: value.pickupDays.filter((_, j) => j !== i) })}
-                disabled={value.pickupDays.length === 1}
-                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-gray-400 transition hover:bg-red-50 hover:text-red-500 disabled:cursor-not-allowed disabled:opacity-40"
-                aria-label="Átvételi nap törlése"
-              >
-                <TrashIcon className="h-4 w-4" />
-              </button>
+        {deletedDays.filter((d) => !value.pickupDays.some((x) => x.id === d.id)).length > 0 && (
+          <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
+            <div className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+              Törölt napok
+              <InfoTip>
+                <p>
+                  A visszaállított nap inaktívként kerül vissza az űrlapba, és a Mentéssel áll vissza véglegesen. A
+                  rá leadott rendelések változatlanok. Legfeljebb 5 átvételi nap lehet egy szezonban.
+                </p>
+              </InfoTip>
             </div>
-          );
-        })}
-
-        {value.pickupDays.length < 5 && (
-          <button
-            type="button"
-            onClick={() => onChange({ ...value, pickupDays: [...value.pickupDays, { date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null }] })}
-            className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-[rgb(49,171,2)] hover:text-[rgb(49,171,2)]"
-          >
-            <PlusIcon className="h-4 w-4" />
-            Átvételi nap hozzáadása
-          </button>
+            {deletedDays
+              .filter((d) => !value.pickupDays.some((x) => x.id === d.id))
+              .map((d) => (
+                <div
+                  key={d.id}
+                  className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed border-gray-300 bg-white p-2.5"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-medium text-gray-500 line-through">{formatDate(d.date)}</p>
+                    <p className="text-xs text-gray-500">
+                      {d.orderCount ? `${d.orderCount} élő rendelés` : "Nincs élő rendelés"}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={value.pickupDays.length >= 5}
+                    onClick={() => onChange({ ...value, pickupDays: [...value.pickupDays, { ...d, active: false }] })}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ArrowUturnLeftIcon aria-hidden="true" className="h-4 w-4" />
+                    Visszaállítás
+                  </button>
+                </div>
+              ))}
+          </div>
         )}
-      </div>
+      </EditorSection>
 
       {dunavecse && (
-        <div className="space-y-2 sm:col-span-2">
-          <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
-            DUNAVECSE (Bács-Kiskun, technikai nap)
+        <EditorSection
+          title="DUNAVECSE (Bács-Kiskun, technikai nap)"
+          accent="pink"
+          hint={
             <InfoTip>
               <p>
                 A Bács-Kiskun vármegyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem szerkeszthető
@@ -626,41 +875,87 @@ function Editor({
                 már leadott rendeléseik változatlanul megmaradnak.
               </p>
             </InfoTip>
-          </p>
-          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
+          }
+        >
+          <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 p-3">
             <div className="min-w-[10rem] flex-1">
-              <p className="truncate text-sm font-medium text-gray-700">
+              <p className="truncate text-sm font-semibold text-gray-800">
                 Vágási nap: {dunavecse.date ? formatDate(dunavecse.date) : "–"}
               </p>
               <p className="text-xs text-gray-500">Korlátlan kapacitás</p>
+              <OrderStatsLine
+                className="mt-1"
+                orderCount={dunavecse.orderCount}
+                reservedQuantity={dunavecse.reservedQuantity}
+              />
             </div>
 
-            <ActiveCheckbox
-              active={dunavecse.active}
-              loading={dunavecseToggling}
-              onChange={() => onToggleDunavecse?.(dunavecse)}
-            />
-
-            <OrderStatsCard orderCount={dunavecse.orderCount} reservedQuantity={dunavecse.reservedQuantity} />
+            {value.active && (
+              <ActiveCheckbox
+                active={value.dunavecseActive ?? dunavecse.active}
+                onChange={() =>
+                  onChange({ ...value, dunavecseActive: !(value.dunavecseActive ?? dunavecse.active) })
+                }
+              />
+            )}
           </div>
-          {dunavecseError && <p className="text-xs font-medium text-red-700">{dunavecseError}</p>}
-        </div>
+        </EditorSection>
       )}
 
-      <label className="flex items-center gap-2 sm:col-span-2">
-        <input
-          type="checkbox"
-          checked={value.active}
-          onChange={(e) => onChange({ ...value, active: e.target.checked })}
-          className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]"
-        />
-        <span className="text-sm font-medium text-gray-700">Szezon aktiválása</span>
-      </label>
+      <section
+        className={`rounded-xl border border-l-4 border-gray-200 bg-white px-4 py-3 transition-colors ${ACCENTS.gray.bar}`}
+      >
+        <label className="flex cursor-pointer items-center justify-between gap-4">
+          <span className="min-w-0">
+            <span className="block text-base font-semibold text-gray-800">Szezon aktiválása</span>
+            <span className="block text-sm text-gray-500">
+              Az aktív szezonra a vásárlók csak az előrendelési időablakon belül rendelhetnek. Egyszerre egy szezon
+              lehet aktív: a korábban aktív szezon inaktívvá válik.
+            </span>
+          </span>
+          <span className="relative inline-flex shrink-0">
+            <input
+              type="checkbox"
+              role="switch"
+              checked={value.active}
+              onChange={(e) => onChange({ ...value, active: e.target.checked })}
+              className="peer sr-only"
+            />
+            <span
+              aria-hidden="true"
+              className="h-7 w-12 rounded-full bg-gray-300 transition-colors peer-checked:bg-[rgb(49,171,2)] peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(49,171,2)] peer-focus-visible:ring-offset-2"
+            />
+            <span
+              aria-hidden="true"
+              className="absolute left-0.5 top-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5"
+            />
+          </span>
+        </label>
+
+        {value.active && inactiveDayCount > 0 && (
+          <div role="status" className="mt-3 flex items-start gap-2 rounded-lg border border-amber-600 bg-white p-3">
+            <InformationCircleIcon aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+            <p className="text-sm text-gray-800">
+              <span className="font-semibold">Figyelem!</span> A szezon aktiválása nem kapcsolja be automatikusan az
+              átvételi napokat: azokat külön-külön kell aktiválni (a napoknál az Aktív jelölővel). Jelenleg{" "}
+              <span className="font-semibold">{inactiveDayCount} nap inaktív</span>
+              {inactiveDayNames.length > 0 && ` (${inactiveDayNames.join(", ")})`}, ezekre a vásárlók addig nem
+              tudnak rendelni.
+            </p>
+          </div>
+        )}
+
+        {value.active && inactiveDayCount === 0 && (
+          <p role="status" className="mt-3 text-sm text-green-600">
+            Minden átvételi nap aktív.
+          </p>
+        )}
+      </section>
 
       {liveConfirmMessage && (
-        <div role="alert" className="rounded-lg border border-amber-300 bg-amber-50 p-3 sm:col-span-2">
-          <p className="text-sm font-medium text-amber-900">{liveConfirmMessage}</p>
-          <p className="mt-1 text-xs text-amber-800">
+        <div role="alert" className="rounded-lg border border-amber-600 bg-white p-3">
+          <p className="text-sm font-medium text-gray-800">{liveConfirmMessage}</p>
+          <p className="mt-1 text-xs text-gray-700">
             A törölt nap visszaállítható, a napra leadott rendelések megmaradnak és élők maradnak.
           </p>
           <div className="mt-3 flex gap-2">
@@ -668,7 +963,7 @@ function Editor({
               type="button"
               disabled={saving}
               onClick={onConfirmLive}
-              className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-amber-700 disabled:opacity-60"
+              className="rounded-lg bg-amber-600 px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
             >
               {saving ? "Mentés…" : "Mentés megerősítéssel"}
             </button>
@@ -685,12 +980,12 @@ function Editor({
       )}
 
       {error && (
-        <p role="alert" className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 sm:col-span-2">
+        <p role="alert" className="rounded-lg border border-red-600 bg-white p-3 text-sm font-medium text-red-600">
           {error}
         </p>
       )}
 
-      <div className="flex justify-end gap-2 sm:col-span-2">
+      <div className="flex justify-end gap-2">
         <button
           type="button"
           disabled={saving}
@@ -700,7 +995,8 @@ function Editor({
           Mégse
         </button>
         <button
-          disabled={saving}
+          disabled={saving || hasLimitProblem}
+          title={hasLimitProblem ? "A limitek nem lehetnek kisebbek a már leadott rendeléseknél." : undefined}
           className="rounded-lg bg-[rgb(49,171,2)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
         >
           {saving ? "Mentés…" : "Mentés"}
@@ -724,20 +1020,9 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [liveConfirmMessage, setLiveConfirmMessage] = useState<string | null>(null);
-  // restoringKey: "season-<id>" vagy "day-<id>" - melyik visszaállítás fut.
+  // restoringKey: "season-<id>" - melyik szezon visszaállítása fut.
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
-  const [dunavecseTogglingId, setDunavecseTogglingId] = useState<number | null>(null);
-  const [dunavecseError, setDunavecseError] = useState<string | null>(null);
-
-  const toggleDunavecseActive = async (dunavecse: DunavecseInfo) => {
-    setDunavecseTogglingId(dunavecse.id);
-    setDunavecseError(null);
-    const r = await setDunavecsePickupDayActive(dunavecse.id, !dunavecse.active);
-    if (!r.success) setDunavecseError(r.error);
-    setDunavecseTogglingId(null);
-  };
-
   const closeEditor = () => {
     setOpen(false);
     setExpandedId(null);
@@ -797,6 +1082,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
       localPickupTimeStart: s.localPickupTimeStart || "17:00",
       pickupDays: s.pickupDays.map((d) => ({ ...d })),
       active: s.active,
+      dunavecseActive: s.dunavecse?.active,
     });
     setEditingId(s.id);
     setError(null);
@@ -927,6 +1213,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                       <Editor
                         value={form}
                         products={products}
+                        deletedDays={s.deletedDays}
                         liveConfirmMessage={liveConfirmMessage}
                         onConfirmLive={() => save(true)}
                         onDismissLive={() => setLiveConfirmMessage(null)}
@@ -936,79 +1223,86 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         saving={saving}
                         error={error}
                         dunavecse={s.dunavecse}
-                        dunavecseToggling={dunavecseTogglingId === s.dunavecse?.id}
-                        dunavecseError={dunavecseError}
-                        onToggleDunavecse={toggleDunavecseActive}
                       />
                     ) : (
                       <div className="mt-4 space-y-4 border-t border-gray-100 pt-4">
-                        <div className="grid gap-3 sm:grid-cols-2">
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Árak és súly</p>
-                            <p className="mt-1 text-sm text-gray-700">
-                              {products.map((product, index) => (
-                                <span key={product.id}>
-                                  {index > 0 && " · "}
-                                  {product.name}:{" "}
-                                  <span className="font-medium text-gray-900">
-                                    {s.prices?.find((entry) => entry.productId === product.id)?.price ?? "–"} Ft/kg
-                                  </span>
-                                </span>
-                              ))}
-                            </p>
-                            <p className="mt-0.5 text-sm text-gray-700">
-                              Súly: {s.weightMin}–{s.weightMax} kg
-                            </p>
-                          </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Előrendelési időszak</p>
-                            <p className="mt-1 text-sm text-gray-700">
-                              {s.orderStart ? formatDate(s.orderStart) : "–"} – {s.orderEnd ? formatDate(s.orderEnd) : "–"}
-                            </p>
-                          </div>
-                          <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2">
-                            <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Átvételi időpontok</p>
-                            <p className="mt-1 text-sm text-gray-700">
-                              Városi: {s.pickupTimeStart || "–"}–{s.pickupTimeEnd || "–"} · Tanyasi: {s.localPickupTimeStart || "–"}
-                            </p>
-                          </div>
-                          {s.note && (
-                            <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:col-span-2">
-                              <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Megjegyzés</p>
-                              <p className="mt-1 whitespace-pre-line break-words text-sm text-gray-700">{s.note}</p>
+                        <div className="grid gap-3 md:grid-cols-3">
+                          <InfoCard
+                            accent="green"
+                            title="Árak"
+                            rows={products.map((product): [string, React.ReactNode] => {
+                              const price = s.prices?.find((entry) => entry.productId === product.id)?.price;
+                              return [product.name, price === undefined ? "–" : `${formatCount(price)} Ft/kg`];
+                            })}
+                          />
+                          <InfoCard
+                            accent="blue"
+                            title="Előrendelés"
+                            rows={[
+                              ["Kezdete", s.orderStart ? formatDate(s.orderStart) : "–"],
+                              ["Vége", s.orderEnd ? formatDate(s.orderEnd) : "–"],
+                              ["Súly", `${s.weightMin}–${s.weightMax} kg`],
+                            ]}
+                          />
+                          <div className={`rounded-lg border border-l-[3px] border-gray-200 ${ACCENTS.purple.bar} bg-white p-3`}>
+                            <SectionLabel accent="purple">Átvételi időpontok</SectionLabel>
+                            <div className="mt-2 space-y-2">
+                              <div className="rounded-md border border-gray-200 px-2.5 py-2">
+                                <p className="text-xs font-semibold text-gray-700">Városi átvétel</p>
+                                <dl className="mt-1 divide-y divide-gray-100">
+                                  <div className="flex items-baseline justify-between gap-3 py-1 first:pt-0 last:pb-0">
+                                    <dt className="text-sm text-gray-500">Kezdete</dt>
+                                    <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeStart || "–"}</dd>
+                                  </div>
+                                  <div className="flex items-baseline justify-between gap-3 py-1 first:pt-0 last:pb-0">
+                                    <dt className="text-sm text-gray-500">Vége</dt>
+                                    <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeEnd || "–"}</dd>
+                                  </div>
+                                </dl>
+                              </div>
+                              <div className="rounded-md border border-gray-200 px-2.5 py-2">
+                                <p className="text-xs font-semibold text-gray-700">Tanyasi átvétel</p>
+                                <dl className="mt-1">
+                                  <div className="flex items-baseline justify-between gap-3">
+                                    <dt className="text-sm text-gray-500">Kezdete</dt>
+                                    <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.localPickupTimeStart || "–"}</dd>
+                                  </div>
+                                </dl>
+                              </div>
                             </div>
-                          )}
+                          </div>
                         </div>
 
+                        {s.note && (
+                          <div className={`rounded-lg border border-l-[3px] border-gray-200 ${ACCENTS.gray.bar} bg-white p-3`}>
+                            <SectionLabel accent="gray">Megjegyzés</SectionLabel>
+                            <p className="mt-1.5 whitespace-pre-line break-words text-sm text-gray-800">{s.note}</p>
+                          </div>
+                        )}
+
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">Átvételi napok</p>
-                          <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                            {s.pickupDays.map((d) => {
-                              const dayActive = d.active !== false;
-                              return (
-                                <div
-                                  key={d.date}
-                                  className="flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-gray-700">{formatDate(d.date)}</p>
-                                    <p className="text-xs text-gray-500">
-                                      Napi limit: {d.limit} db
-                                      {d.smallSizeLimit != null ? ` · kisebb méret: ${d.smallSizeLimit} db` : ""}
-                                      {d.largeSizeLimit != null ? ` · nagyobb méret: ${d.largeSizeLimit} db` : ""}
-                                      {d.orderCount ?` · ${d.orderCount} rendelés · ${d.reservedQuantity ?? 0} db csirke` : ""}
-                                    </p>
-                                  </div>
-                                  <StatusBadge active={dayActive} />
-                                </div>
-                              );
-                            })}
+                          <SectionLabel accent="orange">Átvételi napok</SectionLabel>
+                          <div className="mt-2 space-y-2">
+                            {s.pickupDays.map((d) => (
+                              <DayCard
+                                key={d.date}
+                                title={formatDate(d.date)}
+                                status={s.active ? <StatusBadge active={d.active !== false} /> : null}
+                                facts={[
+                                  ["Napi limit", `${formatCount(d.limit)} db`],
+                                  ["Kisebb méret limit", formatLimitUsage(d.smallSizeLimit, d.liveSmallQuantity)],
+                                  ["Nagyobb méret limit", formatLimitUsage(d.largeSizeLimit, d.liveLargeQuantity)],
+                                  ["Aktív rendelés", formatCount(d.orderCount ?? 0)],
+                                  ["Lefoglalt csirke", `${formatCount(d.reservedQuantity ?? 0)} db`],
+                                ]}
+                              />
+                            ))}
                           </div>
                         </div>
 
                         {s.dunavecse && (
                           <div>
-                            <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            <div className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-pink-600">
                               DUNAVECSE (Bács-Kiskun, technikai nap)
                               <InfoTip>
                                 <p>
@@ -1021,60 +1315,49 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                                   szezonra, de a már leadott rendeléseik változatlanul megmaradnak.
                                 </p>
                               </InfoTip>
-                            </p>
-                            <div className="mt-2 flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 p-2.5">
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-gray-700">
-                                  Vágási nap: {s.dunavecse.date ? formatDate(s.dunavecse.date) : "–"}
-                                </p>
-                                <p className="text-xs text-gray-500">
-                                  Korlátlan kapacitás
-                                  {s.dunavecse.orderCount
-                                    ? ` · ${s.dunavecse.orderCount} rendelés · ${s.dunavecse.reservedQuantity ?? 0} db csirke`
-                                    : ""}
-                                </p>
-                              </div>
-                              <StatusBadge active={s.dunavecse.active} />
+                            </div>
+                            <div className="mt-2">
+                              <DayCard
+                                accent="pink"
+                                title={`Vágási nap: ${s.dunavecse.date ? formatDate(s.dunavecse.date) : "–"}`}
+                                status={s.active ? <StatusBadge active={s.dunavecse.active} /> : null}
+                                facts={[
+                                  ["Kapacitás", "Korlátlan"],
+                                  ["Aktív rendelés", formatCount(s.dunavecse.orderCount)],
+                                  ["Lefoglalt csirke", `${formatCount(s.dunavecse.reservedQuantity ?? 0)} db`],
+                                ]}
+                              />
                             </div>
                           </div>
                         )}
 
                         {s.deletedDays.length > 0 && (
                           <div>
-                            <p className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-400">
+                            <div className="inline-flex items-center gap-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
                               Törölt napok
                               <InfoTip>
                                 <p>
-                                  A visszaállított nap inaktívként kerül vissza, a rá leadott rendelések változatlanok.
-                                  Aktiválni a szezon szerkesztésénél lehet.
+                                  A törölt napot csak a szezon szerkesztésekor lehet visszaállítani. A napra leadott
+                                  rendelések megmaradnak.
                                 </p>
                               </InfoTip>
-                            </p>
-                            <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                            </div>
+                            <div className="mt-2 space-y-2">
                               {s.deletedDays.map((d) => (
-                                <div
+                                <DayCard
                                   key={d.id}
-                                  className="flex items-center justify-between gap-2 rounded-lg border border-dashed border-gray-300 bg-white p-2.5"
-                                >
-                                  <div className="min-w-0">
-                                    <p className="truncate text-sm font-medium text-gray-500 line-through">{formatDate(d.date)}</p>
-                                    <p className="text-xs text-gray-500">
-                                      {d.orderCount ? `${d.orderCount} élő rendelés` : "Nincs élő rendelés"}
-                                    </p>
-                                  </div>
-                                  <button
-                                    type="button"
-                                    disabled={restoringKey !== null}
-                                    onClick={() => d.id != null && restore(`day-${d.id}`, () => restorePickupDay(d.id as number))}
-                                    className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-60"
-                                  >
-                                    <ArrowUturnLeftIcon aria-hidden="true" className="h-4 w-4" />
-                                    {restoringKey === `day-${d.id}` ? "Visszaállítás…" : "Visszaállítás"}
-                                  </button>
-                                </div>
+                                  muted
+                                  title={formatDate(d.date)}
+                                  status={<DeletedBadge />}
+                                  facts={[
+                                    ["Napi limit", `${formatCount(d.limit)} db`],
+                                    ["Kisebb méret limit", formatLimitUsage(d.smallSizeLimit, d.liveSmallQuantity)],
+                                    ["Nagyobb méret limit", formatLimitUsage(d.largeSizeLimit, d.liveLargeQuantity)],
+                                    ["Élő rendelés", formatCount(d.orderCount ?? 0)],
+                                  ]}
+                                />
                               ))}
                             </div>
-                            {restoreError && <p className="mt-2 text-xs font-medium text-red-700">{restoreError}</p>}
                           </div>
                         )}
 
@@ -1092,7 +1375,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                               setDeleteError(null);
                               setConfirmDeleteId(s.id);
                             }}
-                            className="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50"
+                            className="rounded-lg border border-red-600 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-gray-50"
                           >
                             Törlés
                           </button>
@@ -1107,25 +1390,25 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         </div>
 
                         {confirmDeleteId === s.id && (
-                          <div className="rounded-lg border border-red-200 bg-red-50 p-3">
-                            <p className="text-sm text-red-700">
+                          <div className="rounded-lg border border-red-600 bg-white p-3">
+                            <p className="text-sm text-red-600">
                               Biztosan törli ezt a szezont az összes átvételi napjával együtt? A szezon később
                               visszaállítható.
                             </p>
                             {liveOrders > 0 && (
-                              <p className="mt-2 rounded-md border border-amber-300 bg-amber-50 p-2 text-sm font-medium text-amber-900">
+                              <p className="mt-2 rounded-md border border-amber-600 bg-white p-2 text-sm font-medium text-gray-800">
                                 Figyelem: a szezonhoz {liveOrders} élő rendelés tartozik. A rendelések nem törlődnek, de a
                                 szezon törlése után a vásárlók már nem tudják módosítani őket (lemondani továbbra is tudják).
                                 {s.active ? " A szezon jelenleg aktív." : ""}
                               </p>
                             )}
-                            {deleteError && <p className="mt-2 text-sm font-medium text-red-700">{deleteError}</p>}
+                            {deleteError && <p className="mt-2 text-sm font-medium text-red-600">{deleteError}</p>}
                             <div className="mt-3 flex gap-2">
                               <button
                                 type="button"
                                 disabled={deletingId === s.id}
                                 onClick={() => remove(s.id)}
-                                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-red-700 disabled:opacity-60"
+                                className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-medium text-white transition hover:opacity-90 disabled:opacity-60"
                               >
                                 {deletingId === s.id ? "Törlés…" : "Törlés megerősítése"}
                               </button>
@@ -1165,9 +1448,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         <span className="line-through">
                           {s.year} {s.type}
                         </span>
-                        <span className="rounded-full border border-gray-300 bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500 no-underline">
-                          Törölve
-                        </span>
+                        <DeletedBadge />
                       </p>
                       {s.note && <p className="mt-0.5 truncate pl-7 text-xs text-gray-500" title={s.note}>{s.note}</p>}
                     </div>
@@ -1187,7 +1468,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
           <p className="mt-2 text-xs text-gray-500">
             A visszaállított szezon és napjai inaktívként kerülnek vissza. Aktiválni a szezon szerkesztésénél lehet.
           </p>
-          {restoreError && <p className="mt-2 text-sm font-medium text-red-700">{restoreError}</p>}
+          {restoreError && <p className="mt-2 text-sm font-medium text-red-600">{restoreError}</p>}
         </section>
       )}
     </div>

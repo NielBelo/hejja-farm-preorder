@@ -11,13 +11,12 @@ export default async function AdminSeasonsPage() {
   // sosem jelenik meg a szerkeszthető, admin által kezelt napok listájában
   // (automatikusan jön létre/frissül, lásd admin_save_season_parameters).
   // Külön, dunavecseResult lekérdezéssel töltjük be szezononként az egyetlen
-  // DUNAVECSE napot, hogy az admin láthassa és aktiválhassa/deaktiválhassa
-  // (ugyanazzal az admin_set_pickup_day_active RPC-vel, mint bármely más
-  // átvételi napot).
+  // DUNAVECSE napot, hogy az admin láthassa és aktiválhassa/deaktiválhassa (az
+  // állapota a szezon mentésével együtt módosul, lásd dunavecseActive).
   // A törölt (archivált) szezonok és napok is betöltődnek: a felület külön
   // mutatja őket, és onnan visszaállíthatók. Az archivált napok nem számítanak
   // bele a szezon aktív napjai közé (pickupDays), csak a deletedDays listába.
-  const [seasonsResult, pickupResult, dunavecseResult, ordersResult, pricesResult, productsResult] = await Promise.all([
+  const [seasonsResult, pickupResult, dunavecseResult, ordersResult, pricesResult, productsResult, sizeStatsResult] = await Promise.all([
     supabase.from("season_parameters").select("*").order("year", { ascending: false }),
     supabase.from("pickup_days").select("id, season_parameter_id, pickup_date, planned_stock, available_stock, is_active, small_size_limit, large_size_limit, archived_at").eq("kind", "normal").order("pickup_date"),
     supabase.from("pickup_days").select("id, season_parameter_id, pickup_date, is_active").eq("kind", "dunavecse"),
@@ -26,8 +25,12 @@ export default async function AdminSeasonsPage() {
       .select("pickup_day_id, status, order_versions!orders_current_version_id_fkey(order_items(quantity))"),
     supabase.from("season_product_prices").select("season_parameter_id, product_id, price"),
     supabase.from("products").select("id, name").order("id"),
+    // Naponként az élő (leadott) rendelések kisebb/nagyobb méretű mennyisége: a
+    // méretlimit nem csökkenthető ezek alá.
+    supabase.from("pickup_day_order_stats").select("pickup_day_id, live_small_quantity, live_large_quantity"),
   ]);
-  if (seasonsResult.error || pickupResult.error || dunavecseResult.error || ordersResult.error || pricesResult.error || productsResult.error) throw new Error(seasonsResult.error?.message || pickupResult.error?.message || dunavecseResult.error?.message || ordersResult.error?.message || pricesResult.error?.message || productsResult.error?.message);
+  if (seasonsResult.error || pickupResult.error || dunavecseResult.error || ordersResult.error || pricesResult.error || productsResult.error || sizeStatsResult.error) throw new Error(seasonsResult.error?.message || pickupResult.error?.message || dunavecseResult.error?.message || ordersResult.error?.message || pricesResult.error?.message || productsResult.error?.message || sizeStatsResult.error?.message);
+  const sizeStatsByDay = new Map((sizeStatsResult.data ?? []).map((row) => [row.pickup_day_id as number, row]));
   const products = (productsResult.data ?? []).map((product) => ({ id: product.id as number, name: product.name as string }));
   // Két külön fogalmat tartunk számon egy-egy átvételi napról, ezeket nem
   // szabad összekeverni: orderCount az AKTÍV (submitted) foglalást tükrözi a
@@ -59,7 +62,7 @@ export default async function AdminSeasonsPage() {
     reservedQuantityByDay.set(order.pickup_day_id, (reservedQuantityByDay.get(order.pickup_day_id) ?? 0) + quantity);
   }
   const dunavecseBySeasonId = new Map((dunavecseResult.data ?? []).map((row) => [row.season_parameter_id, row]));
-  const toPickupDay = (day: NonNullable<typeof pickupResult.data>[number]) => ({ id: day.id, date: day.pickup_date?.slice(0, 10) ?? "", limit: Number(day.planned_stock), active: day.is_active === true, smallSizeLimit: day.small_size_limit as number | null, largeSizeLimit: day.large_size_limit as number | null, orderCount: orderCountsByDay.get(day.id) ?? 0, reservedQuantity: Number(day.planned_stock ?? 0) - Number(day.available_stock ?? 0), hasOrderHistory: daysWithOrderHistory.has(day.id) });
+  const toPickupDay = (day: NonNullable<typeof pickupResult.data>[number]) => ({ id: day.id, date: day.pickup_date?.slice(0, 10) ?? "", limit: Number(day.planned_stock), active: day.is_active === true, smallSizeLimit: day.small_size_limit as number | null, largeSizeLimit: day.large_size_limit as number | null, liveSmallQuantity: Number(sizeStatsByDay.get(day.id)?.live_small_quantity ?? 0), liveLargeQuantity: Number(sizeStatsByDay.get(day.id)?.live_large_quantity ?? 0), orderCount: orderCountsByDay.get(day.id) ?? 0, reservedQuantity: Number(day.planned_stock ?? 0) - Number(day.available_stock ?? 0), hasOrderHistory: daysWithOrderHistory.has(day.id) });
   const seasons = (seasonsResult.data ?? []).map((row) => {
     const dunavecse = dunavecseBySeasonId.get(row.id);
     const seasonDays = (pickupResult.data ?? []).filter((day) => day.season_parameter_id === row.id);

@@ -6,12 +6,14 @@ import { SEASON_NOTE_MAX_LENGTH } from "@/lib/seasonNote";
 
 // A napi méretlimit: a kisebb/nagyobb méretű csirkék maximális darabszáma az
 // adott napon; null = nincs korlát.
-export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; smallSizeLimit?: number | null; largeSizeLimit?: number | null; orderCount?: number; reservedQuantity?: number; hasOrderHistory?: boolean };
+export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; smallSizeLimit?: number | null; largeSizeLimit?: number | null; orderCount?: number; reservedQuantity?: number; hasOrderHistory?: boolean; liveSmallQuantity?: number; liveLargeQuantity?: number };
 export type ProductPrice = { productId: number; price: number };
 // price: a régi, szezononkénti ár (season_parameters.price) - egyelőre kötelező,
 // az "Egész" termék árával egyezik; prices: a termékenkénti árak.
 // confirmLiveOrders: a mentés élő rendelésű napot is töröl.
-export type SeasonInput = { id?: string; year: number; type: "Tavasz" | "Ősz"; price: number; prices?: ProductPrice[]; note?: string; weightMin: number; weightMax: number; orderStart: string; orderEnd: string; pickupTimeStart: string; pickupTimeEnd: string; localPickupTimeStart: string; pickupDays: PickupDay[]; active: boolean; confirmLiveOrders?: boolean };
+// dunavecseActive: a DUNAVECSE technikai nap aktív állapota (a szezonnal együtt
+// mentődik; ha hiányzik, változatlan).
+export type SeasonInput = { id?: string; year: number; type: "Tavasz" | "Ősz"; price: number; prices?: ProductPrice[]; note?: string; weightMin: number; weightMax: number; orderStart: string; orderEnd: string; pickupTimeStart: string; pickupTimeEnd: string; localPickupTimeStart: string; pickupDays: PickupDay[]; active: boolean; dunavecseActive?: boolean; confirmLiveOrders?: boolean };
 
 // Az élő rendelést érintő törlések (és a mentésbe foglalt napkivétel) az
 // adatbázisban megerősítéshez kötöttek: a LIVE_ORDERS_CONFIRMATION_REQUIRED hint
@@ -58,34 +60,6 @@ export async function saveSeason(input: SeasonInput) {
   }
 }
 
-// A DUNAVECSE (Bács-Kiskun) technikai nap aktiválása/deaktiválása -
-// ugyanazt az admin_set_pickup_day_active RPC-t használja, mint bármely más
-// átvételi nap egyedi ki-/bekapcsolása; a DUNAVECSE napot ez a nap-kezelő
-// nem különbözteti meg, mert a jogosultsági és aktivitási szabályok
-// egyformák. Deaktiválás bármikor lehetséges, aktiváláshoz a szezonnak
-// aktívnak kell lennie (lásd az RPC definícióját).
-export async function setDunavecsePickupDayActive(id: number, active: boolean) {
-  try {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return { success: false as const, error: "A módosításhoz jelentkezzen be újra." };
-    const { data: role } = await supabase.from("user_roles").select("role").eq("user_id", user.id).eq("role", "admin").maybeSingle();
-    if (!role) return { success: false as const, error: "Adminisztrátori jogosultság szükséges." };
-    const { error } = await supabase.rpc("admin_set_pickup_day_active", { target_id: id, is_active: active });
-    if (error) return { success: false as const, error: error.message || "A DUNAVECSE nap módosítása sikertelen." };
-    try { revalidatePath("/admin/seasons"); revalidatePath("/preorder"); } catch (revalidateError) {
-      console.error("DUNAVECSE nap revalidálási hiba:", revalidateError);
-    }
-    return { success: true as const };
-  } catch (unexpectedError) {
-    console.error("DUNAVECSE nap módosítási hiba:", unexpectedError);
-    return {
-      success: false as const,
-      error: unexpectedError instanceof Error ? unexpectedError.message : "A DUNAVECSE nap módosítása váratlan hiba miatt sikertelen.",
-    };
-  }
-}
-
 // Közös váz a szezon/nap törlő és visszaállító műveletekhez: admin
 // jogosultság ellenőrzése, RPC hívás, revalidálás.
 async function runSeasonRpc(rpcName: string, args: Record<string, unknown>, messages: { signIn: string; failed: string; unexpected: string }) {
@@ -127,13 +101,5 @@ export async function restoreSeason(id: string) {
     signIn: "A visszaállításhoz jelentkezzen be újra.",
     failed: "A szezon visszaállítása sikertelen.",
     unexpected: "A szezon visszaállítása váratlan hiba miatt sikertelen.",
-  });
-}
-
-export async function restorePickupDay(id: number) {
-  return runSeasonRpc("admin_restore_pickup_day", { target_id: id }, {
-    signIn: "A visszaállításhoz jelentkezzen be újra.",
-    failed: "Az átvételi nap visszaállítása sikertelen.",
-    unexpected: "Az átvételi nap visszaállítása váratlan hiba miatt sikertelen.",
   });
 }
