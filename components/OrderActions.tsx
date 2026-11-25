@@ -71,8 +71,6 @@ type OrderActionsProps = {
     isPickupDayActive?: boolean;
     /** Naponként a még rendelhető kisebb/nagyobb méretű csirkék (lásd PreorderManager SizeAvailabilityRow). */
     sizeAvailabilityRows?: SizeAvailabilityRow[];
-    /** Termékazonosító -> ár (Ft/kg). */
-    productPrices?: Record<number, number>;
 };
 
 export default function OrderActions({
@@ -90,7 +88,6 @@ export default function OrderActions({
     seasonEndDate,
     isPickupDayActive = true,
     sizeAvailabilityRows = [],
-    productPrices,
 }: OrderActionsProps) {
     const isDunavecse = pickupDayKind === "dunavecse";
     // Az előrendelési időablak ugyanaz a szabály, mint a rendelési folyamatban
@@ -634,7 +631,6 @@ export default function OrderActions({
                         packages={packages}
                         maxAvailableQuantity={maxAvailableQuantity}
                         sizeAvailability={sizeAvailability}
-                        productPrices={productPrices}
                         resetKey={0}
                         isPickupDaySelected={true}
                         pickupDate={pickupDayForDisplay?.pickup_date ?? pickupDate}

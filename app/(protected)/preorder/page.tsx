@@ -26,15 +26,6 @@ export default async function PreorderPage() {
     .from("products")
     .select("id, name, description, image_url");
 
-  // Termékenkénti árak (Ft/kg) az aktív szezonhoz.
-  const { data: priceRows } = await supabase
-    .from("season_product_prices")
-    .select("product_id, price")
-    .eq("season_parameter_id", season?.id ?? -1);
-  const productPrices = Object.fromEntries(
-    (priceRows ?? []).map((row) => [row.product_id as number, row.price as number])
-  );
-
   // Naponként a még rendelhető kisebb/nagyobb méretű csirkék (a hívó
   // jogosultságával, ezért a bejelentkezett klienssel kérjük le).
   const authedSupabase = await createClient();
@@ -98,7 +89,6 @@ export default async function PreorderPage() {
           dunavecseDay={dunavecseDay ?? null}
           userCounty={currentUser?.county ?? null}
           sizeAvailabilityRows={sizeAvailabilityRows ?? []}
-          productPrices={productPrices}
         />
       </main>
       <CustomerFooter />

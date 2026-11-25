@@ -64,8 +64,6 @@ type ProductSelectorProps = {
      * jelenik meg, csak a mennyiségválasztót korlátozza.
      */
     sizeAvailability?: SizeAvailability | null;
-    /** Termékazonosító -> ár (Ft/kg); a termékkártyán jelenik meg. */
-    productPrices?: Record<number, number>;
 };
 
 
@@ -114,7 +112,6 @@ export default function ProductSelector({
     onItemOpen,
     noteLabel = "Opcionális megjegyzés a csomaghoz",
     sizeAvailability = null,
-    productPrices,
 }: ProductSelectorProps) {
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -594,11 +591,6 @@ export default function ProductSelector({
                                                             {product.description}
                                                         </p>
 
-                                                        {productPrices?.[product.id] !== undefined && (
-                                                            <p className="mt-1 text-base font-semibold text-gray-700">
-                                                                {productPrices[product.id].toLocaleString("hu-HU")} Ft/kg
-                                                            </p>
-                                                        )}
                                                     </div>
 
                                                     {product.image_url && (
