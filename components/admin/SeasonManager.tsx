@@ -2,9 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import {
   ArrowUturnLeftIcon,
-  CalendarDaysIcon,
+  CheckBadgeIcon,
   CheckIcon,
   ChevronDownIcon,
+  ClockIcon,
   CheckCircleIcon,
   ExclamationTriangleIcon,
   InformationCircleIcon,
@@ -1232,7 +1233,6 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
           >
             <span className="min-w-0 max-w-full">
               <span className="flex items-center gap-2 font-semibold text-gray-800">
-                <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400" />
                 {s.year} {s.type}
               </span>
               <span
@@ -1519,21 +1519,36 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
 
       {seasons.some((s) => !s.archived && s.active) && (
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-gray-800">Aktív szezon</h2>
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-800">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+              <CheckBadgeIcon aria-hidden="true" className="h-5 w-5 text-gray-500" />
+            </span>
+            Aktív szezon
+          </h2>
           <div className="grid gap-3">{seasons.filter((s) => !s.archived && s.active).map(renderSeason)}</div>
         </section>
       )}
 
       {seasons.some((s) => !s.archived && !s.active) && (
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-gray-800">Korábbi szezonok</h2>
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-800">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+              <ClockIcon aria-hidden="true" className="h-5 w-5 text-gray-500" />
+            </span>
+            Korábbi szezonok
+          </h2>
           <div className="grid gap-3">{seasons.filter((s) => !s.archived && !s.active).map(renderSeason)}</div>
         </section>
       )}
 
       {seasons.some((s) => s.archived) && (
         <section>
-          <h2 className="mb-2 text-lg font-semibold text-gray-800">Törölt szezonok</h2>
+          <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold text-gray-800">
+            <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ring-1 ring-gray-200">
+              <TrashIcon aria-hidden="true" className="h-5 w-5 text-gray-500" />
+            </span>
+            Törölt szezonok
+          </h2>
           <div className="grid gap-3">
             {seasons
               .filter((s) => s.archived)
@@ -1549,7 +1564,6 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                     >
                       <span className="min-w-0 max-w-full">
                         <span className="flex items-center gap-2 font-semibold text-gray-500">
-                          <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-400" />
                           <span className="line-through">
                             {s.year} {s.type}
                           </span>

@@ -180,8 +180,16 @@ export default async function HistoryPage({
     .order("_group")
     .order("serial_number");
 
-  // Naponként a még rendelhető kisebb/nagyobb méretű csirkék a rendelés szerkesztőjéhez.
+  // Naponként a még rendelhető kisebb/nagyobb méretű csirkék, és az aktív
+  // szezon termékenkénti árai (Ft/kg) a rendelés szerkesztőjéhez.
   const { data: sizeAvailabilityRows } = await supabase.rpc("get_pickup_day_size_availability");
+  const { data: priceRows } = await supabase
+    .from("season_product_prices")
+    .select("product_id, price")
+    .eq("season_parameter_id", season?.id ?? -1);
+  const productPrices = Object.fromEntries(
+    (priceRows ?? []).map((row) => [row.product_id as number, row.price as number])
+  );
 
   const orders = (data ?? []) as unknown as Order[];
   const pickupDays = (rawPickupDays ?? []) as unknown as PickupDay[];
@@ -426,6 +434,7 @@ export default async function HistoryPage({
                           pickupDayKind={order.pickup_days?.kind ?? "normal"}
                           pickupDays={pickupDays}
                           sizeAvailabilityRows={sizeAvailabilityRows ?? []}
+                          productPrices={productPrices}
                           isPickupDayActive={order.pickup_days?.is_active ?? true}
                           seasonStartDate={season?.time_window_start}
                           seasonEndDate={season?.time_window_end}

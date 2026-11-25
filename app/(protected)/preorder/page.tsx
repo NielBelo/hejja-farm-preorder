@@ -26,6 +26,15 @@ export default async function PreorderPage() {
     .from("products")
     .select("id, name, description, image_url");
 
+  // Termékenkénti árak (Ft/kg) az aktív szezonhoz.
+  const { data: priceRows } = await supabase
+    .from("season_product_prices")
+    .select("product_id, price")
+    .eq("season_parameter_id", season?.id ?? -1);
+  const productPrices = Object.fromEntries(
+    (priceRows ?? []).map((row) => [row.product_id as number, row.price as number])
+  );
+
   // Naponként a még rendelhető kisebb/nagyobb méretű csirkék (a hívó
   // jogosultságával, ezért a bejelentkezett klienssel kérjük le).
   const authedSupabase = await createClient();
@@ -68,11 +77,19 @@ export default async function PreorderPage() {
     <>
       <main className="mx-auto mt-4 w-full max-w-5xl">
         <PreorderIntro imageUrl={orderInfo1?.image_url}>
-          <div className="text-lg text-gray-600 leading-7 whitespace-pre-line">
-            {orderInfo1?.content}
+          {/* Az üres sorral elválasztott bekezdések között csak kis hely marad
+              (a whitespace-pre-line egy teljes üres sort hagyna). */}
+          <div className="space-y-2 text-lg text-gray-600 leading-7">
+            {orderInfo1?.content
+              ?.split(/\n\s*\n/)
+              .map((paragraph: string, index: number) => (
+                <p key={index} className="whitespace-pre-line">
+                  {paragraph.trim()}
+                </p>
+              ))}
           </div>
 
-          <div className="mt-4 font-bold text-lg text-gray-600 leading-7 whitespace-pre-line">
+          <div className="mt-2 font-bold text-lg text-gray-600 leading-7 whitespace-pre-line">
             <SeasonOrderInfo
               startDate={season?.time_window_start}
               endDate={season?.time_window_end}
@@ -89,6 +106,7 @@ export default async function PreorderPage() {
           dunavecseDay={dunavecseDay ?? null}
           userCounty={currentUser?.county ?? null}
           sizeAvailabilityRows={sizeAvailabilityRows ?? []}
+          productPrices={productPrices}
         />
       </main>
       <CustomerFooter />

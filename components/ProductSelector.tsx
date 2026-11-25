@@ -5,6 +5,7 @@ import {
     ChevronRightIcon,
     ChevronDownIcon,
     TrashIcon,
+    XMarkIcon,
 } from "@heroicons/react/24/outline";
 import {
     canChoosePackaging,
@@ -64,6 +65,8 @@ type ProductSelectorProps = {
      * jelenik meg, csak a mennyiségválasztót korlátozza.
      */
     sizeAvailability?: SizeAvailability | null;
+    /** Termékazonosító -> ár (Ft/kg); a termékkártyán jelenik meg. */
+    productPrices?: Record<number, number>;
 };
 
 
@@ -112,6 +115,7 @@ export default function ProductSelector({
     onItemOpen,
     noteLabel = "Opcionális megjegyzés a csomaghoz",
     sizeAvailability = null,
+    productPrices,
 }: ProductSelectorProps) {
     const itemHasContent = (item: OrderItem) =>
         item.selectedProductId !== null ||
@@ -126,6 +130,17 @@ export default function ProductSelector({
             : [emptyItem(!isPickupDaySelected)];
 
     const [items, setItems] = useState<OrderItem[]>(buildInitialItems);
+
+    const [zoomedImage, setZoomedImage] = useState<{ src: string; alt: string } | null>(null);
+
+    useEffect(() => {
+        if (!zoomedImage) return;
+        const close = (event: KeyboardEvent) => {
+            if (event.key === "Escape") setZoomedImage(null);
+        };
+        window.addEventListener("keydown", close);
+        return () => window.removeEventListener("keydown", close);
+    }, [zoomedImage]);
 
     // Ha a már megadott mennyiség nem fér bele a választott méret keretébe,
     // a vásárló megerősítése után a mennyiség a maximumra módosul.
@@ -562,7 +577,7 @@ export default function ProductSelector({
                                     Válasszon terméket!
                                 </h3>
 
-                                <div className="grid gap-4 md:grid-cols-2">
+                                <div className="grid gap-4 md:grid-cols-3">
                                     {products.map((product) => {
                                         const selected = item.selectedProductId === product.id;
 
@@ -574,34 +589,61 @@ export default function ProductSelector({
                                                 }
                                                 type="button"
                                                 className={`
-                          rounded-xl border p-5 text-left transition-all
+                          h-full rounded-xl border p-5 text-left transition-all
                           ${selected
                                                         ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
                                                         : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
                                                     }
                         `}
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="flex-1">
+                                                <div className="flex h-full flex-col gap-3">
+                                                    {product.image_url && (
+                                                        <span
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            title="Kattintson a kép nagyításához"
+                                                            aria-label={`${product.name} képének nagyítása`}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                setZoomedImage({ src: product.image_url!, alt: product.name });
+                                                            }}
+                                                            onKeyDown={(event) => {
+                                                                if (event.key === "Enter" || event.key === " ") {
+                                                                    event.preventDefault();
+                                                                    event.stopPropagation();
+                                                                    setZoomedImage({ src: product.image_url!, alt: product.name });
+                                                                }
+                                                            }}
+                                                            className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg"
+                                                        >
+                                                            <Image
+                                                                src={product.image_url}
+                                                                alt={product.name}
+                                                                width={320}
+                                                                height={200}
+                                                                className="block h-auto w-full"
+                                                            />
+                                                            <span className="absolute inset-0 flex items-center justify-center bg-black/0 px-3 text-center text-base font-semibold text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100 group-focus-visible:bg-black/55 group-focus-visible:opacity-100">
+                                                                Kattintson a nagyításhoz
+                                                            </span>
+                                                        </span>
+                                                    )}
+
+                                                    <div className="flex flex-1 flex-col items-center text-center">
                                                         <h3 className="text-lg font-semibold text-gray-700">
                                                             {product.name}
                                                         </h3>
 
-                                                        <p className="mt-1 text-base text-gray-500">
+                                                        <p className="mt-1 mb-2 text-base text-gray-500">
                                                             {product.description}
                                                         </p>
 
+                                                        {productPrices?.[product.id] !== undefined && (
+                                                            <p className="mt-auto inline-block rounded-full bg-[rgba(92,113,190,0.12)] px-3 py-1 text-base font-bold text-[rgb(72,93,162)]">
+                                                                {productPrices[product.id].toLocaleString("hu-HU")} Ft/kg
+                                                            </p>
+                                                        )}
                                                     </div>
-
-                                                    {product.image_url && (
-                                                        <Image
-                                                            src={product.image_url}
-                                                            alt={product.name}
-                                                            width={160}
-                                                            height={100}
-                                                            className="rounded-lg object-cover"
-                                                        />
-                                                    )}
                                                 </div>
                                             </button>
                                         );
@@ -780,6 +822,35 @@ export default function ProductSelector({
                     </div>
                 );
             })}
+
+            {zoomedImage && (
+                <div
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={zoomedImage.alt}
+                    onClick={() => setZoomedImage(null)}
+                    className="fixed inset-0 z-50 flex cursor-zoom-out items-center justify-center bg-black/70 p-4"
+                >
+                    <button
+                        type="button"
+                        onClick={() => setZoomedImage(null)}
+                        aria-label="Kép bezárása"
+                        title="Bezárás"
+                        className="absolute right-4 top-4 flex items-center gap-2 rounded-full bg-white px-4 py-2 text-base font-semibold text-gray-800 shadow-lg transition hover:bg-gray-100"
+                    >
+                        <XMarkIcon aria-hidden="true" className="h-5 w-5" />
+                        Bezárás
+                    </button>
+                    <Image
+                        src={zoomedImage.src}
+                        alt={zoomedImage.alt}
+                        width={1600}
+                        height={1000}
+                        onClick={(event) => event.stopPropagation()}
+                        className="h-auto max-h-[85vh] w-auto max-w-full cursor-default rounded-lg object-contain shadow-xl"
+                    />
+                </div>
+            )}
 
             {sizeOverwrite && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

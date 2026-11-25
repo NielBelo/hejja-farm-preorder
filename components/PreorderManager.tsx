@@ -98,6 +98,7 @@ export default function PreorderManager({
     dunavecseDay = null,
     userCounty,
     sizeAvailabilityRows = [],
+    productPrices,
 }: {
     season: Season;
     products: Product[];
@@ -106,6 +107,7 @@ export default function PreorderManager({
     dunavecseDay?: DunavecseDay | null;
     userCounty?: string | null;
     sizeAvailabilityRows?: SizeAvailabilityRow[];
+    productPrices?: Record<number, number>;
 }) {
     // A vármegye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
     // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun vármegyei
@@ -554,6 +556,7 @@ export default function PreorderManager({
                     packages={packages}
                     maxAvailableQuantity={displayPickupDay?.available_stock ?? null}
                     sizeAvailability={sizeAvailability}
+                    productPrices={productPrices}
                     resetKey={resetKey}
                     initialItems={fittedItems}
                     isPickupDaySelected={displayPickupDay !== null}
