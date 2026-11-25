@@ -39,6 +39,7 @@ declare
   v_price_product_id bigint;
   v_price_value integer;
   v_price_product_ids bigint[] := '{}';
+  v_dunavecse_active boolean;
 begin
   if not exists (select 1 from public.user_roles where user_id = auth.uid() and role = 'admin') then
     raise exception 'Adminisztrátori jogosultság szükséges.' using errcode = '42501';
@@ -51,6 +52,12 @@ begin
     or jsonb_typeof(v_days) <> 'array'
     or jsonb_array_length(v_days) not between 1 and 5 then
     raise exception 'Érvénytelen szezonadatok.' using errcode = '22023';
+  end if;
+  if season_data ? 'dunavecseActive' then
+    if jsonb_typeof(season_data -> 'dunavecseActive') <> 'boolean' then
+      raise exception 'Érvénytelen DUNAVECSE nap beállítás.' using errcode = '22023';
+    end if;
+    v_dunavecse_active := (season_data ->> 'dunavecseActive')::boolean;
   end if;
   if char_length(v_note) > 100 then
     raise exception 'A megjegyzés legfeljebb 100 karakter lehet.' using errcode = '22023';
@@ -219,6 +226,13 @@ begin
   if not found then
     insert into public.pickup_days(year, season, pickup_date, planned_stock, available_stock, is_active, serial_number, _group, season_parameter_id, kind)
     values(v_year, v_season, v_last_normal_date, null, null, true, 1, 1, v_season_id, 'dunavecse');
+  end if;
+
+  -- A DUNAVECSE nap aktív állapota a normál napokhoz hasonlóan a szezon
+  -- mentésével együtt módosul; ha a kulcs hiányzik, változatlan marad.
+  if v_dunavecse_active is not null then
+    update public.pickup_days set is_active = v_dunavecse_active
+      where season_parameter_id = v_season_id and kind = 'dunavecse';
   end if;
 
   return true;
