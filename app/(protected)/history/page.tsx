@@ -143,6 +143,7 @@ export default async function HistoryPage({
         `)
     .eq("user_id", user.id)
     .neq("status", "cancelled")
+    .is("archived_at", null)
     .order("created_at", { ascending: false });
 
   if (error) {

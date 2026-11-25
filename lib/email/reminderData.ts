@@ -28,6 +28,7 @@ export async function getLatestReminderSampleOrder(
         .from("orders")
         .select("id, user_id, created_at")
         .eq("status", "submitted")
+        .is("archived_at", null)
         .order("created_at", { ascending: false })
         .limit(20);
 
@@ -206,6 +207,8 @@ export async function getReminderOrderTargetsForDate(
         .from("orders")
         .select("id, pickup_day_id, pickup_days!orders_pickup_day_id_fkey!inner(pickup_date, kind)")
         .eq("status", "submitted")
+        // A törölt (archivált) nap rendelései nem kapnak emlékeztetőt.
+        .is("archived_at", null)
         .eq("pickup_days.pickup_date", pickupDateIso)
         .eq("pickup_days.kind", "normal");
 

@@ -44,7 +44,9 @@ export default async function AdminPickupPage() {
                     )
                 )
             `)
-            .eq("status", "submitted"),
+            .eq("status", "submitted")
+            // A törölt (archivált) nap rendelései nem szerepelnek a listán.
+            .is("archived_at", null),
         // Szándékosan NINCS .eq("is_active", true) vagy szezonszűrés: az
         // admin a korábbi (nem aktív) szezonok átvételi napjait is vissza
         // tudja nézni a szezonválasztóval, ugyanúgy, ahogy az

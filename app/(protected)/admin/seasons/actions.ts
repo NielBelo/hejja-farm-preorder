@@ -6,7 +6,7 @@ import { SEASON_NOTE_MAX_LENGTH } from "@/lib/seasonNote";
 
 // A napi méretlimit: a kisebb/nagyobb méretű csirkék maximális darabszáma az
 // adott napon; null = nincs korlát.
-export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; smallSizeLimit?: number | null; largeSizeLimit?: number | null; orderCount?: number; reservedQuantity?: number; hasOrderHistory?: boolean; liveSmallQuantity?: number; liveLargeQuantity?: number };
+export type PickupDay = { id?: number; date: string; limit: number; active?: boolean; smallSizeLimit?: number | null; largeSizeLimit?: number | null; orderCount?: number; reservedQuantity?: number; hasOrderHistory?: boolean; liveSmallQuantity?: number; liveLargeQuantity?: number; archivedOrderCount?: number };
 export type ProductPrice = { productId: number; price: number };
 // price: a régi, szezononkénti ár (season_parameters.price) - egyelőre kötelező,
 // az "Egész" termék árával egyezik; prices: a termékenkénti árak.
@@ -55,7 +55,7 @@ export async function saveSeason(input: SeasonInput) {
     return {
       success: false as const,
       needsConfirmation: false,
-      error: unexpectedError instanceof Error ? unexpectedError.message : "A szezon mentése váratlan hiba miatt sikertelen.",
+      error: "A szezon mentése váratlan hiba miatt sikertelen.",
     };
   }
 }
@@ -79,7 +79,7 @@ async function runSeasonRpc(rpcName: string, args: Record<string, unknown>, mess
     console.error(`${rpcName} hiba:`, unexpectedError);
     return {
       success: false as const,
-      error: unexpectedError instanceof Error ? unexpectedError.message : messages.unexpected,
+      error: messages.unexpected,
       needsConfirmation: false,
     };
   }

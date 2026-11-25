@@ -78,6 +78,7 @@ export async function getAdminOrdersByPickupDayIds(
         .select(orderSelect)
         .in("pickup_day_id", pickupDayIds)
         .in("status", ["submitted", "cancelled"])
+        .is("archived_at", null)
         .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
