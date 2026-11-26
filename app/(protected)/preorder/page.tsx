@@ -77,19 +77,13 @@ export default async function PreorderPage() {
     <>
       <main className="mx-auto mt-4 w-full max-w-5xl">
         <PreorderIntro imageUrl={orderInfo1?.image_url}>
-          {/* Az üres sorral elválasztott bekezdések között csak kis hely marad
-              (a whitespace-pre-line egy teljes üres sort hagyna). */}
-          <div className="space-y-2 text-lg text-gray-600 leading-7">
-            {orderInfo1?.content
-              ?.split(/\n\s*\n/)
-              .map((paragraph: string, index: number) => (
-                <p key={index} className="whitespace-pre-line">
-                  {paragraph.trim()}
-                </p>
-              ))}
+          {/* A megszólítás statikus; az első bekezdés (order_info1) sorkizárt. */}
+          <div className="text-lg text-gray-600 leading-7">
+            <p className="mb-2 text-center text-2xl font-bold">Kedves Vásárlóink!</p>
+            <p className="hyphens-auto whitespace-pre-line text-justify">{orderInfo1?.content?.trim()}</p>
           </div>
 
-          <div className="mt-2 font-bold text-lg text-gray-600 leading-7 whitespace-pre-line">
+          <div className="mt-4 hyphens-auto text-justify font-bold text-lg text-gray-600 leading-7 whitespace-pre-line">
             <SeasonOrderInfo
               startDate={season?.time_window_start}
               endDate={season?.time_window_end}
