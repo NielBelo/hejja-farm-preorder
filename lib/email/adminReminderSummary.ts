@@ -83,20 +83,20 @@ export function buildAdminReminderSummary(input: AdminReminderSummaryInput): Adm
         </tr>`).join("");
 
     const uncertainHtml = uncertain.length > 0
-        ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:18px;background:#fff9e9;border-left:3px solid #e8b931;border-radius:0 8px 8px 0;">
-            <tr><td style="padding:12px 15px 4px;font-weight:700;color:#8a6514;">Bizonytalan állapotú küldések - manuális ellenőrzés szükséges</td></tr>
+        ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:18px;background:#FBF3E4;border-left:3px solid #B57418;border-radius:0 8px 8px 0;">
+            <tr><td style="padding:12px 15px 4px;font-weight:700;color:#8F5A10;">Bizonytalan állapotú küldések - manuális ellenőrzés szükséges</td></tr>
             ${uncertain.map((item) => `
             <tr>
                 <td style="padding:6px 15px 12px;font-size:13px;line-height:20px;color:#4b5563;">
                     <strong>${escapeHtml(item.orderNumber)}</strong> (${escapeHtml(item.recipient)})<br>
-                    <span style="color:#8a6514;">${escapeHtml(item.detail)}</span>
+                    <span style="color:#8F5A10;">${escapeHtml(item.detail)}</span>
                 </td>
             </tr>`).join("")}
         </table>`
-        : `<p style="margin-top:18px;padding:12px 15px;background:#f1fbf6;border-left:3px solid #46cc8d;border-radius:0 8px 8px 0;color:#218856;font-weight:700;">Nem volt bizonytalan/stale állapotú reminder ebben a futásban.</p>`;
+        : `<p style="margin-top:18px;padding:12px 15px;background:#F0F5EB;border-left:3px solid #43852D;border-radius:0 8px 8px 0;color:#43852D;font-weight:700;">Nem volt bizonytalan/stale állapotú reminder ebben a futásban.</p>`;
 
     const failuresHtml = failures.length > 0
-        ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:18px;background:#fdecec;border-left:3px solid #dc4c4c;border-radius:0 8px 8px 0;">
+        ? `<table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:18px;background:#FCEEEE;border-left:3px solid #C83D3D;border-radius:0 8px 8px 0;">
             <tr><td style="padding:12px 15px 4px;font-weight:700;color:#7f1d1d;">Sikertelen küldések</td></tr>
             ${failures.map((failure) => `
             <tr>
@@ -106,7 +106,7 @@ export function buildAdminReminderSummary(input: AdminReminderSummaryInput): Adm
                 </td>
             </tr>`).join("")}
         </table>`
-        : `<p style="margin-top:18px;padding:12px 15px;background:#f1fbf6;border-left:3px solid #46cc8d;border-radius:0 8px 8px 0;color:#218856;font-weight:700;">Nem volt sikertelen küldés ebben a futásban.</p>`;
+        : `<p style="margin-top:18px;padding:12px 15px;background:#F0F5EB;border-left:3px solid #43852D;border-radius:0 8px 8px 0;color:#43852D;font-weight:700;">Nem volt sikertelen küldés ebben a futásban.</p>`;
 
     const html = `<!doctype html>
 <html lang="hu">
@@ -115,8 +115,8 @@ export function buildAdminReminderSummary(input: AdminReminderSummaryInput): Adm
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(subject)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f7f5;color:#374151;">
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f7f5;">
+<body style="margin:0;padding:0;background:#F3F6F0;color:#374151;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#F3F6F0;">
         <tr>
             <td align="center" style="padding:28px 12px;">
                 <table role="presentation" width="640" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:640px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(17,24,39,0.07);">

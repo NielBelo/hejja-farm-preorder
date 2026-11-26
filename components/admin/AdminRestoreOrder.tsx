@@ -50,11 +50,11 @@ export default function AdminRestoreOrder({ orderId, pickupDate, disabled, onOrd
                 onClick={handleRestore}
                 disabled={cannotRestore}
                 title={pickupStatus === "past" ? "Elmúlt átvételi dátumú rendelés nem állítható vissza." : undefined}
-                className="rounded-lg border border-green-300 bg-white px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[#43852D]/40 bg-white px-4 py-2 text-sm font-medium text-[#43852D] transition hover:bg-[#F0F5EB] disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {isRestored ? "Visszaállítva" : isRestoring ? "Visszaállítás..." : "Visszaállítás"}
             </button>
-            {error && <p role="alert" className="mt-2 text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="mt-2 text-sm text-[#C83D3D]">{error}</p>}
         </div>
     );
 }

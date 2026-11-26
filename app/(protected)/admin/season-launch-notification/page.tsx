@@ -55,11 +55,11 @@ export default async function AdminSeasonLaunchNotificationPage() {
         <div className="mx-auto w-full max-w-5xl">
             <div className="px-4 text-center sm:px-6">
                 <div className="mt-2.5 flex items-center gap-4">
-                    <span className="h-px flex-1 bg-gray-400" aria-hidden="true" />
-                    <h1 className="shrink-0 text-md font-semibold tracking-wider text-gray-500">
+                    <span className="h-px flex-1 bg-[#D4CCBE]" aria-hidden="true" />
+                    <h1 className="shrink-0 text-md font-semibold tracking-wider text-[#8A7355]">
                         Szezonindítási értesítő
                     </h1>
-                    <span className="h-px flex-1 bg-gray-400" aria-hidden="true" />
+                    <span className="h-px flex-1 bg-[#D4CCBE]" aria-hidden="true" />
                 </div>
                 <p className="mx-auto mt-2.5 max-w-4xl text-base leading-7 text-gray-600 italic">
                     A szezonindítási értesítő az új előrendelési időszak kezdetéről tájékoztatja a vásárlókat.
@@ -76,9 +76,9 @@ export default async function AdminSeasonLaunchNotificationPage() {
                     </dl>
                 </div>
 
-                <div className="bg-[#f4f7f5] p-3 sm:p-6">
+                <div className="bg-[#F3F6F0] p-3 sm:p-6">
                     {isSample ? (
-                        <p className="mb-3 text-center text-sm font-medium text-amber-700">
+                        <p className="mb-3 text-center text-sm font-medium text-[#8F5A10]">
                             Mintaadat: nincs rögzített szezon, ezért az előnézet kitalált szezonadatokat mutat.
                         </p>
                     ) : null}
@@ -86,7 +86,7 @@ export default async function AdminSeasonLaunchNotificationPage() {
                         title="Szezonindítási értesítő e-mail"
                         srcDoc={email.html}
                         sandbox="allow-popups allow-popups-to-escape-sandbox"
-                        className="w-full rounded-xl border-0 bg-[#f4f7f5]"
+                        className="w-full rounded-xl border-0 bg-[#F3F6F0]"
                         style={{ height: 760 }}
                     />
                 </div>

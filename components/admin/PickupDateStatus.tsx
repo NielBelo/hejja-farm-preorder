@@ -10,7 +10,7 @@ export default function PickupDateStatus({ pickupDate, orderStatus }: {
 
     if (orderStatus === "cancelled") {
         return (
-            <span className="shrink-0 rounded-md bg-red-50 px-2.5 py-1 text-sm font-semibold text-red-600">
+            <span className="shrink-0 rounded-md bg-[#FCEEEE] px-2.5 py-1 text-sm font-semibold text-[#C83D3D]">
                 Lemondva
             </span>
         );
@@ -23,8 +23,8 @@ export default function PickupDateStatus({ pickupDate, orderStatus }: {
             title="Az átvételi dátum alapján; nem igazolja a tényleges átvételt."
             className={`shrink-0 rounded-md px-2.5 py-1 text-sm font-semibold ${
                 status === "current"
-                    ? "bg-green-100 text-green-800"
-                    : "bg-yellow-100 text-yellow-800"
+                    ? "bg-[#E0EED4] text-[#477D35]"
+                    : "bg-[#FBF3E4] text-[#8F5A10]"
             }`}
         >
             {status === "current" ? "Aktuális" : "Teljesített"}

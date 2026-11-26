@@ -728,7 +728,7 @@ export default function AdminOrderCard({
                 overflow-hidden rounded-xl bg-white shadow-sm
                 transition-all duration-200
                 ${isOpen
-                    ? "border-2 border-blue-400 ring-2 ring-blue-100"
+                    ? "border-2 border-[#43852D] ring-2 ring-[#E0EED4]"
                     : "border border-gray-200"
                 }
             `}
@@ -856,7 +856,7 @@ export default function AdminOrderCard({
 
                     {saveSuccess &&
                         !isEditing && (
-                            <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                            <div className="mt-4 rounded-lg border border-[#43852D]/30 bg-[#F0F5EB] px-4 py-3">
                                 <p className="text-center text-sm text-[rgb(67,133,45)]">
                                     {
                                         saveSuccess
@@ -867,8 +867,8 @@ export default function AdminOrderCard({
 
                     {emailWarning &&
                         !isEditing && (
-                            <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-                                <p className="text-center text-sm text-amber-800">
+                            <div className="mt-4 rounded-lg border border-[#B57418]/40 bg-[#FBF3E4] px-4 py-3">
+                                <p className="text-center text-sm text-[#8F5A10]">
                                     {emailWarning}
                                 </p>
                             </div>
@@ -997,7 +997,7 @@ export default function AdminOrderCard({
                                 </h3>
 
                                 {historyError && (
-                                    <p className="mt-4 text-center text-sm text-red-600">
+                                    <p className="mt-4 text-center text-sm text-[#C83D3D]">
                                         {
                                             historyError
                                         }
@@ -1033,20 +1033,20 @@ export default function AdminOrderCard({
                                                         {index < historyVersions.length - 1 && (
                                                             <span
                                                                 aria-hidden="true"
-                                                                className="absolute left-1 top-4 -bottom-4 w-0.5 bg-violet-600"
+                                                                className="absolute left-1 top-4 -bottom-4 w-0.5 bg-[#8A7355]"
                                                             />
                                                         )}
                                                         <span
                                                             aria-hidden="true"
-                                                            className="absolute left-0 top-[11px] z-10 h-2.5 w-2.5 rounded-full border-2 border-violet-600 bg-white"
+                                                            className="absolute left-0 top-[11px] z-10 h-2.5 w-2.5 rounded-full border-2 border-[#8A7355] bg-white"
                                                         />
                                                         <span
                                                             aria-hidden="true"
-                                                            className="absolute left-2.5 top-[15px] h-0.5 w-2.5 bg-violet-600"
+                                                            className="absolute left-2.5 top-[15px] h-0.5 w-2.5 bg-[#8A7355]"
                                                         />
                                                         <div className="mb-1.5 flex min-h-8 flex-wrap items-center gap-x-2 gap-y-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-500">
                                                             <span
-                                                                className="shrink-0 rounded bg-violet-100 px-2 py-0.5 text-xs font-semibold text-violet-800"
+                                                                className="shrink-0 rounded bg-[#E8DFD0] px-2 py-0.5 text-xs font-semibold text-[#604D35]"
                                                             >
                                                                 {version.version_number}. verzió
                                                             </span>
@@ -1168,7 +1168,7 @@ export default function AdminOrderCard({
                             />
 
                             {saveError && (
-                                <p className="mt-4 text-sm text-red-600">
+                                <p className="mt-4 text-sm text-[#C83D3D]">
                                     {saveError}
                                 </p>
                             )}

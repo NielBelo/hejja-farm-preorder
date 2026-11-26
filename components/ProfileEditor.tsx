@@ -507,9 +507,9 @@ export default function ProfileEditor({
                         <div
                             className="
                                 mb-6 rounded-lg
-                                border border-green-200
-                                bg-green-50 px-4 py-3
-                                text-base text-green-700
+                                border border-[#43852D]/30
+                                bg-[#F0F5EB] px-4 py-3
+                                text-base text-[#43852D]
                             "
                         >
                             {saveSuccess}

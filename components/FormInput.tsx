@@ -48,7 +48,7 @@ export default function FormInput({
           ${
             error
               ? "border-red-400"
-              : "border-[rgba(7,109,143,0.2)]"
+              : "border-[#D4CCBE]"
           }
         `}
       />

@@ -523,7 +523,7 @@ export default function OrderActions({
                 </div>
             )}
             {saveSuccess && !isEditing && (
-                <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                <div className="mb-3 rounded-lg border border-[#43852D]/30 bg-[#F0F5EB] px-4 py-3">
                     <p className="text-base text-center text-[rgb(67,133,45)]">
                         {saveSuccess}
                     </p>

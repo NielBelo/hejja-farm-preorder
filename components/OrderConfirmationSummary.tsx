@@ -84,7 +84,7 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                     </p>
                 )}
 
-                <div className="mt-3 grid grid-cols-3 items-center border-b border-gray-200 pb-4 text-sm text-gray-600">
+                <div className="mt-3 grid grid-cols-[1fr_auto_1fr] items-center gap-x-4 border-b border-gray-200 pb-4 text-sm text-gray-600">
                     <div className="text-left">
                         Rendelésszám:{" "}
                         <span className="font-semibold text-gray-700">
@@ -93,7 +93,7 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                     </div>
 
                     <div className="text-center">
-                        <span className="inline-block whitespace-nowrap rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
+                        <span className="inline-block whitespace-nowrap rounded-md bg-[#E8DFD0] px-2.5 py-1 text-lg font-semibold text-[#604D35]">
                             {isBacsKiskun
                                 ? `Átvételi nap: ${bacsKiskunRange?.rangeLabel}`
                                 : `Átvétel: ${pickupWindowLabel}`}

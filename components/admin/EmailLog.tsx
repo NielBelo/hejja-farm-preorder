@@ -7,12 +7,12 @@ import { emailTypeLabels, providerLabels, statusFilterLabels, type EmailLogPage,
 
 const dateFormatter = new Intl.DateTimeFormat("hu-HU", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Budapest" });
 const toneClasses: Record<EmailLogTone, string> = {
-    success: "bg-green-100 text-green-800",
+    success: "bg-[#E0EED4] text-[#477D35]",
     neutral: "bg-gray-100 text-gray-700",
-    warning: "bg-amber-100 text-amber-800",
-    error: "bg-red-100 text-red-800",
+    warning: "bg-[#FBF3E4] text-[#8F5A10]",
+    error: "bg-[#FCEEEE] text-[#9B2C2C]",
 };
-const providerClasses: Record<EmailProvider, string> = { smtp2go: "bg-blue-50 text-blue-700", resend: "bg-violet-50 text-violet-700" };
+const providerClasses: Record<EmailProvider, string> = { smtp2go: "bg-[#F0F5EB] text-[#43852D]", resend: "bg-[#E8DFD0] text-[#604D35]" };
 const statusOptions = Object.entries(statusFilterLabels).map(([value, label]) => ({ value, label }));
 const typeOptions = Object.entries(emailTypeLabels).map(([value, label]) => ({ value, label }));
 const providerOptions = Object.entries(providerLabels).map(([value, label]) => ({ value, label }));
@@ -99,10 +99,10 @@ export default function EmailLog() {
             <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                     <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />E-mailek szűrése
-                    {activeFilterCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{activeFilterCount}</span>}
+                    {activeFilterCount > 0 && <span className="rounded-full bg-[#E0EED4] px-2 py-0.5 text-xs text-[#43852D]">{activeFilterCount}</span>}
                 </h2>
                 <button type="button" disabled={!hasFilters} onClick={clearFilters}
-                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#43852D] hover:bg-[#F0F5EB] hover:text-[#43852D] disabled:cursor-not-allowed disabled:opacity-50">
                     <XMarkIcon aria-hidden="true" className="h-4 w-4" />Szűrők törlése
                 </button>
             </div>
@@ -110,7 +110,7 @@ export default function EmailLog() {
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,1fr))]">
                     <label className="block text-sm font-medium text-zinc-700">Címzett
                         <input type="search" value={draftSearch} onChange={(event) => setDraftSearch(event.target.value)} placeholder="Címzett e-mail-címe…"
-                            className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-blue-400" />
+                            className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-[#43852D]" />
                     </label>
                     <OrderFilterDropdown label="E-mail típusa" options={typeOptions} selected={draftType ? [draftType] : []} disabled={false}
                         onChange={(values) => setDraftType(values.find((value) => value !== draftType) ?? "")} />
@@ -121,7 +121,7 @@ export default function EmailLog() {
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <button type="button" onClick={() => !loading && setReloadCount((count) => count + 1)} disabled={loading}
-                        className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Frissítés</button>
+                        className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-[#43852D] hover:bg-[#F0F5EB] hover:text-[#43852D] disabled:cursor-not-allowed disabled:opacity-50">Frissítés</button>
                     <button type="submit" disabled={loading} className="rounded-lg bg-[rgb(67,133,45)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Keresés</button>
                 </div>
             </form>
@@ -130,10 +130,10 @@ export default function EmailLog() {
                 <p>SMTP2GO: elmúlt 5 nap · Resend: elmúlt 30 nap. Levelenként a legfrissebb ismert állapot.</p>
             </div>
         </section>
-        {!loading && data && data.warnings.length > 0 && <div role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 [overflow-wrap:anywhere]">
+        {!loading && data && data.warnings.length > 0 && <div role="status" className="rounded-xl border border-[#B57418]/40 bg-[#FBF3E4] px-4 py-3 text-sm text-[#8F5A10] [overflow-wrap:anywhere]">
             {data.warnings.map((warning) => <p key={warning}>{warning}</p>)}
         </div>}
-        {error && <p role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 [overflow-wrap:anywhere]">{error}</p>}
+        {error && <p role="alert" className="rounded-xl border border-[#C83D3D]/30 bg-[#FCEEEE] px-4 py-3 text-sm text-[#C83D3D] [overflow-wrap:anywhere]">{error}</p>}
         {loading && !error && <p className="py-6 text-center text-sm text-gray-500">Betöltés…</p>}
         {!loading && !error && data && data.rows.length === 0 && <div className="rounded-xl border border-dashed border-gray-300 bg-white px-5 py-10 text-center text-sm text-gray-500">Nincs a feltételeknek megfelelő e-mail.</div>}
 

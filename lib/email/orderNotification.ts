@@ -87,7 +87,7 @@ export function buildItemsHtml(items: OrderNotificationItem[]) {
 
         return `
             <tr>
-                <td style="padding:${index === 0 ? "6px" : "20px"} 0 20px;border-bottom:1px solid #e5e7eb;">
+                <td style="padding:${index === 0 ? "6px" : "20px"} 0 20px;border-bottom:1px solid #D4CCBE;">
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
                         <tr>
                             <td style="padding-right:16px;vertical-align:top;">
@@ -99,7 +99,7 @@ export function buildItemsHtml(items: OrderNotificationItem[]) {
                                 </div>
                             </td>
                             <td width="74" style="vertical-align:top;text-align:right;white-space:nowrap;">
-                                        <span style="display:inline-block;padding:5px 10px;border-radius:999px;background:#e9f9f1;color:#218856;font-size:14px;line-height:22px;font-weight:700;">
+                                        <span style="display:inline-block;padding:5px 10px;border-radius:999px;background:#E0EED4;color:#43852D;font-size:14px;line-height:22px;font-weight:700;">
                                     ${item.quantity} db
                                 </span>
                             </td>
@@ -144,11 +144,11 @@ function buildHtml(
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>${escapeHtml(heading)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f4f7f5;color:#374151;">
+<body style="margin:0;padding:0;background:#F3F6F0;color:#374151;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;">
         ${escapeHtml(heading)} Rendelésszám: ${escapeHtml(data.orderNumber)}
     </div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#f4f7f5;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#F3F6F0;">
         <tr>
             <td align="center" style="padding:28px 12px;">
                 <table role="presentation" width="680" cellspacing="0" cellpadding="0" border="0" style="width:100%;max-width:680px;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 3px 14px rgba(17,24,39,0.07);">
@@ -159,8 +159,8 @@ function buildHtml(
                             </p>
 
                             ${isCancelled ? `
-                            <div style="margin-bottom:20px;padding:14px 17px;background:#fdecec;border-left:3px solid #dc4c4c;border-radius:0 8px 8px 0;">
-                                <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#dc4c4c;line-height:24px;text-align:center;vertical-align:middle;">
+                            <div style="margin-bottom:20px;padding:14px 17px;background:#FCEEEE;border-left:3px solid #C83D3D;border-radius:0 8px 8px 0;">
+                                <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#C83D3D;line-height:24px;text-align:center;vertical-align:middle;">
                                     <img src="${cancelIconSrc}" width="16" height="16" alt="Törölt rendelés" style="display:inline-block;width:16px;height:16px;vertical-align:middle;border:0;outline:none;">
                                 </span>
                                 <span style="padding-left:8px;font-size:14px;line-height:22px;font-weight:700;color:#7f1d1d;vertical-align:middle;">
@@ -168,25 +168,25 @@ function buildHtml(
                                 </span>
                             </div>` : `
                             <div style="margin-bottom:20px;">
-                                <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#46cc8d;color:#ffffff;font-size:14px;line-height:24px;text-align:center;font-weight:700;vertical-align:middle;">&#10003;</span>
+                                <span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:#43852D;color:#ffffff;font-size:14px;line-height:24px;text-align:center;font-weight:700;vertical-align:middle;">&#10003;</span>
                                 <span style="padding-left:8px;font-size:14px;line-height:22px;font-weight:700;color:#374151;vertical-align:middle;">
                                     ${escapeHtml(heading)}
                                 </span>
                             </div>`}
 
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:26px;background:#f1fbf6;border-left:3px solid #46cc8d;border-radius:0 8px 8px 0;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:26px;background:#F0F5EB;border-left:3px solid #43852D;border-radius:0 8px 8px 0;">
                                 <tr>
                                     <td style="padding:15px 17px;font-size:14px;line-height:22px;color:#374151;">
-                                        <strong style="color:#218856;">Rendelésszám:</strong>
+                                        <strong style="color:#43852D;">Rendelésszám:</strong>
                                         ${escapeHtml(data.orderNumber)}<br>
                                         ${isBacsKiskun && bacsKiskunRange ? `
-                                        <strong style="color:#218856;">Átvételi nap:</strong>
+                                        <strong style="color:#43852D;">Átvételi nap:</strong>
                                         ${escapeHtml(bacsKiskunRange.rangeLabel)}<br>` : `
-                                        <strong style="color:#218856;">Átvétel időpontja:</strong>
+                                        <strong style="color:#43852D;">Átvétel időpontja:</strong>
                                         ${escapeHtml(pickupWindow!.windowLabel)}<br>${isCancelled ? "" : `
-                                        <strong style="color:#218856;">Átvétel helye:</strong>
+                                        <strong style="color:#43852D;">Átvétel helye:</strong>
                                         ${escapeHtml(pickupWindow!.location)}<br>`}`}
-                                        <strong style="color:#218856;">Összes mennyiség:</strong>
+                                        <strong style="color:#43852D;">Összes mennyiség:</strong>
                                         ${totalQuantity} db
                                     </td>
                                 </tr>
@@ -200,10 +200,10 @@ function buildHtml(
                             </table>
 
                             ${isCancelled ? "" : `
-                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:26px;margin-bottom:26px;background:#fff9e9;border-left:3px solid #e8b931;border-radius:0 8px 8px 0;">
+                            <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-top:26px;margin-bottom:26px;background:#FBF3E4;border-left:3px solid #B57418;border-radius:0 8px 8px 0;">
                                 <tr>
                                     <td style="padding:15px 17px;font-size:14px;line-height:22px;color:#4b5563;">
-                                        <strong style="color:#8a6514;">&#9998;&nbsp; A rendelés módosítható eddig:</strong><br>
+                                        <strong style="color:#8F5A10;">&#9998;&nbsp; A rendelés módosítható eddig:</strong><br>
                                         ${escapeHtml(formatOrderWindowEnd(data.modificationWindowEnd))}
                                     </td>
                                 </tr>
@@ -211,15 +211,15 @@ function buildHtml(
 
                             ${orderUrl ? `
                             <div style="padding-top:28px;text-align:center;">
-                                <a href="${orderUrl}" target="_blank" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#38b878;color:#ffffff;text-decoration:none;font-size:14px;line-height:22px;font-weight:700;">
+                                <a href="${orderUrl}" target="_blank" style="display:inline-block;padding:12px 24px;border-radius:8px;background:#43852D;color:#ffffff;text-decoration:none;font-size:14px;line-height:22px;font-weight:700;">
                                     ${isCancelled ? "Új rendelés leadása" : "Rendelésem megtekintése"}
                                 </a>
                             </div>` : ""}
 
-                            <p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #e5e7eb;font-size:14px;line-height:22px;color:#6b7280;font-style:italic;">
+                            <p style="margin:28px 0 0;padding-top:18px;border-top:1px solid #D4CCBE;font-size:14px;line-height:22px;color:#6b7280;font-style:italic;">
                                 &#9993;&nbsp; Ez egy automatikus e-mail, kérjük, ne válaszoljon rá.<br>
                                 Kérdés vagy probléma esetén írjon a
-                                <a href="mailto:hejjaokofarm@gmail.com" style="color:#218856;font-weight:700;text-decoration:none;">hejjaokofarm@gmail.com</a>
+                                <a href="mailto:hejjaokofarm@gmail.com" style="color:#43852D;font-weight:700;text-decoration:none;">hejjaokofarm@gmail.com</a>
                                 címre.
                             </p>
 

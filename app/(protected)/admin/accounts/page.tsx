@@ -33,7 +33,7 @@ export default async function AdminAccountsPage() {
                 </p>
             </div>
             <div className="mt-6">
-                {failed ? <div role="alert" className="rounded-xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+                {failed ? <div role="alert" className="rounded-xl border border-[#C83D3D]/30 bg-[#FCEEEE] p-5 text-sm text-[#C83D3D]">
                     A felhasználók betöltése sikertelen. Kérjük, próbálja újra az oldal frissítésével. Ha a hiba továbbra is fennáll, jelezze az üzemeltetőnek.
                 </div> : <AdminAccountList accounts={accounts} />}
             </div>

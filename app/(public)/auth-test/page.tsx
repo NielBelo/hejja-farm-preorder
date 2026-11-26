@@ -13,7 +13,7 @@ export default async function AuthTestPage() {
 
       {user ? (
         <>
-          <p className="text-green-600 font-semibold">
+          <p className="text-[#43852D] font-semibold">
             ✅ Bejelentkezve
           </p>
 

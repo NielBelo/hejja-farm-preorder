@@ -14,7 +14,7 @@ const counties = [
 ];
 
 function privilegeCardClass(checked: boolean) {
-    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
+    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[#D4CCBE] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
 }
 
 function CountySelect({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
@@ -89,36 +89,36 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         <fieldset disabled={saving} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             <label className="text-xs font-medium text-gray-500">Vezetéknév
                 <input autoFocus name="last_name" type="text" required maxLength={100} value={form.last_name} onChange={(event) => setForm((current) => ({ ...current, last_name: event.target.value }))}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
+                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60" />
             </label>
             <label className="text-xs font-medium text-gray-500">Keresztnév
                 <input name="first_name" type="text" required maxLength={100} value={form.first_name} onChange={(event) => setForm((current) => ({ ...current, first_name: event.target.value }))}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
+                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60" />
             </label>
             <label className="text-xs font-medium text-gray-500">Telefonszám
                 <input name="phone" type="tel" inputMode="tel" required maxLength={16} placeholder="+36 30 123 4567" value={form.phone} onChange={(event) => setForm((current) => ({ ...current, phone: formatPhoneInput(event.target.value) }))}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
+                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60" />
             </label>
             <CountySelect value={form.county} disabled={saving} onChange={(county) => setForm((current) => ({ ...current, county }))} />
             <label className="text-xs font-medium text-gray-500">Település
                 <input name="city" type="text" required maxLength={100} value={form.city} onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60" />
+                    className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60" />
             </label>
             <section className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:col-span-2 lg:col-span-3" aria-label="Adminisztrátori privilégiumok">
                 <div><p className="text-sm font-semibold text-slate-800">Adminisztrátori privilégiumok</p><p className="mt-0.5 text-xs text-slate-500">Ezek a beállítások kizárólag itt, az admin felületen láthatók.</p></div>
                 {account.is_superadmin ? (
-                    <p className="flex items-center gap-2 text-sm text-violet-700"><ShieldCheckIcon aria-hidden="true" className="h-5 w-5" />Superadmin · A védett jogosultság nem módosítható.</p>
+                    <p className="flex items-center gap-2 text-sm text-[#604D35]"><ShieldCheckIcon aria-hidden="true" className="h-5 w-5" />Superadmin · A védett jogosultság nem módosítható.</p>
                 ) : (
                     <label className={`${privilegeCardClass(form.role === "admin")} font-medium`}>
                         <input type="checkbox" checked={form.role === "admin"} onChange={(event) => setForm((current) => ({ ...current, role: event.target.checked ? "admin" : "user" }))}
                             className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]" />
-                        <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />Adminisztrátori jog
+                        <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-[#8A7355]" />Adminisztrátori jog
                     </label>
                 )}
             </section>
         </fieldset>
         <p className="mt-2 text-xs text-gray-500">E-mail cím: {account.email || "Nincs megadva"} · Az e-mail címet a fiók tulajdonosa módosíthatja a személyes adatainál.</p>
-        {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="mt-3 text-sm text-[#C83D3D]">{error}</p>}
         <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-3">
             <button type="button" disabled={saving} onClick={onCancel} className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50">Mégse</button>
             <button type="submit" disabled={!hasChanges || saving} className="rounded-lg bg-[rgb(67,133,45)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400">{saving ? "Mentés..." : "Módosítás mentése"}</button>

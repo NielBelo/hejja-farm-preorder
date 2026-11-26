@@ -21,7 +21,7 @@ function fromLocalInputValue(value: string): string | null {
 }
 
 function toggleCardClass(checked: boolean) {
-    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
+    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[#D4CCBE] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
 }
 
 type FormState = {
@@ -87,7 +87,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                             onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
                             className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]"
                         />
-                        <BoltIcon aria-hidden="true" className="h-4 w-4 text-amber-500" />
+                        <BoltIcon aria-hidden="true" className="h-4 w-4 text-[#B57418]" />
                         Karbantartás: {form.active ? "aktív" : "inaktív"}
                     </label>
                     <label className={toggleCardClass(form.adminBypass)}>
@@ -97,7 +97,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                             onChange={(event) => setForm((current) => ({ ...current, adminBypass: event.target.checked }))}
                             className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]"
                         />
-                        <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />
+                        <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-[#8A7355]" />
                         Admin hozzáférés karbantartás alatt: {form.adminBypass ? "engedélyezve" : "tiltva"}
                     </label>
                 </div>
@@ -109,7 +109,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                             type="datetime-local"
                             value={form.endsAtLocal}
                             onChange={(event) => setForm((current) => ({ ...current, endsAtLocal: event.target.value }))}
-                            className="mt-1 block w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60"
+                            className="mt-1 block w-full max-w-xs rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60"
                         />
                     </label>
                     <p className="mt-1 text-xs text-gray-400">
@@ -125,7 +125,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                         maxLength={2000}
                         value={form.message}
                         onChange={(event) => setForm((current) => ({ ...current, message: event.target.value }))}
-                        className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-blue-400 focus:outline-blue-400 disabled:opacity-60"
+                        className="mt-1 block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-800 focus:border-[#43852D] focus:outline-[#43852D] disabled:opacity-60"
                     />
                 </label>
                 <button
@@ -138,7 +138,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                 </button>
             </fieldset>
 
-            {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+            {error && <p role="alert" className="mt-3 text-sm text-[#C83D3D]">{error}</p>}
             {!error && savedAt && !hasChanges && <p role="status" className="mt-3 text-sm text-[rgb(67,133,45)]">Mentve.</p>}
 
             <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-3">

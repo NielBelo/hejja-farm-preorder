@@ -20,7 +20,7 @@ export default function SelectorCard({
         hover:scale-[1.02] hover:shadow-xl
         ${
           selected
-            ? 'bg-green-200 border-gray-200'
+            ? 'bg-[#E0EED4] border-gray-200'
             : 'bg-gray-200/60 border-gray-200'
         }
       `}

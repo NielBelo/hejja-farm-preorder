@@ -74,7 +74,7 @@ export default function AdminCancelOrder({
                     onOpen();
                     dialogRef.current?.showModal();
                 }}
-                className="rounded-lg border border-red-300 bg-white px-4 py-2 text-sm font-medium text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-50"
+                className="rounded-lg border border-[#C83D3D]/40 bg-white px-4 py-2 text-sm font-medium text-[#C83D3D] transition hover:bg-[#FCEEEE] disabled:cursor-not-allowed disabled:opacity-50"
             >
                 {isCancelled ? "Lemondva" : isCancelling ? "Törlés..." : "Törlés"}
             </button>
@@ -98,7 +98,7 @@ export default function AdminCancelOrder({
                     azonosítójú rendelést? A rendelés lemondott állapotba kerül, az adatai megmaradnak.
                 </p>
 
-                {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
+                {error && <p role="alert" className="mt-3 text-sm text-[#C83D3D]">{error}</p>}
 
                 <div className="mt-6 flex justify-end gap-3">
                     <button
@@ -113,7 +113,7 @@ export default function AdminCancelOrder({
                         type="button"
                         onClick={handleCancelOrder}
                         disabled={cannotCancel}
-                        className="rounded-lg bg-red-600 px-4 py-2 font-semibold text-white hover:bg-red-600 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="rounded-lg bg-[#C83D3D] px-4 py-2 font-semibold text-white hover:bg-[#C83D3D] disabled:cursor-not-allowed disabled:opacity-50"
                     >
                         {isCancelling ? "Törlés..." : "Törlés"}
                     </button>

@@ -147,10 +147,10 @@ export default function AdminOrderList({
                     <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                         <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />
                         Rendelések szűrése
-                        {selectionCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectionCount}</span>}
+                        {selectionCount > 0 && <span className="rounded-full bg-[#E0EED4] px-2 py-0.5 text-xs text-[#43852D]">{selectionCount}</span>}
                     </h2>
                     <button type="button" disabled={selectionCount === 0 || editingOrderId !== null || isLoadingSeasons} onClick={handleClearFilters}
-                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60">
+                        className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#43852D] hover:bg-[#F0F5EB] hover:text-[#43852D] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 disabled:opacity-60">
                         <XMarkIcon aria-hidden="true" className="h-4 w-4" />
                         Szűrők törlése
                     </button>
@@ -174,7 +174,7 @@ export default function AdminOrderList({
                 </div>
             </section>
             {seasonError && (
-                <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div role="alert" className="rounded-xl border border-[#C83D3D]/30 bg-[#FCEEEE] px-4 py-3 text-sm text-[#C83D3D]">
                     {seasonError} A korábban betöltött lista maradt látható.
                     <button type="button" onClick={() => void loadSeasons(filters.season)} className="ml-2 font-semibold underline underline-offset-2">
                         Újrapróbálás

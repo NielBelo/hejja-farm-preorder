@@ -19,9 +19,9 @@ function accountBadge(account: AdminAccount) {
     if (account.status !== "registered") {
         return { label: accountStatusLabels[account.status], className: "bg-gray-100 text-gray-600" };
     }
-    if (account.is_superadmin) return { label: "Szuper adminisztrátor", className: "bg-violet-50 text-violet-700" };
-    if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-violet-50 text-violet-700" };
-    return { label: "Vásárló", className: "bg-blue-50 text-blue-700" };
+    if (account.is_superadmin) return { label: "Szuper adminisztrátor", className: "bg-[#E8DFD0] text-[#604D35]" };
+    if (account.role === "admin") return { label: "Adminisztrátor", className: "bg-[#E8DFD0] text-[#604D35]" };
+    return { label: "Vásárló", className: "bg-[#F0F5EB] text-[#43852D]" };
 }
 function ProfileField({ label, value, icon: Icon }: {
     label: string;
@@ -39,7 +39,7 @@ function ProfileField({ label, value, icon: Icon }: {
     </div>;
 }
 function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof ShieldCheckIcon }) {
-    return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-500"}`}>
+    return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[#D4CCBE] bg-white text-gray-500"}`}>
         <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(67,133,45)]" : "text-gray-400"}`} />
         <span>{label}</span><span className="ml-auto text-xs font-medium">{enabled ? "Aktív" : "Nincs"}</span>
     </div>;
@@ -82,17 +82,17 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
             <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
                 <h2 className="flex items-center gap-2 text-sm font-semibold text-zinc-700">
                     <FunnelIcon aria-hidden="true" className="h-5 w-5 text-zinc-500" />Felhasználók szűrése
-                    {selectionCount > 0 && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-700">{selectionCount}</span>}
+                    {selectionCount > 0 && <span className="rounded-full bg-[#E0EED4] px-2 py-0.5 text-xs text-[#43852D]">{selectionCount}</span>}
                 </h2>
                 <button type="button" disabled={!selectionCount || editing} onClick={() => { setSearch(""); setStatuses([]); setRoles([]); setCounties([]); setOpenId(null); }}
-                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">
+                    className="flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-[#43852D] hover:bg-[#F0F5EB] hover:text-[#43852D] disabled:cursor-not-allowed disabled:opacity-50">
                     <XMarkIcon aria-hidden="true" className="h-4 w-4" />Szűrők törlése
                 </button>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                 <label className="block text-sm font-medium text-zinc-700">Keresés
                     <input type="search" disabled={editing} value={search} onChange={(event) => { setSearch(event.target.value); setOpenId(null); }} placeholder="Név, e-mail, telefon, település…"
-                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-blue-400" />
+                        className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-[#43852D]" />
                 </label>
                 <OrderFilterDropdown label="Állapot" options={Object.entries(accountStatusLabels).map(([value, label]) => ({ value, label }))} selected={statuses} disabled={editing} onChange={(values) => { setStatuses(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
@@ -117,8 +117,8 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
             const open = openId === account.id;
             const panelId = `account-${encodeURIComponent(account.id)}`;
             const badge = accountBadge(account);
-            return <article key={account.id} className={`overflow-hidden rounded-xl bg-white shadow-sm transition-all ${open ? "border-2 border-blue-400 ring-2 ring-blue-100" : "border border-gray-200"}`}>
-                <h2><button type="button" disabled={editing} aria-expanded={open} aria-controls={panelId} onClick={() => setOpenId(open ? null : account.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/70 focus-visible:outline-blue-400">
+            return <article key={account.id} className={`overflow-hidden rounded-xl bg-white shadow-sm transition-all ${open ? "border-2 border-[#43852D] ring-2 ring-[#E0EED4]" : "border border-gray-200"}`}>
+                <h2><button type="button" disabled={editing} aria-expanded={open} aria-controls={panelId} onClick={() => setOpenId(open ? null : account.id)} className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-gray-50/70 focus-visible:outline-[#43852D]">
                     <UserCircleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-gray-400" />
                     <span className="min-w-0 flex-1">
                         <span className="flex flex-wrap items-center gap-2">
@@ -179,13 +179,13 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                                 </div>
                             </dl>
                         </section>
-                        {savedId === account.id && <p role="status" className="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">A személyes adatok módosítása sikeres.</p>}
+                        {savedId === account.id && <p role="status" className="rounded-lg border border-[#43852D]/30 bg-[#F0F5EB] px-3 py-2 text-sm text-[#43852D]">A személyes adatok módosítása sikeres.</p>}
                         {editingId !== account.id && <div className="border-t border-gray-200 pt-3">
                             {account.user_id && <button type="button" disabled={editing || deleting} onClick={() => { setEditingId(account.id); setSavedId(null); }}
                                 className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:text-gray-300">Módosítás</button>
                             }
                             {!account.is_superadmin && <button type="button" disabled={editing || deleting} onClick={() => { setDeleteError(null); setConfirmingAccount(account); }}
-                                className="ml-2 rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-medium text-red-700 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:text-red-300">{account.user_id ? "Fiók törlése" : "Meghívó törlése"}</button>}
+                                className="ml-2 rounded-lg border border-[#C83D3D]/30 bg-white px-4 py-2 text-sm font-medium text-[#C83D3D] transition hover:bg-[#FCEEEE] disabled:cursor-not-allowed disabled:text-[#C83D3D]/50">{account.user_id ? "Fiók törlése" : "Meghívó törlése"}</button>}
                         </div>}
                     </>}
                 </div>
@@ -196,7 +196,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                 <h2 id="delete-account-title" className="text-lg font-semibold text-gray-900">{confirmingAccount.user_id ? "Fiók törlésének megerősítése" : "Meghívó törlésének megerősítése"}</h2>
                 <p className="mt-3 text-sm leading-6 text-gray-700">{confirmingAccount.user_id ? "A fiókhoz tartozó személyes adatok, rendelések, hozzájárulások és meghívók is végleg törlődnek." : "A fel nem használt meghívó végleg törlődik."}</p>
                 <p className="mt-2 break-words text-sm font-semibold text-gray-900">{accountName(confirmingAccount)} · {confirmingAccount.email}</p>
-                {deleteError && <p role="alert" className="mt-3 text-sm text-red-700">{deleteError}</p>}
+                {deleteError && <p role="alert" className="mt-3 text-sm text-[#C83D3D]">{deleteError}</p>}
                 <div className="mt-5 flex justify-end gap-2">
                     <button type="button" disabled={deleting} onClick={() => setConfirmingAccount(null)} className="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700">Mégse</button>
                     <button type="button" disabled={deleting} onClick={async () => {
@@ -205,7 +205,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         if (result.success) { setDeletedIds((current) => new Set(current).add(confirmingAccount.id)); setOpenId(null); setConfirmingAccount(null); }
                         else setDeleteError(result.error);
                         setDeleting(false);
-                    }} className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{deleting ? "Törlés…" : "Igen, törlöm"}</button>
+                    }} className="rounded-lg bg-[#C83D3D] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50">{deleting ? "Törlés…" : "Igen, törlöm"}</button>
                 </div>
             </div>
         </div>}
