@@ -24,8 +24,8 @@ export default async function LoginPage({
 
   return (
     <main className="mx-auto mt-10 max-w-lg rounded-2xl bg-white px-6 py-10 shadow-lg sm:px-10 sm:py-12">
-      <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[rgb(49,171,2)]/15">
-        <LockClosedIcon className="h-7 w-7 text-[rgb(49,171,2)]" />
+      <div className="mx-auto mb-6 flex h-14 w-14 items-center justify-center rounded-full bg-[rgb(67,133,45)]/15">
+        <LockClosedIcon className="h-7 w-7 text-[rgb(67,133,45)]" />
       </div>
 
       <h1 className="mb-6 text-center text-xl font-bold text-gray-700 sm:text-2xl">

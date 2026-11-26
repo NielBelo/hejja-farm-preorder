@@ -410,7 +410,7 @@ export default function ProfileEditor({
                             relative z-20
                             -mx-7 -mt-7 mb-7
                             flex flex-col gap-4
-                            bg-[#F0FAEE]
+                            bg-[#F0F5EB]
                             px-7 py-6
                             sm:-mx-10 sm:-mt-10 sm:px-10
                             sm:flex-row
@@ -488,12 +488,12 @@ export default function ProfileEditor({
                                     flex items-center
                                     justify-center gap-2
                                     rounded-lg border
-                                    border-[rgb(49,171,2)]/40
+                                    border-[rgb(67,133,45)]/40
                                     bg-white px-5 py-3
                                     text-base font-semibold
-                                    text-[rgb(49,171,2)]
+                                    text-[rgb(67,133,45)]
                                     transition
-                                    hover:bg-[#F0FAEE]
+                                    hover:bg-[#F0F5EB]
                                 "
                             >
                                 <PencilSquareIcon className="h-5 w-5" />
@@ -589,15 +589,15 @@ export default function ProfileEditor({
                                 className="
     flex items-center gap-2
     rounded-lg
-    bg-[rgb(49,171,2)]
+    bg-[rgb(67,133,45)]
     px-5 py-3
     text-base font-semibold
     text-white
     transition
     hover:opacity-90
     disabled:cursor-not-allowed
-    disabled:bg-[#F0FAEE]
-    disabled:text-[rgb(49,171,2)]/50
+    disabled:bg-[#F0F5EB]
+    disabled:text-[rgb(67,133,45)]/50
     disabled:opacity-100
 "
                             >
@@ -671,7 +671,7 @@ function InfoField({
     return (
         <div className="pb-4">
             <div className="mb-2 flex items-center gap-2">
-                <span className="text-[rgb(49,171,2)]">
+                <span className="text-[rgb(67,133,45)]">
                     {icon}
                 </span>
 
@@ -797,9 +797,9 @@ function EditProfile({
                             text-base font-semibold
                             text-gray-600
                             transition
-                            hover:border-[rgb(49,171,2)]/30
-                            hover:bg-[#F0FAEE]
-                            hover:text-[rgb(49,171,2)]
+                            hover:border-[rgb(67,133,45)]/30
+                            hover:bg-[#F0F5EB]
+                            hover:text-[rgb(67,133,45)]
                         "
                     >
                         <LockClosedIcon className="h-5 w-5" />
@@ -817,7 +817,7 @@ function EditProfile({
                             <LockClosedIcon
                                 className="
                                     h-5 w-5
-                                    text-[rgb(49,171,2)]
+                                    text-[rgb(67,133,45)]
                                 "
                             />
 
@@ -914,7 +914,7 @@ function CountySelect({
                     outline-none transition
                     ${
                         isOpen
-                            ? "border-[rgb(49,171,2)] ring-2 ring-[rgb(49,171,2)]/10"
+                            ? "border-[rgb(67,133,45)] ring-2 ring-[rgb(67,133,45)]/10"
                             : "border-gray-300"
                     }
                 `}
@@ -980,10 +980,10 @@ function CountySelect({
                                         text-left text-base
                                         text-gray-800
                                         transition-colors
-                                        hover:bg-[#F0FAEE]
+                                        hover:bg-[#F0F5EB]
                                         ${
                                             isSelected
-                                                ? "bg-[#F0FAEE] font-medium"
+                                                ? "bg-[#F0F5EB] font-medium"
                                                 : "bg-white"
                                         }
                                     `}
@@ -996,7 +996,7 @@ function CountySelect({
                                         <CheckIcon
                                             className="
                                                 h-5 w-5 shrink-0
-                                                text-[rgb(49,171,2)]
+                                                text-[rgb(67,133,45)]
                                             "
                                         />
                                     )}
@@ -1052,9 +1052,9 @@ function ProfileInput({
                     text-lg text-gray-800 outline-none
                     transition
                     placeholder:text-gray-300
-                    focus:border-[rgb(49,171,2)]
+                    focus:border-[rgb(67,133,45)]
                     focus:ring-2
-                    focus:ring-[rgb(49,171,2)]/10
+                    focus:ring-[rgb(67,133,45)]/10
                 "
             />
         </div>
@@ -1089,9 +1089,9 @@ function PasswordInput({
                     bg-white px-4 py-3
                     text-lg text-gray-800 outline-none
                     transition
-                    focus:border-[rgb(49,171,2)]
+                    focus:border-[rgb(67,133,45)]
                     focus:ring-2
-                    focus:ring-[rgb(49,171,2)]/10
+                    focus:ring-[rgb(67,133,45)]/10
                 "
             />
         </div>
@@ -1149,7 +1149,7 @@ function SecurityBarcode({
 
             {/* FEJLÉC */}
             <div className="mb-2 flex items-center gap-2">
-                <span className="text-[rgb(49,171,2)]">
+                <span className="text-[rgb(67,133,45)]">
                     <LockClosedIcon className="h-6 w-6" />
                 </span>
 
@@ -1206,7 +1206,7 @@ function FarmVerificationMark() {
                 className="
                     flex items-center gap-2
                     rounded-lg
-                    border border-[rgb(49,171,2)]/20
+                    border border-[rgb(67,133,45)]/20
                     bg-white/85
                     px-2.5 py-2
                 "
@@ -1238,7 +1238,7 @@ function FarmVerificationMark() {
                             mt-0.5 flex items-center gap-1
                             text-sm font-medium
                             uppercase tracking-[0.12em]
-                            text-[rgb(49,171,2)]
+                            text-[rgb(67,133,45)]
                         "
                     >
                         <CheckIcon className="h-2.5 w-2.5" />
@@ -1257,7 +1257,7 @@ const SecurityPattern = memo(function SecurityPattern() {
                 pointer-events-none
                 absolute inset-0
                 z-0 h-full w-full
-                text-[rgb(49,171,2)]
+                text-[rgb(67,133,45)]
                 opacity-[0.09]
             "
             viewBox="0 0 1000 500"

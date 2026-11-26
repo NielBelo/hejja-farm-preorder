@@ -24,7 +24,7 @@ export default function SeasonOrderInfo({
         .split(/(\d+(?:[.,]\d+)?\s*[–-]\s*\d+(?:[.,]\d+)?\s*kg|\d[\d\s]*\s*Ft\/kg)/gi)
         .map((part, index) =>
             /(?:kg|Ft\/kg)$/i.test(part.trim()) ? (
-                <span key={index} className="font-extrabold text-[rgb(22,120,62)]">
+                <span key={index} className="font-extrabold text-[#43852D]">
                     {part}
                 </span>
             ) : (

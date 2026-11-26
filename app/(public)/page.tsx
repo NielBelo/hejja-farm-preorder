@@ -23,7 +23,7 @@ export default function HomePage() {
         meghívóért vedd fel velünk a kapcsolatot a{" "}
         <a
           href={`mailto:${CONTACT_EMAIL}`}
-          className="font-medium text-[rgb(49,171,2)] underline decoration-[rgb(49,171,2)]/40 underline-offset-2 transition hover:decoration-[rgb(49,171,2)]"
+          className="font-medium text-[rgb(67,133,45)] underline decoration-[rgb(67,133,45)]/40 underline-offset-2 transition hover:decoration-[rgb(67,133,45)]"
         >
           {CONTACT_EMAIL}
         </a>{" "}
@@ -33,7 +33,7 @@ export default function HomePage() {
       <div className="mt-8">
         <Link
           href="/login"
-          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[rgb(49,171,2)] px-4 py-3 text-base font-medium text-white shadow-sm transition hover:brightness-95 sm:w-auto sm:px-8 sm:text-lg"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-[rgb(67,133,45)] px-4 py-3 text-base font-medium text-white shadow-sm transition hover:brightness-95 sm:w-auto sm:px-8 sm:text-lg"
         >
           Bejelentkezés
           <ArrowRightIcon className="h-4 w-4 sm:h-5 sm:w-5" />

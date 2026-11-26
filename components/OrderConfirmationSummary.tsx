@@ -72,9 +72,9 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                 className="mt-4 scroll-mt-24 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             >
                 <div className="mb-2 flex justify-center">
-                    <CheckCircleIcon className="h-10 w-10 text-[rgb(49,171,2)]" />
+                    <CheckCircleIcon className="h-10 w-10 text-[rgb(67,133,45)]" />
                 </div>
-                <h3 className="text-center text-lg font-semibold text-[rgb(49,171,2)]">
+                <h3 className="text-center text-lg font-semibold text-[rgb(67,133,45)]">
                     Előrendelés sikeresen leadva!
                 </h3>
 
@@ -115,9 +115,9 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                     {items.map((item, index) => (
                         <div
                             key={index}
-                            className="rounded-lg border border-[rgba(92,113,190,0.35)] bg-[rgba(92,113,190,0.07)] p-3 text-base text-gray-700"
+                            className="rounded-lg border border-[rgba(138,115,85,0.35)] bg-[rgba(138,115,85,0.07)] p-3 text-base text-gray-700"
                         >
-                            <p className="font-semibold text-[rgb(55,75,150)]">
+                            <p className="font-semibold text-[rgb(84,70,52)]">
                                 {index + 1}. tétel: {item.productName}
                             </p>
 

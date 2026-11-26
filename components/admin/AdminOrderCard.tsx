@@ -265,22 +265,22 @@ export default function AdminOrderCard({
         maxAvailableQuantity === null
             ? {
                 text: "Korlátlan (DUNAVECSE technikai nap)",
-                iconClass: "text-[rgb(49,171,2)]",
+                iconClass: "text-[rgb(67,133,45)]",
             }
             : maxAvailableQuantity <= 0
             ? {
                 text: "Előrendelés betelt!",
-                iconClass: "text-red-500",
+                iconClass: "text-[#C83D3D]",
             }
             : maxAvailableQuantity <= 30
                 ? {
                     text: `Már csak ${maxAvailableQuantity} db csirke elérhető!`,
-                    iconClass: "text-yellow-500",
+                    iconClass: "text-[#B57418]",
                 }
                 : {
                     text: "Még több, mint 30 db csirke elérhető!",
                     iconClass:
-                        "text-[rgb(49,171,2)]",
+                        "text-[rgb(67,133,45)]",
                 };
 
     // ------------------------------------------------------------
@@ -857,7 +857,7 @@ export default function AdminOrderCard({
                     {saveSuccess &&
                         !isEditing && (
                             <div className="mt-4 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                                <p className="text-center text-sm text-[rgb(49,171,2)]">
+                                <p className="text-center text-sm text-[rgb(67,133,45)]">
                                     {
                                         saveSuccess
                                     }
@@ -1218,7 +1218,7 @@ export default function AdminOrderCard({
                                         ${canSave &&
                                             !isSaving
                                             ? `
-                                                    bg-[rgb(49,171,2)]
+                                                    bg-[rgb(67,133,45)]
                                                     text-white
                                                     hover:bg-[rgb(42,150,2)]
                                                 `

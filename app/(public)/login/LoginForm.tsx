@@ -51,7 +51,7 @@ export default function LoginForm({ returnTo }: { returnTo?: string }) {
         className="
           w-full
           rounded-xl
-          bg-[rgb(49,171,2)]
+          bg-[rgb(67,133,45)]
           px-4
           py-2.5
           font-medium

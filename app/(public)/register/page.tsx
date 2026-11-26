@@ -46,7 +46,7 @@ export default async function RegisterPage({
         <p className="text-center text-red-600">{message}</p>
         <Link
           href="/login"
-          className="mt-6 block text-center font-medium text-[rgb(49,171,2)] underline"
+          className="mt-6 block text-center font-medium text-[rgb(67,133,45)] underline"
         >
           Bejelentkezés
         </Link>

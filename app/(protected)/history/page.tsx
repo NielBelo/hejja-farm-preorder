@@ -278,19 +278,21 @@ export default async function HistoryPage({
           <CountdownCard
             startDate={season?.time_window_start}
             endDate={season?.time_window_end}
+            seasonYear={season?.year}
+            seasonName={season?.season}
           />
         </div>
       )}
 
       {/* Rendelési előzmények elválasztó */}
       <div className="mx-auto mt-4 mb-4 flex w-full max-w-4xl items-center gap-4">
-        <div className="h-[1.5px] flex-1 bg-gray-400" />
+        <div className="h-[1.5px] flex-1 bg-[#D4CCBE]" />
 
-        <h2 className="shrink-0 text-xl font-semibold tracking-wider text-gray-400">
+        <h2 className="shrink-0 text-xl font-semibold tracking-wider text-[#8A7355]">
           RENDELÉSI ELŐZMÉNYEK
         </h2>
 
-        <div className="h-[1.5px] flex-1 bg-gray-400" />
+        <div className="h-[1.5px] flex-1 bg-[#D4CCBE]" />
       </div>
 
 
@@ -328,7 +330,7 @@ export default async function HistoryPage({
                   <div className="flex flex-wrap items-center justify-between gap-3 px-5 pt-4 pb-2">
 
                     {/* Átvételi nap - bal oldal */}
-                    <span className="inline-block rounded-md bg-blue-100 px-2.5 py-1 text-lg font-semibold text-gray-800">
+                    <span className="inline-block rounded-md bg-[#E8DFD0] px-2.5 py-1 text-lg font-semibold text-[#604D35]">
                       Átvétel:{" "}
                       {pickupDate ? formatDate(pickupDate) : "Nincs megadva"}
                     </span>
@@ -339,8 +341,8 @@ export default async function HistoryPage({
                         className={`
         h-2.5 w-2.5 rounded-full
         ${isCurrent
-                            ? "bg-[rgb(49,171,2)]"
-                            : "bg-gray-300"
+                            ? "bg-[#43852D]"
+                            : "bg-[#737B80]"
                           }
       `}
                       />
@@ -349,8 +351,8 @@ export default async function HistoryPage({
                         className={`
         text-base font-semibold uppercase tracking-wide
         ${isCurrent
-                            ? "text-[rgb(49,171,2)]"
-                            : "text-gray-400"
+                            ? "text-[#43852D]"
+                            : "text-[#737B80]"
                           }
       `}
                       >
@@ -394,10 +396,10 @@ export default async function HistoryPage({
                       {items.map((item, index) => (
                         <div
                           key={item.id}
-                          className="rounded-lg border border-[rgba(92,113,190,0.35)] bg-[rgba(92,113,190,0.07)] p-3 text-base text-gray-700"
+                          className="rounded-lg border border-[rgba(138,115,85,0.35)] bg-[rgba(138,115,85,0.07)] p-3 text-base text-gray-700"
                         >
                           {/* 1. sor: termék + mennyiség */}
-                          <p className="text-lg font-semibold text-[rgb(55,75,150)]">
+                          <p className="text-lg font-semibold text-[rgb(84,70,52)]">
                             {index + 1}. tétel: {item.products?.name ?? "Ismeretlen termék"}
                           </p>
 

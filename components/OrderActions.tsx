@@ -524,7 +524,7 @@ export default function OrderActions({
             )}
             {saveSuccess && !isEditing && (
                 <div className="mb-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                    <p className="text-base text-center text-[rgb(49,171,2)]">
+                    <p className="text-base text-center text-[rgb(67,133,45)]">
                         {saveSuccess}
                     </p>
                 </div>
@@ -554,12 +554,12 @@ export default function OrderActions({
                         onClick={handleEdit}
                         disabled={anotherOrderIsEditing || !isPickupDayActive}
                         className={`
-        rounded-lg border border-gray-300
+        rounded-lg border border-[#8A7355]
         px-5 py-3 text-base font-semibold
         transition-colors
         ${anotherOrderIsEditing || !isPickupDayActive
                                 ? "cursor-not-allowed bg-gray-100 text-gray-300"
-                                : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
+                                : "text-[#8A7355] hover:bg-[#F4EFE6]"
                             }
     `}
                     >
@@ -571,12 +571,12 @@ export default function OrderActions({
                         onClick={() => setShowCancelModal(true)}
                         disabled={isCancelling || anotherOrderIsEditing}
                         className={`
-        rounded-lg border border-red-200
+        rounded-lg border border-[#C83D3D]/40
         px-5 py-3 text-base font-semibold
         transition-colors
         ${isCancelling || anotherOrderIsEditing
                                 ? "cursor-not-allowed bg-gray-50 text-gray-300"
-                                : "text-red-500 hover:bg-red-50 hover:text-red-600"
+                                : "text-[#C83D3D] hover:bg-[#FCEEEE]"
                             }
     `}
                     >
@@ -684,7 +684,7 @@ export default function OrderActions({
             transition-colors
             ${canSave && !isSaving
                                     ? `
-                        bg-[rgb(49,171,2)]
+                        bg-[rgb(67,133,45)]
                         text-white
                         hover:bg-[rgb(42,150,2)]
                       `

@@ -24,10 +24,10 @@ export default function MaintenanceOverlay({
   return (
     <main className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-2xl flex-col items-center justify-center px-4 py-10">
       <div className="w-full rounded-xl border border-gray-100 bg-white p-8 text-center shadow-sm sm:p-12">
-        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[rgba(216,227,232,0.51)]">
+        <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[#E0EED4]">
           <WrenchScrewdriverIcon
             aria-hidden="true"
-            className="h-8 w-8 text-[rgb(49,171,2)]"
+            className="h-8 w-8 text-[rgb(67,133,45)]"
           />
         </div>
 

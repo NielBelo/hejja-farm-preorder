@@ -21,7 +21,7 @@ function fromLocalInputValue(value: string): string | null {
 }
 
 function toggleCardClass(checked: boolean) {
-    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm transition-all ${checked ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(49,171,2)] hover:bg-gray-50"}`;
+    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2.5 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
 }
 
 type FormState = {
@@ -85,7 +85,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                             type="checkbox"
                             checked={form.active}
                             onChange={(event) => setForm((current) => ({ ...current, active: event.target.checked }))}
-                            className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]"
+                            className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]"
                         />
                         <BoltIcon aria-hidden="true" className="h-4 w-4 text-amber-500" />
                         Karbantartás: {form.active ? "aktív" : "inaktív"}
@@ -95,7 +95,7 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                             type="checkbox"
                             checked={form.adminBypass}
                             onChange={(event) => setForm((current) => ({ ...current, adminBypass: event.target.checked }))}
-                            className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]"
+                            className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]"
                         />
                         <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />
                         Admin hozzáférés karbantartás alatt: {form.adminBypass ? "engedélyezve" : "tiltva"}
@@ -132,20 +132,20 @@ export default function MaintenanceSettingsForm({ initialConfig }: { initialConf
                     type="button"
                     disabled={saving || form.message === DEFAULT_MAINTENANCE_MESSAGE}
                     onClick={() => setForm((current) => ({ ...current, message: DEFAULT_MAINTENANCE_MESSAGE }))}
-                    className="-mt-2 text-xs font-medium text-[rgb(49,171,2)] transition-colors hover:text-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:text-gray-300"
+                    className="-mt-2 text-xs font-medium text-[rgb(67,133,45)] transition-colors hover:text-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:text-gray-300"
                 >
                     Alapértelmezett szöveg visszaállítása
                 </button>
             </fieldset>
 
             {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
-            {!error && savedAt && !hasChanges && <p role="status" className="mt-3 text-sm text-[rgb(49,171,2)]">Mentve.</p>}
+            {!error && savedAt && !hasChanges && <p role="status" className="mt-3 text-sm text-[rgb(67,133,45)]">Mentve.</p>}
 
             <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-3">
                 <button
                     type="submit"
                     disabled={!hasChanges || saving}
-                    className="rounded-lg bg-[rgb(49,171,2)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+                    className="rounded-lg bg-[rgb(67,133,45)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
                 >
                     {saving ? "Mentés..." : "Beállítások mentése"}
                 </button>

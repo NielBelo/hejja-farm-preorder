@@ -49,11 +49,11 @@ function CountySelect({ initialValue, error }: { initialValue: string; error?: s
   }, []);
   return <div ref={ref} className="relative">
     <RequiredLabel>Megye</RequiredLabel><input type="hidden" name="county" value={value} />
-    <button type="button" onClick={() => setIsOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={isOpen} className={`flex w-full items-center justify-between rounded-lg border bg-white px-4 py-3 text-left text-base outline-none transition ${error ? "border-red-400" : isOpen ? "border-[rgb(49,171,2)] ring-2 ring-[rgb(49,171,2)]/10" : "border-gray-300"}`}>
+    <button type="button" onClick={() => setIsOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={isOpen} className={`flex w-full items-center justify-between rounded-lg border bg-white px-4 py-3 text-left text-base outline-none transition ${error ? "border-red-400" : isOpen ? "border-[rgb(67,133,45)] ring-2 ring-[rgb(67,133,45)]/10" : "border-gray-300"}`}>
       <span className={value ? "text-gray-800" : "text-gray-400"}>{value || "Válasszon megyét"}</span><ChevronDownIcon className={`h-5 w-5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
     </button>
     {isOpen && <div role="listbox" className="absolute z-40 mt-1.5 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white p-1.5 shadow-lg">
-      {counties.map((county) => <button key={county} type="button" role="option" aria-selected={county === value} onClick={() => { setValue(county); setIsOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-base text-gray-800 hover:bg-[#F0FAEE] ${county === value ? "bg-[#F0FAEE] font-medium" : ""}`}>{county}{county === value && <CheckIcon className="h-5 w-5 text-[rgb(49,171,2)]" />}</button>)}
+      {counties.map((county) => <button key={county} type="button" role="option" aria-selected={county === value} onClick={() => { setValue(county); setIsOpen(false); }} className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-left text-base text-gray-800 hover:bg-[#F0F5EB] ${county === value ? "bg-[#F0F5EB] font-medium" : ""}`}>{county}{county === value && <CheckIcon className="h-5 w-5 text-[rgb(67,133,45)]" />}</button>)}
     </div>}
     {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
   </div>;
@@ -81,9 +81,9 @@ export default function RegisterForm({ token, email, preview = false }: { token:
     <FormInput label="Település" required name="city" defaultValue={state.values.city} error={state.fieldErrors.city} />
     <div className="hidden sm:block" aria-hidden="true" />
     <PasswordField label="Jelszó" name="password" error={state.fieldErrors.password} /><PasswordField label="Jelszó újra" name="passwordConfirmation" error={state.fieldErrors.passwordConfirmation} />
-    <div className="sm:col-span-2"><label className="flex items-start gap-3 text-sm text-gray-700"><input name="privacyAccepted" type="checkbox" value="true" defaultChecked={state.values.privacyAccepted} className="mt-1 h-4 w-4" /><span>Elolvastam és elfogadom az <Link href="/privacy-policy" target="_blank" className="text-[rgb(49,171,2)] underline">adatkezelési tájékoztatót</Link>.<span className="ml-1 text-red-600" aria-hidden="true">*</span></span></label>{state.fieldErrors.privacyAccepted && <p className="mt-1 text-sm text-red-600">{state.fieldErrors.privacyAccepted}</p>}</div>
+    <div className="sm:col-span-2"><label className="flex items-start gap-3 text-sm text-gray-700"><input name="privacyAccepted" type="checkbox" value="true" defaultChecked={state.values.privacyAccepted} className="mt-1 h-4 w-4" /><span>Elolvastam és elfogadom az <Link href="/privacy-policy" target="_blank" className="text-[rgb(67,133,45)] underline">adatkezelési tájékoztatót</Link>.<span className="ml-1 text-red-600" aria-hidden="true">*</span></span></label>{state.fieldErrors.privacyAccepted && <p className="mt-1 text-sm text-red-600">{state.fieldErrors.privacyAccepted}</p>}</div>
     <p className="sm:col-span-2 text-sm text-gray-500"><span className="text-red-600">*</span> A csillaggal jelölt mezők kitöltése kötelező.</p>
     {state.error && <p className="sm:col-span-2 text-center text-sm text-red-600">{state.error}</p>}
-    <button type="submit" disabled={isPending} className="sm:col-span-2 w-full rounded-xl bg-[rgb(49,171,2)] px-4 py-2.5 font-medium text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60">{isPending ? "Regisztráció..." : "Regisztráció"}</button>
+    <button type="submit" disabled={isPending} className="sm:col-span-2 w-full rounded-xl bg-[rgb(67,133,45)] px-4 py-2.5 font-medium text-white shadow-sm transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60">{isPending ? "Regisztráció..." : "Regisztráció"}</button>
   </form>;
 }

@@ -11,20 +11,20 @@ function getStockStatus(availableStock: number) {
     if (availableStock <= 0) {
         return {
             text: "Előrendelés betelt!",
-            iconClass: "text-red-500",
+            iconClass: "text-[#C83D3D]",
         };
     }
 
     if (availableStock <= 30) {
         return {
             text: `Már csak ${availableStock} db csirke elérhető!`,
-            iconClass: "text-yellow-500",
+            iconClass: "text-[#B57418]",
         };
     }
 
     return {
         text: "Még több, mint 30 db csirke elérhető!",
-        iconClass: "text-[rgb(49,171,2)]",
+        iconClass: "text-[rgb(67,133,45)]",
     };
 }
 
@@ -91,7 +91,7 @@ export default function PickupDayChangeCard({
             )}
 
             {/* Átvételi nap módosítása - önálló rendelési beállítás, nem tétel */}
-            <div className="mb-4 overflow-hidden rounded-xl border border-[rgb(92,113,190)] bg-white">
+            <div className="mb-4 overflow-hidden rounded-xl border border-[rgb(138,115,85)] bg-white">
                 <div
                     role="button"
                     tabIndex={0}
@@ -104,8 +104,8 @@ export default function PickupDayChangeCard({
                     }}
                     className={`
         relative flex cursor-pointer items-center justify-center gap-2 px-10 py-3
-        ${isOpen ? "border-b border-[rgba(92,113,190,0.25)]" : ""}
-        text-gray-700 transition hover:bg-[rgba(92,113,190,0.06)]
+        ${isOpen ? "border-b border-[rgba(138,115,85,0.25)]" : ""}
+        text-gray-700 transition hover:bg-[rgba(138,115,85,0.06)]
     `}
                 >
                     <div className="text-center">
@@ -114,7 +114,7 @@ export default function PickupDayChangeCard({
                         </span>
 
                         {pickupDayForDisplay && (
-                            <span className="mt-1 inline-block rounded-md bg-blue-100 px-2.5 py-1 text-base font-normal text-gray-600">
+                            <span className="mt-1 inline-block rounded-md bg-[#E0EED4] px-2.5 py-1 text-base font-normal text-[#477D35]">
                                 Jelenlegi választás:{" "}
                                 <span className="font-semibold">
                                     {new Intl.DateTimeFormat("hu-HU", {
@@ -122,7 +122,7 @@ export default function PickupDayChangeCard({
                                         day: "numeric",
                                     }).format(new Date(pickupDayForDisplay.pickup_date))}
                                 </span>
-                                {" "}– {stockStatus.text}
+                                {" "}– <span className={stockStatus.iconClass}>{stockStatus.text}</span>
                             </span>
                         )}
                     </div>

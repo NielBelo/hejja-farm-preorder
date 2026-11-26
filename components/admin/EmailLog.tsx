@@ -122,7 +122,7 @@ export default function EmailLog() {
                 <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
                     <button type="button" onClick={() => !loading && setReloadCount((count) => count + 1)} disabled={loading}
                         className="rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700 disabled:cursor-not-allowed disabled:opacity-50">Frissítés</button>
-                    <button type="submit" disabled={loading} className="rounded-lg bg-[rgb(49,171,2)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Keresés</button>
+                    <button type="submit" disabled={loading} className="rounded-lg bg-[rgb(67,133,45)] px-4 py-2.5 text-sm font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50">Keresés</button>
                 </div>
             </form>
             <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">

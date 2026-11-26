@@ -39,14 +39,14 @@ function ProfileField({ label, value, icon: Icon }: {
     </div>;
 }
 function Privilege({ label, enabled, icon: Icon }: { label: string; enabled: boolean; icon: typeof ShieldCheckIcon }) {
-    return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-500"}`}>
-        <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(49,171,2)]" : "text-gray-400"}`} />
+    return <div className={`flex items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${enabled ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-500"}`}>
+        <Icon aria-hidden="true" className={`h-4 w-4 ${enabled ? "text-[rgb(67,133,45)]" : "text-gray-400"}`} />
         <span>{label}</span><span className="ml-auto text-xs font-medium">{enabled ? "Aktív" : "Nincs"}</span>
     </div>;
 }
 function TimelineStep({ label, value, done, icon: Icon }: { label: string; value: string; done: boolean; icon: typeof PaperAirplaneIcon }) {
     return <div className="flex min-w-0 flex-1 items-start gap-2.5">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${done ? "bg-[rgb(49,171,2)] text-white" : "bg-gray-200 text-gray-400"}`}>
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full ${done ? "bg-[rgb(67,133,45)] text-white" : "bg-gray-200 text-gray-400"}`}>
             <Icon aria-hidden="true" className="h-4 w-4" />
         </span>
         <div className="min-w-0 pt-0.5">
@@ -171,7 +171,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                             </div>
                             <dl className="mt-3 rounded-lg border border-gray-100 px-3.5 py-3">
                                 <div className="flex items-start gap-2.5">
-                                    <DocumentCheckIcon aria-hidden="true" className={`mt-0.5 h-5 w-5 shrink-0 ${privacyVersions.length ? "text-[rgb(49,171,2)]" : "text-gray-300"}`} />
+                                    <DocumentCheckIcon aria-hidden="true" className={`mt-0.5 h-5 w-5 shrink-0 ${privacyVersions.length ? "text-[rgb(67,133,45)]" : "text-gray-300"}`} />
                                     <div className="min-w-0">
                                         <dt className="text-xs font-medium text-gray-500">Adatkezelési tájékoztató</dt>
                                         <dd className="break-words text-sm font-medium text-gray-800">{privacyVersions.length ? `Elfogadta · ${privacyVersions.join(", ")}` : "Nincs rögzített elfogadás"}</dd>

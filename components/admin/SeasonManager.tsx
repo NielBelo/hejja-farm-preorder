@@ -110,7 +110,7 @@ type Accent = keyof typeof ACCENTS;
 const cardHighlightClass = (highlighted: boolean) =>
   `rounded-xl bg-white p-4 transition-all ${
     highlighted
-      ? "border-2 border-[rgb(92,113,190)] shadow-lg ring-2 ring-[rgba(92,113,190,0.18)]"
+      ? "border-2 border-[rgb(138,115,85)] shadow-lg ring-2 ring-[rgba(138,115,85,0.18)]"
       : "border border-gray-200 shadow-sm"
   }`;
 
@@ -258,7 +258,7 @@ function ActiveCheckbox({
         checked={active}
         disabled={disabled || loading}
         onChange={onChange}
-        className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]"
+        className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]"
       />
       {loading ? "…" : active ? "Aktív" : "Inaktív"}
     </label>
@@ -432,7 +432,7 @@ function Listbox({
         aria-haspopup="listbox"
         aria-expanded={isOpen}
         className={`${label ? "mt-1 " : ""}flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2.5 text-left text-base text-gray-800 outline-none transition ${
-          isOpen ? "border-[rgb(49,171,2)] ring-2 ring-[rgb(49,171,2)]/10" : "border-gray-300"
+          isOpen ? "border-[rgb(67,133,45)] ring-2 ring-[rgb(67,133,45)]/10" : "border-gray-300"
         }`}
       >
         <span>{selected?.label ?? value}</span>
@@ -453,12 +453,12 @@ function Listbox({
                     onChange(o.value);
                     setIsOpen(false);
                   }}
-                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-base text-gray-800 transition-colors hover:bg-[#F0FAEE] ${
-                    isSelected ? "bg-[#F0FAEE] font-medium" : "bg-white"
+                  className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-base text-gray-800 transition-colors hover:bg-[#F0F5EB] ${
+                    isSelected ? "bg-[#F0F5EB] font-medium" : "bg-white"
                   }`}
                 >
                   <span>{o.label}</span>
-                  {isSelected && <CheckIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[rgb(49,171,2)]" />}
+                  {isSelected && <CheckIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[rgb(67,133,45)]" />}
                 </button>
               );
             })}
@@ -883,7 +883,7 @@ function Editor({
                   ],
                 })
               }
-              className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-[rgb(49,171,2)] hover:text-[rgb(49,171,2)]"
+              className="flex items-center gap-1.5 rounded-lg border-2 border-dashed border-gray-200 px-3 py-2 text-sm font-medium text-gray-500 transition hover:border-[rgb(67,133,45)] hover:text-[rgb(67,133,45)]"
             >
               <PlusIcon className="h-4 w-4" />
               Átvételi nap hozzáadása
@@ -999,7 +999,7 @@ function Editor({
             />
             <span
               aria-hidden="true"
-              className="h-7 w-12 rounded-full bg-gray-300 transition-colors peer-checked:bg-[rgb(49,171,2)] peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(49,171,2)] peer-focus-visible:ring-offset-2"
+              className="h-7 w-12 rounded-full bg-gray-300 transition-colors peer-checked:bg-[rgb(67,133,45)] peer-focus-visible:ring-2 peer-focus-visible:ring-[rgb(67,133,45)] peer-focus-visible:ring-offset-2"
             />
             <span
               aria-hidden="true"
@@ -1068,7 +1068,7 @@ function Editor({
         <button
           disabled={saving || hasLimitProblem}
           title={hasLimitProblem ? "A limitek nem lehetnek kisebbek a már leadott rendeléseknél." : undefined}
-          className="rounded-lg bg-[rgb(49,171,2)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
+          className="rounded-lg bg-[rgb(67,133,45)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400"
         >
           {saving ? "Mentés…" : "Mentés"}
         </button>
@@ -1510,7 +1510,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
           <button
             type="button"
             onClick={() => (setForm(blank(products)), setExpandedId(null), setEditingId(null), setOpen(true))}
-            className="rounded-lg border-2 border-[rgb(92,113,190)] bg-white px-6 py-2 text-base font-semibold text-[rgb(92,113,190)] transition hover:bg-[rgb(92,113,190)] hover:text-white"
+            className="rounded-lg border-2 border-[rgb(138,115,85)] bg-white px-6 py-2 text-base font-semibold text-[rgb(138,115,85)] transition hover:bg-[rgb(138,115,85)] hover:text-white"
           >
             + Új szezon hozzáadása
           </button>

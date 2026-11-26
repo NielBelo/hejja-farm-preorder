@@ -46,20 +46,20 @@ export default function PickupDaySelector({
         if (availableStock <= 0) {
             return {
                 text: "Előrendelés betelt!",
-                iconClass: "text-red-500",
+                iconClass: "text-[#C83D3D]",
             };
         }
 
         if (availableStock <= 30) {
             return {
                 text: `Már csak ${availableStock} db csirke elérhető!`,
-                iconClass: "text-yellow-500",
+                iconClass: "text-[#B57418]",
             };
         }
 
         return {
             text: "Még több, mint 30 db csirke elérhető!",
-            iconClass: "text-[rgb(49,171,2)]",
+            iconClass: "text-[rgb(67,133,45)]",
         };
     };
 
@@ -111,9 +111,11 @@ export default function PickupDaySelector({
                     const selected = selectedPickupDayId === day.id;
                     const status = getStatus(day.available_stock ?? 0);
                     const isFull = (day.available_stock ?? 0) <= 0;
-                    const cardBorderClass = selected
-                        ? "border-[rgb(49,171,2)]"
-                        : "border-[rgba(7,109,143,0.2)]";
+                    const cardBorderClass = isFull
+                        ? "border-[#C83D3D]"
+                        : selected
+                        ? "border-[rgb(67,133,45)]"
+                        : "border-[rgb(212,204,190)]";
 
                     return (
                         <button
@@ -128,8 +130,10 @@ export default function PickupDaySelector({
                             className={`
                                 relative flex h-[178px] flex-col items-center justify-start rounded-xl px-3 pt-3 pb-2 text-center transition-all
                                 ${
-                                    selected
-                                        ? `border-2 ${cardBorderClass} bg-[rgba(216,227,232,0.51)] shadow-md`
+                                    isFull
+                                        ? `border-2 ${cardBorderClass}`
+                                        : selected
+                                        ? `border-2 ${cardBorderClass} bg-[#E0EED4] shadow-md`
                                         : `border-2 ${cardBorderClass} hover:scale-103 hover:bg-gray-50`
                                 }
                                 ${isFull ? "cursor-not-allowed" : ""}

@@ -26,7 +26,7 @@ export default function InfoModal({ title, subtitle, onClose, children }: InfoMo
                     <button
                         type="button"
                         onClick={onClose}
-                        className="rounded-lg bg-[rgb(92,113,190)] px-5 py-3 text-base font-semibold text-white hover:bg-[rgb(72,93,162)]"
+                        className="rounded-lg bg-[rgb(138,115,85)] px-5 py-3 text-base font-semibold text-white hover:bg-[rgb(108,90,66)]"
                     >
                         Bezárás
                     </button>

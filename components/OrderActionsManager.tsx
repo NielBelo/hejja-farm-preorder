@@ -55,7 +55,7 @@ export function OrderActionsManager({
             {cancellationNotice && (
                 <div className="mb-5 space-y-3">
                     <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                        <p className="text-base text-center text-[rgb(49,171,2)]">
+                        <p className="text-base text-center text-[rgb(67,133,45)]">
                             {cancellationNotice.success}
                         </p>
                     </div>

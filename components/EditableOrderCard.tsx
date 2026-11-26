@@ -78,7 +78,7 @@ export default function EditableOrderCard({
             overflow-hidden rounded-xl bg-white
             transition-all duration-200
             ${isEditing || isLinkHighlighted
-                    ? "border-2 border-[rgb(92,113,190)] shadow-lg ring-2 ring-[rgba(92,113,190,0.18)]"
+                    ? "border-2 border-[rgb(138,115,85)] shadow-lg ring-2 ring-[rgba(138,115,85,0.18)]"
                     : "border border-gray-200 shadow-sm"
                 }
         `}

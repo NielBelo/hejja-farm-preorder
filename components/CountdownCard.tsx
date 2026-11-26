@@ -7,7 +7,27 @@ import { getOrderWindowEnd, getOrderWindowStart } from "@/lib/orderWindow";
 type Props = {
   startDate?: string | null;
   endDate?: string | null;
+  seasonYear?: number | null;
+  seasonName?: string | null;
 };
+
+const SEASON_ADJECTIVES: Record<string, string> = {
+  tavasz: "Tavaszi",
+  ősz: "Őszi",
+  nyár: "Nyári",
+  tél: "Téli",
+};
+
+function formatSeasonTitle(year?: number | null, season?: string | null) {
+  const name = season?.trim();
+  if (!year || !name) return null;
+
+  const adjective =
+    SEASON_ADJECTIVES[name.toLowerCase()] ??
+    name.charAt(0).toUpperCase() + name.slice(1);
+
+  return `${year} – ${adjective} szezon`;
+}
 
 function formatDate(dateString: string) {
   return new Date(dateString).toLocaleString("hu-HU", {
@@ -39,7 +59,7 @@ function getTimeLeft(targetDate: string | Date) {
   return `${days} nap ${hours} óra ${minutes} perc`;
 }
 
-export default function CountdownCard({ startDate, endDate }: Props) {
+export default function CountdownCard({ startDate, endDate, seasonYear, seasonName }: Props) {
   const [now, setNow] = useState(new Date());
 
   useEffect(() => {
@@ -65,24 +85,32 @@ export default function CountdownCard({ startDate, endDate }: Props) {
   const isActive = now >= start && now <= end;
   const isClosed = now > end;
 
+  const seasonTitle = formatSeasonTitle(seasonYear, seasonName);
+
   const timeLeft = isBeforeStart
     ? getTimeLeft(start)
     : getTimeLeft(end);
 
  return (
-  <div className="mt-4 rounded-xl bg-white border border-gray-200 shadow-sm p-5 text-gray-700">
+  <div className="mt-4 rounded-xl border border-[#C4B49D] bg-[#FAF8F3] shadow-sm p-5 text-gray-700">
+
+    {seasonTitle && (
+      <h2 className="mb-4 border-b border-[#D4CCBE] pb-3 text-center text-xl font-bold text-[#8A7355]">
+        {seasonTitle}
+      </h2>
+    )}
 
     <div className="grid grid-cols-1 items-center gap-4 text-lg leading-6 text-gray-600 sm:grid-cols-3 sm:gap-0">
       <div className="text-center">
         <span className="font-semibold">Előrendelés kezdete:</span>
         <br />
-        {formatDate(start.toISOString())}
+        <span className="font-bold">{formatDate(start.toISOString())}</span>
       </div>
 
-      <div className="border-gray-300 text-center sm:border-x">
+      <div className="border-[#D4CCBE] text-center sm:border-x">
         <span className="font-semibold">Előrendelés vége:</span>
         <br />
-        {formatDate(end.toISOString())}
+        <span className="font-bold">{formatDate(end.toISOString())}</span>
       </div>
 
       <div className="text-center font-semibold text-gray-700">
@@ -90,7 +118,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Kezdésig hátralévő idő
             <br />
-            <span className="text-blue-700">{timeLeft}</span>
+            <span className="text-xl font-bold text-[#43852D]">{timeLeft}</span>
           </>
         )}
 
@@ -98,7 +126,7 @@ export default function CountdownCard({ startDate, endDate }: Props) {
           <>
             Hátralévő idő
             <br />
-            <span className="text-blue-700">{timeLeft}</span>
+            <span className="text-xl font-bold text-[#43852D]">{timeLeft}</span>
           </>
         )}
 

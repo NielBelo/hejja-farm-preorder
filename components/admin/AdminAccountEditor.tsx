@@ -14,7 +14,7 @@ const counties = [
 ];
 
 function privilegeCardClass(checked: boolean) {
-    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${checked ? "border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(49,171,2)] hover:bg-gray-50"}`;
+    return `flex cursor-pointer items-center gap-2 rounded-lg border-2 px-3 py-2 text-sm transition-all ${checked ? "border-[rgb(67,133,45)] bg-[#E0EED4] text-gray-800 shadow-md" : "border-[rgba(7,109,143,0.2)] bg-white text-gray-700 hover:border-[rgb(67,133,45)] hover:bg-gray-50"}`;
 }
 
 function CountySelect({ value, onChange, disabled }: { value: string; onChange: (value: string) => void; disabled: boolean }) {
@@ -32,7 +32,7 @@ function CountySelect({ value, onChange, disabled }: { value: string; onChange: 
     return <div ref={containerRef} className="relative">
         <label className="text-xs font-medium text-gray-500">Vármegye</label>
         <button type="button" disabled={disabled} onClick={() => setIsOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={isOpen}
-            className={`mt-1 flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm text-gray-800 outline-none transition disabled:opacity-60 ${isOpen ? "border-[rgb(49,171,2)] ring-2 ring-[rgb(49,171,2)]/10" : "border-gray-300"}`}>
+            className={`mt-1 flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm text-gray-800 outline-none transition disabled:opacity-60 ${isOpen ? "border-[rgb(67,133,45)] ring-2 ring-[rgb(67,133,45)]/10" : "border-gray-300"}`}>
             <span className={value ? "text-gray-800" : "text-gray-400"}>{value || "Válasszon vármegyét"}</span>
             <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
         </button>
@@ -41,8 +41,8 @@ function CountySelect({ value, onChange, disabled }: { value: string; onChange: 
                 {counties.map((county) => {
                     const selected = county === value;
                     return <button key={county} type="button" role="option" aria-selected={selected} onClick={() => { onChange(county); setIsOpen(false); }}
-                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-gray-800 transition-colors hover:bg-[#F0FAEE] ${selected ? "bg-[#F0FAEE] font-medium" : "bg-white"}`}>
-                        <span>{county}</span>{selected && <CheckIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[rgb(49,171,2)]" />}
+                        className={`flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm text-gray-800 transition-colors hover:bg-[#F0F5EB] ${selected ? "bg-[#F0F5EB] font-medium" : "bg-white"}`}>
+                        <span>{county}</span>{selected && <CheckIcon aria-hidden="true" className="h-4 w-4 shrink-0 text-[rgb(67,133,45)]" />}
                     </button>;
                 })}
             </div>
@@ -111,7 +111,7 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
                 ) : (
                     <label className={`${privilegeCardClass(form.role === "admin")} font-medium`}>
                         <input type="checkbox" checked={form.role === "admin"} onChange={(event) => setForm((current) => ({ ...current, role: event.target.checked ? "admin" : "user" }))}
-                            className="h-4 w-4 rounded border-gray-300 text-[rgb(49,171,2)] focus:ring-[rgb(49,171,2)]" />
+                            className="h-4 w-4 rounded border-gray-300 text-[rgb(67,133,45)] focus:ring-[rgb(67,133,45)]" />
                         <ShieldCheckIcon aria-hidden="true" className="h-4 w-4 text-violet-500" />Adminisztrátori jog
                     </label>
                 )}
@@ -121,7 +121,7 @@ export default function AdminAccountEditor({ account, onCancel, onSaved }: {
         {error && <p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
         <div className="mt-3 flex flex-wrap justify-end gap-3 border-t border-gray-200 pt-3">
             <button type="button" disabled={saving} onClick={onCancel} className="rounded-lg border border-gray-300 px-5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-50 hover:text-gray-800 disabled:cursor-not-allowed disabled:opacity-50">Mégse</button>
-            <button type="submit" disabled={!hasChanges || saving} className="rounded-lg bg-[rgb(49,171,2)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400">{saving ? "Mentés..." : "Módosítás mentése"}</button>
+            <button type="submit" disabled={!hasChanges || saving} className="rounded-lg bg-[rgb(67,133,45)] px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-[rgb(42,150,2)] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-400">{saving ? "Mentés..." : "Módosítás mentése"}</button>
         </div>
     </form>;
 }

@@ -41,7 +41,7 @@ export default function SizeFitDialog({
                     <button
                         type="button"
                         onClick={onConfirm}
-                        className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
+                        className="rounded-lg bg-[rgb(67,133,45)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
                     >
                         Váltás a módosításokkal
                     </button>

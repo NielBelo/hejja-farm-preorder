@@ -71,6 +71,8 @@ type SubmittedOrder = {
 
 type Season = {
     id: number;
+    year?: number | null;
+    season?: string | null;
     time_window_start: string;
     time_window_end: string;
     pickup_time_start: string | null;
@@ -464,6 +466,8 @@ export default function PreorderManager({
                       <CountdownCard
                         startDate={season?.time_window_start}
                         endDate={season?.time_window_end}
+                        seasonYear={season?.year}
+                        seasonName={season?.season}
                       /> 
                     </div>
                   )}
@@ -524,7 +528,7 @@ export default function PreorderManager({
                         ) : dunavecsePickupDay?.is_active ? (
                             <p className="text-center text-lg font-semibold text-gray-700">
                                 Vágási nap:{" "}
-                                <span className="text-[rgb(49,171,2)]">
+                                <span className="text-[rgb(67,133,45)]">
                                     {getBacsKiskunPickupRangeInfo(dunavecsePickupDay.pickup_date).cuttingDayLabel}
                                 </span>
                             </p>
@@ -598,14 +602,14 @@ export default function PreorderManager({
                         type="checkbox"
                         checked={termsAccepted}
                         onChange={(event) => setTermsAccepted(event.target.checked)}
-                        className="mt-1 h-5 w-5 shrink-0 accent-[rgb(92,113,190)]"
+                        className="mt-1 h-5 w-5 shrink-0 accent-[rgb(138,115,85)]"
                     />
                     <label htmlFor="terms-accepted" className="leading-6">
                         Elfogadom a{" "}
                         <button
                             type="button"
                             onClick={() => setTermsModalOpen(true)}
-                            className="font-semibold text-[rgb(72,93,162)] underline underline-offset-2 hover:text-[rgb(55,75,150)]"
+                            className="font-semibold text-[rgb(108,90,66)] underline underline-offset-2 hover:text-[rgb(84,70,52)]"
                         >
                             szerződési feltételeket
                         </button>
@@ -619,7 +623,7 @@ export default function PreorderManager({
                         onClick={handleFinalizeOrder}
                         disabled={isSubmitting}
                         aria-busy={isSubmitting}
-                        className="rounded-lg bg-[rgb(49,171,2)] px-10 py-4 text-lg font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-lg bg-[rgb(67,133,45)] px-10 py-4 text-lg font-semibold text-white transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         {isSubmitting ? "Rendelés folyamatban…" : "Rendelés véglegesítése"}
                     </button>
@@ -725,7 +729,7 @@ export default function PreorderManager({
                             <button
                                 type="button"
                                 onClick={confirmPickupDayChange}
-                                className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
+                                className="rounded-lg bg-[rgb(67,133,45)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
                             >
                                 Váltás, tételek törlése
                             </button>

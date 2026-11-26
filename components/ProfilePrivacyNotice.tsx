@@ -20,7 +20,7 @@ export default function ProfilePrivacyNotice() {
                 <button
                     type="button"
                     onClick={() => setPrivacyModalOpen(true)}
-                    className="font-semibold text-[rgb(72,93,162)] underline underline-offset-2 hover:text-[rgb(55,75,150)]"
+                    className="font-semibold text-[rgb(108,90,66)] underline underline-offset-2 hover:text-[rgb(84,70,52)]"
                 >
                     Adatkezelési tájékoztató
                 </button>

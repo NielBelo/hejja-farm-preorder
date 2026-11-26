@@ -116,7 +116,7 @@ export default function Navigation({
                   px-2 py-2 text-base sm:px-3 sm:text-lg transition-all
                   ${
                     isActive
-                      ? "text-[rgb(49,171,2)]"
+                      ? "text-[rgb(67,133,45)]"
                       : "text-gray-500/80 hover:text-gray-700"
                   }
                 `}
@@ -135,7 +135,7 @@ export default function Navigation({
                 onClick={() => setOrderMenuOpen((open) => !open)}
                 className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
                   pathname.startsWith("/admin/orders") || pathname.startsWith("/admin/pickup") || pathname.startsWith("/admin/seasons")
-                    ? "text-[rgb(49,171,2)]"
+                    ? "text-[rgb(67,133,45)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }`}
               >
@@ -180,7 +180,7 @@ export default function Navigation({
             }}>
               <button type="button" aria-expanded={accountMenuOpen} aria-controls="account-menu"
                 onClick={() => setAccountMenuOpen((open) => !open)}
-                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${pathname.startsWith("/admin/accounts") || pathname.startsWith("/admin/email-server") ? "text-[rgb(49,171,2)]" : "text-gray-500/80 hover:text-gray-700"}`}>
+                className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${pathname.startsWith("/admin/accounts") || pathname.startsWith("/admin/email-server") ? "text-[rgb(67,133,45)]" : "text-gray-500/80 hover:text-gray-700"}`}>
                 Fiók
                 <svg className={`h-4 w-4 transition-transform ${accountMenuOpen ? "rotate-180" : ""}`} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
                   <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.168l3.71-3.938a.75.75 0 1 1 1.08 1.04l-4.25 4.51a.75.75 0 0 1-1.08 0l-4.25-4.51a.75.75 0 0 1 .02-1.06Z" clipRule="evenodd" />
@@ -206,7 +206,7 @@ export default function Navigation({
                 onClick={() => setEmailMenuOpen((open) => !open)}
                 className={`flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all ${
                   pathname.startsWith("/admin/email-preview") || pathname.startsWith("/admin/order-confirmation-preview") || pathname.startsWith("/admin/season-launch-notification")
-                    ? "text-[rgb(49,171,2)]"
+                    ? "text-[rgb(67,133,45)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }`}
               >
@@ -265,7 +265,7 @@ export default function Navigation({
                 flex items-center gap-1 px-2 py-2 text-base sm:px-3 sm:text-lg transition-all
                 ${
                   isUserSectionActive
-                    ? "text-[rgb(49,171,2)]"
+                    ? "text-[rgb(67,133,45)]"
                     : "text-gray-500/80 hover:text-gray-700"
                 }
               `}
@@ -305,7 +305,7 @@ export default function Navigation({
                         block rounded-md px-3 py-2 text-base transition-all
                         ${
                           isActive
-                            ? "bg-gray-50 text-[rgb(49,171,2)]"
+                            ? "bg-gray-50 text-[rgb(67,133,45)]"
                             : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                         }
                       `}

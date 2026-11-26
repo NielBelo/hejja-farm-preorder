@@ -467,7 +467,7 @@ export default function ProductSelector({
                             <button
                                 type="button"
                                 onClick={() => toggleItem(index, canOpen)}
-                                className="rounded-lg border-2 border-[rgb(92,113,190)] px-6 py-2 text-base font-semibold text-[rgb(92,113,190)] transition hover:bg-[rgb(92,113,190)] hover:text-white"
+                                className="rounded-lg border-2 border-[rgb(138,115,85)] px-6 py-2 text-base font-semibold text-[rgb(138,115,85)] transition hover:bg-[rgb(138,115,85)] hover:text-white"
                             >
                                 + Új tétel hozzáadása
                             </button>
@@ -513,7 +513,7 @@ export default function ProductSelector({
     flex items-center justify-between
     px-6 py-2
     ${item.collapsed ? "rounded-xl" : "rounded-t-xl rounded-b-none"}
-    border-2 border-[rgb(92,113,190)] bg-[rgb(92,113,190)] text-white
+    border-2 border-[rgb(138,115,85)] bg-[rgb(138,115,85)] text-white
     ${canOpen
                                     ? "cursor-pointer hover:brightness-95"
                                     : "cursor-not-allowed opacity-60"
@@ -591,8 +591,8 @@ export default function ProductSelector({
                                                 className={`
                           h-full rounded-xl border p-5 text-left transition-all
                           ${selected
-                                                        ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                        : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
+                                                        ? "border-2 border-[rgb(67,133,45)] bg-[#E0EED4] shadow-md"
+                                                        : "border-2 border-[rgb(212,204,190)] hover:border-[rgb(67,133,45)] hover:bg-gray-50"
                                                     }
                         `}
                                             >
@@ -639,7 +639,7 @@ export default function ProductSelector({
                                                         </p>
 
                                                         {productPrices?.[product.id] !== undefined && (
-                                                            <p className="mt-auto inline-block rounded-full bg-[rgba(92,113,190,0.12)] px-3 py-1 text-base font-bold text-[rgb(72,93,162)]">
+                                                            <p className="mt-auto inline-block rounded-full bg-[rgba(138,115,85,0.12)] px-3 py-1 text-base font-bold text-[rgb(108,90,66)]">
                                                                 {productPrices[product.id].toLocaleString("hu-HU")} Ft/kg
                                                             </p>
                                                         )}
@@ -725,8 +725,8 @@ export default function ProductSelector({
                                                     className={`
                             rounded-xl border p-5 text-left transition-all
                             ${selected
-                                                            ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
-                                                            : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
+                                                            ? "border-2 border-[rgb(67,133,45)] bg-[#E0EED4] shadow-md"
+                                                            : "border-2 border-[rgb(212,204,190)] hover:border-[rgb(67,133,45)] hover:bg-gray-50"
                                                         }
                           `}
                                                 >
@@ -755,7 +755,7 @@ export default function ProductSelector({
                                                 updateItem(index, { note: e.target.value })
                                             }
                                             placeholder="Ide írhat egyedi megjegyzést..."
-                                            className="min-h-32 resize-none rounded-xl border border-[rgba(7,109,143,0.4)] p-4 text-base text-gray-700 outline-none transition focus:border-[rgb(49,171,2)]"
+                                            className="min-h-32 resize-none rounded-xl border border-[rgb(212,204,190)] p-4 text-base text-gray-700 outline-none transition focus:border-[rgb(67,133,45)]"
                                         />
 
                                         <div className="grid gap-3">
@@ -773,10 +773,10 @@ export default function ProductSelector({
                                                         className={`
                               rounded-xl border p-4 text-left text-base transition-all
                               ${selected
-                                                                ? "border-2 border-[rgb(49,171,2)] bg-[rgba(216,227,232,0.51)] shadow-md"
+                                                                ? "border-2 border-[rgb(67,133,45)] bg-[#E0EED4] shadow-md"
                                                                 : soldOut
                                                                     ? "cursor-not-allowed border-2 border-gray-200 bg-gray-100 text-gray-400"
-                                                                    : "border-2 border-[rgba(7,109,143,0.2)] hover:border-[rgb(49,171,2)] hover:bg-gray-50"
+                                                                    : "border-2 border-[rgb(212,204,190)] hover:border-[rgb(67,133,45)] hover:bg-gray-50"
                                                             }
                             `}
                                                     >
@@ -805,11 +805,11 @@ export default function ProductSelector({
                                             onClick={() => finishItem(index, "bottom")}
                                             type="button"
                                             className="
-            rounded-lg border border-[rgb(92,113,190)]
-            bg-[rgb(92,113,190)] px-6 py-3
+            rounded-lg border border-[rgb(138,115,85)]
+            bg-[rgb(138,115,85)] px-6 py-3
             text-base font-semibold text-white
             transition
-            hover:bg-[rgb(72,93,162)] hover:text-white/90
+            hover:bg-[rgb(108,90,66)] hover:text-white/90
         "
                                         >
                                             ✓ Tétel kész, összecsukás
@@ -874,7 +874,7 @@ export default function ProductSelector({
                             <button
                                 type="button"
                                 onClick={confirmSizeOverwrite}
-                                className="rounded-lg bg-[rgb(49,171,2)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
+                                className="rounded-lg bg-[rgb(67,133,45)] px-5 py-3 text-base font-semibold text-white hover:brightness-95"
                             >
                                 OK, mennyiség módosítása
                             </button>
