@@ -192,6 +192,22 @@ export default async function HistoryPage({
   );
 
   const orders = (data ?? []) as unknown as Order[];
+
+  // A rendelések megtekintésénél a rendelés saját szezonjának árai (Ft/kg).
+  const orderSeasonIds = [...new Set(orders.map((order) => order.season_parameter_id))];
+  const { data: orderPriceRows } = orderSeasonIds.length
+    ? await supabase
+        .from("season_product_prices")
+        .select("season_parameter_id, product_id, price")
+        .in("season_parameter_id", orderSeasonIds)
+    : { data: [] };
+  const pricesBySeason = new Map<number, Map<number, number>>();
+  for (const row of orderPriceRows ?? []) {
+    const seasonId = row.season_parameter_id as number;
+    if (!pricesBySeason.has(seasonId)) pricesBySeason.set(seasonId, new Map());
+    pricesBySeason.get(seasonId)!.set(row.product_id as number, row.price as number);
+  }
+
   const pickupDays = (rawPickupDays ?? []) as unknown as PickupDay[];
 
   const { data: historyPic } = await supabase
@@ -409,6 +425,17 @@ export default async function HistoryPage({
                             {item.size_preference && <> · {item.size_preference}</>}
                             {item.note && <> · Megjegyzés: {item.note}</>}
                           </p>
+
+                          {/* 3. sor: kilogrammonkénti ár */}
+                          {pricesBySeason.get(order.season_parameter_id)?.get(item.product_id) !== undefined && (
+                            <p className="mt-1 text-base font-medium text-[#604D35]">
+                              {pricesBySeason
+                                .get(order.season_parameter_id)!
+                                .get(item.product_id)!
+                                .toLocaleString("hu-HU")}{" "}
+                              Ft/kg
+                            </p>
+                          )}
                         </div>
                       ))}
                     </div>

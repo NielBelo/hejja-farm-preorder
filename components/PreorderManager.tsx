@@ -490,6 +490,9 @@ export default function PreorderManager({
                         productName: products.find(
                             (product) => product.id === item.selectedProductId
                         )?.name ?? "",
+                        pricePerKg: item.selectedProductId != null
+                            ? productPrices?.[item.selectedProductId] ?? null
+                            : null,
                         packageName: packages.find(
                             (packageOption) => packageOption.id === item.selectedPackageId
                         )?.name ?? "",

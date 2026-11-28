@@ -253,7 +253,7 @@ async function processLoadedReminder(
 }
 
 // Egy csomag (legfeljebb REMINDER_CHUNK_SIZE rendelés) feldolgozása.
-// Az adatokat egy kötegelt lekérdezéssel tölti be (3 subrequest a csomagra),
+// Az adatokat egy kötegelt lekérdezéssel tölti be (4 subrequest a csomagra),
 // majd rendelésenként claim -> SMTP2GO -> finalize. SOHA nem dob ki hibát:
 // ha a kötegelt betöltés elhasal, még egyetlen rekord sem foglalódott le,
 // ezért a csomag rendelései "failed"-ként kerülnek a naplóba, és a

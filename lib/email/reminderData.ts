@@ -4,7 +4,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isBacsKiskunCounty } from "@/lib/countyGroups";
 import {
     loadOrderNotificationData,
+    loadSeasonProductPrices,
     notificationOrderSelect,
+    seasonPriceKey,
     type LoadedOrderNotification,
 } from "@/lib/email/orderNotificationData";
 
@@ -82,6 +84,7 @@ type BatchOrderRow = {
     pickup_days: { pickup_date: string } | null;
     current_version: {
         order_items: {
+            product_id: number;
             quantity: number;
             size_preference: string | null;
             note: string | null;
@@ -108,8 +111,8 @@ type BatchSeasonRow = {
     local_pickup_time_start: string;
 };
 
-// Kötegelt betöltés egy worker-csomag rendeléseihez: pontosan 3 adatbázis-
-// lekérdezés (rendelések, profilok, szezonok) a csomag méretétől függetlenül.
+// Kötegelt betöltés egy worker-csomag rendeléseihez: pontosan 4 adatbázis-
+// lekérdezés (rendelések, profilok, szezonok, szezonárak) a csomag méretétől függetlenül.
 // A rendelésenkénti loadOrderNotificationData 3 lekérdezést (+ auth) futtatna
 // rendelésenként, ami a Cloudflare Free 50 subrequest/futás korlátját
 // szétlőné. Az eredmény alakja megegyezik a loadOrderNotificationData
@@ -137,7 +140,7 @@ export async function loadReminderOrdersBatch(
     const userIds = [...new Set(orders.map((order) => order.user_id))];
     const seasonIds = [...new Set(orders.map((order) => order.season_parameter_id))];
 
-    const [profilesResult, seasonsResult] = await Promise.all([
+    const [profilesResult, seasonsResult, prices] = await Promise.all([
         supabase
             .from("profiles")
             .select("id, first_name, last_name, email, county")
@@ -146,6 +149,7 @@ export async function loadReminderOrdersBatch(
             .from("season_parameters")
             .select("id, time_window_start, time_window_end, pickup_time_start, pickup_time_end, local_pickup_time_start")
             .in("id", seasonIds),
+        loadSeasonProductPrices(supabase, seasonIds),
     ]);
 
     if (profilesResult.error) {
@@ -191,6 +195,7 @@ export async function loadReminderOrdersBatch(
                     quantity: item.quantity,
                     sizePreference: item.size_preference,
                     note: item.note,
+                    pricePerKg: prices.get(seasonPriceKey(order.season_parameter_id, item.product_id)) ?? null,
                 })),
             },
         });

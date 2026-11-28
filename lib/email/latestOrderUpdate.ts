@@ -2,11 +2,13 @@ import "server-only";
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { OrderNotificationData } from "@/lib/email/orderNotification";
+import { loadSeasonProductPrices, seasonPriceKey } from "@/lib/email/orderNotificationData";
 
 type LatestVersionRow = {
     created_at: string;
     order_id: number;
     order_items: Array<{
+        product_id: number;
         quantity: number;
         size_preference: string | null;
         note: string | null;
@@ -36,6 +38,7 @@ export async function getLatestOrderUpdate(
             created_at,
             order_id,
             order_items (
+                product_id,
                 quantity,
                 size_preference,
                 note,
@@ -73,7 +76,7 @@ export async function getLatestOrderUpdate(
     }
 
     const order = orderData as unknown as OrderRow;
-    const [profileResult, seasonResult] = await Promise.all([
+    const [profileResult, seasonResult, prices] = await Promise.all([
         supabase
             .from("profiles")
             .select("first_name, last_name, county")
@@ -84,6 +87,7 @@ export async function getLatestOrderUpdate(
             .select("time_window_start, time_window_end, pickup_time_start, pickup_time_end, local_pickup_time_start")
             .eq("id", order.season_parameter_id)
             .single(),
+        loadSeasonProductPrices(supabase, [order.season_parameter_id]),
     ]);
 
     if (profileResult.error) {
@@ -134,6 +138,7 @@ export async function getLatestOrderUpdate(
                 quantity: item.quantity,
                 sizePreference: item.size_preference,
                 note: item.note,
+                pricePerKg: prices.get(seasonPriceKey(order.season_parameter_id, item.product_id)) ?? null,
             })),
         },
     };

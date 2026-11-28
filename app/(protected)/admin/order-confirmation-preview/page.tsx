@@ -100,6 +100,7 @@ export default async function AdminOrderConfirmationPreviewPage() {
                                     quantity: item.quantity,
                                     sizePreference: item.sizePreference ?? "",
                                     note: item.note,
+                                    pricePerKg: item.pricePerKg,
                                 }))}
                                 pickupDate={
                                     county === "Bács-Kiskun" && dunavecseDay?.pickup_date

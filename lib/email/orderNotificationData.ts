@@ -11,6 +11,7 @@ export type OrderLookup =
     | { orderNumber: string };
 
 type OrderItemRow = {
+    product_id: number;
     quantity: number;
     size_preference: string | null;
     note: string | null;
@@ -46,6 +47,7 @@ export const notificationOrderSelect = `
     ),
     current_version:order_versions!orders_current_version_id_fkey (
         order_items (
+            product_id,
             quantity,
             size_preference,
             note,
@@ -54,6 +56,36 @@ export const notificationOrderSelect = `
         )
     )
 `;
+
+// Termékenkénti árak (Ft/kg) a megadott szezonokhoz; kulcs: "szezon:termék".
+export async function loadSeasonProductPrices(
+    supabase: SupabaseClient,
+    seasonIds: number[],
+): Promise<Map<string, number>> {
+    const prices = new Map<string, number>();
+    if (seasonIds.length === 0) {
+        return prices;
+    }
+
+    const { data, error } = await supabase
+        .from("season_product_prices")
+        .select("season_parameter_id, product_id, price")
+        .in("season_parameter_id", seasonIds);
+
+    if (error) {
+        throw new Error(error.message);
+    }
+
+    for (const row of data ?? []) {
+        prices.set(seasonPriceKey(row.season_parameter_id as number, row.product_id as number), row.price as number);
+    }
+
+    return prices;
+}
+
+export function seasonPriceKey(seasonId: number, productId: number) {
+    return `${seasonId}:${productId}`;
+}
 
 export type LoadOrderNotificationOptions = {
     asAdmin?: boolean;
@@ -129,7 +161,7 @@ export async function loadOrderNotificationData(
     }
 
     const order = orderResult.data as unknown as OrderRow;
-    const [profileResult, seasonResult] = await Promise.all([
+    const [profileResult, seasonResult, prices] = await Promise.all([
         supabase
             .from("profiles")
             .select("first_name, last_name, email, county")
@@ -140,6 +172,7 @@ export async function loadOrderNotificationData(
             .select("time_window_start, time_window_end, pickup_time_start, pickup_time_end, local_pickup_time_start")
             .eq("id", order.season_parameter_id)
             .single(),
+        loadSeasonProductPrices(supabase, [order.season_parameter_id]),
     ]);
 
     if (profileResult.error) {
@@ -198,6 +231,7 @@ export async function loadOrderNotificationData(
                 quantity: item.quantity,
                 sizePreference: item.size_preference,
                 note: item.note,
+                pricePerKg: prices.get(seasonPriceKey(order.season_parameter_id, item.product_id)) ?? null,
             })),
         },
     };

@@ -208,9 +208,9 @@ for (const n of [5, 25, 50, 100]) {
     });
 }
 
-test('100 rendelés: egy csomag legfeljebb 39 subrequestet használ (3 betöltés + 12 x 3 hívás)', async () => {
+test('100 rendelés: egy csomag legfeljebb 40 subrequestet használ (4 betöltés + 12 x 3 hívás)', async () => {
     const run = await runRun(makeWorld(100), {});
-    assert.equal(Math.max(...run.childCounts), 39);
+    assert.equal(Math.max(...run.childCounts), 40);
     assert.equal(run.childCounts.length, 9);
     assert.equal(run.parentCount, 10, '1 célpontlekérdezés + 9 csomaghívás');
 });
@@ -241,12 +241,12 @@ test('tartós csomaghiba: a hibás csomag rendelései láthatóan uncertain-kén
     }
 });
 
-test('a kötegelt betöltés 3 lekérdezést használ, függetlenül a rendelések számától', async () => {
+test('a kötegelt betöltés 4 lekérdezést használ, függetlenül a rendelések számától', async () => {
     const world = makeWorld(100);
     const counter = { n: 0 };
     const ids = world.targets.map((t) => t.orderId);
     const batch = await realReminderData.loadReminderOrdersBatch(countingSupabase(world, counter), ids);
-    assert.equal(counter.n, 3);
+    assert.equal(counter.n, 4);
     assert.equal(batch.size, 100);
     assert.equal(batch.get(7).recipient, 'c7@example.hu');
     assert.equal(batch.get(7).data.orderNumber, 'HO-7');

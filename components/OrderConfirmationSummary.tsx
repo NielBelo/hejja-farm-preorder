@@ -10,6 +10,8 @@ export type OrderConfirmationItem = {
     quantity: number;
     sizePreference: string;
     note?: string | null;
+    /** Kilogrammonkénti ár (Ft/kg); ismeretlen ár esetén nem jelenik meg. */
+    pricePerKg?: number | null;
 };
 
 export type OrderConfirmationSummaryProps = {
@@ -124,6 +126,12 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
                             <p className="mt-1">
                                 {item.quantity} db · Csomagolás: {item.packageName} · Méret: {item.sizePreference}
                             </p>
+
+                            {item.pricePerKg != null && (
+                                <p className="mt-1 font-medium text-[#604D35]">
+                                    {item.pricePerKg.toLocaleString("hu-HU")} Ft/kg
+                                </p>
+                            )}
 
                             {item.note && (
                                 <p className="mt-1 text-gray-600">

@@ -12,6 +12,8 @@ export type OrderNotificationItem = {
     quantity: number;
     sizePreference: string | null;
     note: string | null;
+    /** A termék kilogrammonkénti ára (Ft/kg) a rendelés szezonjában; ismeretlen ár esetén nincs sor. */
+    pricePerKg?: number | null;
 };
 
 export type OrderNotificationData = {
@@ -47,6 +49,11 @@ export type OrderNotificationHtmlOptions = {
 // mégsem érkezik explicit cancelIconSrc.
 const DEFAULT_CANCEL_ICON_SRC = "https://hejja-okofarm.hu/images/order-cancelled-icon.png";
 
+export function formatPricePerKg(price: number) {
+    // Rögzített szóköz ezres elválasztóval, hogy minden levelezőben egyformán jelenjen meg.
+    return `${Math.round(price).toString().replace(/\B(?=(\d{3})+(?!\d))/g, " ")} Ft/kg`;
+}
+
 export function formatItem(item: OrderNotificationItem, index: number) {
     const lines = [
         `${index + 1}. ${item.productName} – ${item.quantity} db`,
@@ -55,6 +62,10 @@ export function formatItem(item: OrderNotificationItem, index: number) {
 
     if (item.sizePreference) {
         lines.push(`   Méret: ${item.sizePreference}`);
+    }
+
+    if (item.pricePerKg != null) {
+        lines.push(`   Ár: ${formatPricePerKg(item.pricePerKg)}`);
     }
 
     if (item.note) {
@@ -79,6 +90,9 @@ export function buildItemsHtml(items: OrderNotificationItem[]) {
             `<span style="color:#6b7280;">Csomagolás:</span> ${escapeHtml(item.packageName)}`,
             item.sizePreference
                 ? `<span style="color:#6b7280;">Méret:</span> ${escapeHtml(item.sizePreference)}`
+                : null,
+            item.pricePerKg != null
+                ? `<span style="color:#6b7280;">Ár:</span> ${escapeHtml(formatPricePerKg(item.pricePerKg))}`
                 : null,
             item.note
                 ? `<span style="color:#6b7280;">Megjegyzés:</span> ${escapeHtml(item.note)}`

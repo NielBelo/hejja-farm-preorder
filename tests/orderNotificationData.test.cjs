@@ -64,6 +64,8 @@ function fakeSupabase({ getUser, adminRole = null } = {}) {
             const chain = {
                 select() { return chain; },
                 eq(column, value) { query.filters.push([column, value]); return chain; },
+                // A season_product_prices lekérdezés (.in) - ebben a tesztben nincs ár.
+                in() { return Promise.resolve({ data: [], error: null }); },
                 single: async () => responses[table](),
                 maybeSingle: async () => responses[table](),
             };
