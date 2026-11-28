@@ -77,8 +77,9 @@ function describeCaughtError(error: unknown, fallback: string): string {
     return error instanceof Error ? error.message : fallback;
 }
 
-// A kezdőnapon (Europe/Budapest naptári nap) induló, nem törölt szezonok,
-// amelyek előrendelési időszaka még nem ért véget. Utólag SOSEM küldünk: a
+// A kezdőnapon (Europe/Budapest naptári nap) induló, nem törölt ÉS aktív
+// szezonok, amelyek előrendelési időszaka még nem ért véget. Inaktív szezonról
+// SOHA nem megy levél. Utólag SOSEM küldünk: a
 // kezdőnap után ez a lista üres.
 export async function getSeasonsStartingOn(
     supabase: SupabaseClient,
@@ -96,6 +97,7 @@ export async function getSeasonsStartingOn(
         .from("season_parameters")
         .select("id, year, season, time_window_start, time_window_end")
         .is("archived_at", null)
+        .eq("is_active", true)
         .not("time_window_start", "is", null)
         .not("time_window_end", "is", null)
         .gte("time_window_start", from.toISOString())

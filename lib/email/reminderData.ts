@@ -210,10 +210,14 @@ export async function getReminderOrderTargetsForDate(
 ): Promise<ReminderOrderTarget[]> {
     const { data, error } = await supabase
         .from("orders")
-        .select("id, pickup_day_id, pickup_days!orders_pickup_day_id_fkey!inner(pickup_date, kind)")
+        .select("id, pickup_day_id, pickup_days!orders_pickup_day_id_fkey!inner(pickup_date, kind), season_parameters!orders_season_parameter_id_fkey!inner(archived_at)")
         .eq("status", "submitted")
         // A törölt (archivált) nap rendelései nem kapnak emlékeztetőt.
         .is("archived_at", null)
+        // Az archivált szezon rendelései sem. Az aktívságot SZÁNDÉKOSAN nem
+        // vizsgáljuk: a régi szezon utolsó átvételei az új szezon
+        // aktiválása után is esedékesek lehetnek.
+        .is("season_parameters.archived_at", null)
         .eq("pickup_days.pickup_date", pickupDateIso)
         .eq("pickup_days.kind", "normal");
 

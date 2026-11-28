@@ -11,8 +11,8 @@ const CARDS: Record<SwitchKind, { title: string; description: string; update: ty
     seasonLaunch: {
         title: "Szezonindítási értesítő küldése",
         description:
-            "Bekapcsolt állapotban a rendszer a szezon előrendelési időszakának kezdőnapján, 08:00-kor (budapesti idő) automatikusan "
-            + "elküldi az értesítőt minden regisztrált vásárlónak. Kikapcsolt állapotban semmilyen levél nem megy ki. Ha a kezdőnapi "
+            "Bekapcsolt állapotban a rendszer az AKTÍV szezon előrendelési időszakának kezdőnapján, 08:00-kor (budapesti idő) automatikusan "
+            + "elküldi az értesítőt minden regisztrált vásárlónak. Inaktív vagy archivált szezonról nem megy levél. Kikapcsolt állapotban semmilyen levél nem megy ki. Ha a kezdőnapi "
             + "futás kimarad (például a kapcsoló csak 08:00 után lett bekapcsolva), utólag nem küld levelet.",
         update: updateSeasonLaunchSwitch,
     },

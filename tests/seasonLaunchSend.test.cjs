@@ -83,6 +83,7 @@ function makeSupabase({ seasons = [], profiles = [] } = {}) {
             const builder = {
                 select() { return builder; },
                 is() { return builder; },
+                eq(column, value) { data = data.filter((row) => row[column] === value); return builder; },
                 not() { return builder; },
                 gte() { return builder; },
                 lte() { return builder; },
@@ -240,7 +241,7 @@ test('bizonytalan SMTP-válasz: uncertain, sending marad, NEM küldi újra', asy
 });
 
 test('szezon csak a kezdőnapján választódik ki, utólag nem', async () => {
-    const rows = [{ id: 7, year: 2026, season: 'Ősz', time_window_start: '2026-10-05T22:00:00Z', time_window_end: '2026-11-30T22:59:00Z' }];
+    const rows = [{ id: 7, is_active: true, year: 2026, season: 'Ősz', time_window_start: '2026-10-05T22:00:00Z', time_window_end: '2026-11-30T22:59:00Z' }];
     const supabase = makeSupabase({ seasons: rows });
     const now = new Date('2026-10-06T06:00:00Z');
     const onDay = await mod.getSeasonsStartingOn(supabase, '2026-10-06', now);
@@ -252,7 +253,7 @@ test('szezon csak a kezdőnapján választódik ki, utólag nem', async () => {
 });
 
 test('teljes futás: csomagolás, összesítés, üres címek kihagyva', async () => {
-    const rows = [{ id: 7, year: 2026, season: 'Ősz', time_window_start: '2026-10-05T22:00:00Z', time_window_end: '2026-11-30T22:59:00Z' }];
+    const rows = [{ id: 7, is_active: true, year: 2026, season: 'Ősz', time_window_start: '2026-10-05T22:00:00Z', time_window_end: '2026-11-30T22:59:00Z' }];
     const profiles = Array.from({ length: 40 }, (_, i) => ({ id: `u${i}`, email: i === 5 ? '  ' : `c${i}@example.hu` }));
     const supabase = makeSupabase({ seasons: rows, profiles });
     const { sent, send } = fakeSender();
@@ -312,4 +313,15 @@ test('emlékeztető és szezonértesítő kapcsoló külön kulcson él', async 
     assert.equal((await switchMod.readSeasonLaunchSwitch(kv)).enabled, false);
     assert.equal((await reminderSwitch.resolveReminderSending(kv, undefined)).state.enabled, true);
     assert.notEqual(switchMod.SEASON_LAUNCH_SWITCH_KEY, reminderSwitch.REMINDER_SWITCH_KEY);
+});
+
+test('csak az aktív szezon indít értesítőt: az inaktív kezdőnapon sem', async () => {
+    const base = { year: 2026, season: 'Ősz', time_window_start: '2026-10-05T22:00:00Z', time_window_end: '2026-11-30T22:59:00Z' };
+    const supabase = makeSupabase({ seasons: [{ id: 7, is_active: false, ...base }, { id: 8, is_active: true, ...base }] });
+    const now = new Date('2026-10-06T06:00:00Z');
+    const picked = await mod.getSeasonsStartingOn(supabase, '2026-10-06', now);
+    assert.deepEqual(picked.map((season) => season.id), [8]);
+
+    const onlyInactive = makeSupabase({ seasons: [{ id: 7, is_active: false, ...base }] });
+    assert.deepEqual(await mod.getSeasonsStartingOn(onlyInactive, '2026-10-06', now), []);
 });
