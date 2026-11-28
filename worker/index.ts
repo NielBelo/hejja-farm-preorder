@@ -44,6 +44,7 @@ import {
 import { readSeasonLaunchSwitch, type SeasonLaunchSwitchKv } from "../lib/email/seasonLaunchSwitch";
 import { applyReminderSwitchToEnv } from "../lib/email/reminderSwitch";
 import { getCalendarDate } from "../lib/orderWindow";
+import { pingSupabase, touchKeepAlive } from "./keepAlive";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
 // scheduled handler paramétereit minimális, a ténylegesen használt alakra
@@ -149,6 +150,26 @@ async function runSeasonLaunchJob(todayIso: string, env: WorkerEnvLike) {
     }
 }
 
+async function runKeepAliveJob() {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    // Olvasás: az anon kulcs elég (a products publikusan olvasható); ha a
+    // Workerben nem elérhető, a service role secretre esünk vissza.
+    const read = await pingSupabase(url, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? serviceRoleKey);
+    // Írás: a közösségi tapasztalatok szerint a puszta olvasás nem mindig
+    // elég a Supabase auto-pause ellen, ezért valódi írás is megy.
+    const write = await touchKeepAlive(url, serviceRoleKey);
+
+    for (const [name, result] of [["olvasás", read], ["írás", write]] as const) {
+        if (result.ok) {
+            console.log(`[keep-alive] ${name} ok`);
+        } else {
+            console.error(`[keep-alive] ${name} hiba: ${result.reason}`);
+        }
+    }
+}
+
 const worker = {
     async fetch(request: Request, env: WorkerEnvLike, ctx: unknown) {
         const { pathname } = new URL(request.url);
@@ -173,6 +194,11 @@ const worker = {
         ctx: ExecutionContextLike,
     ) {
         const now = new Date(event.scheduledTime);
+
+        // Supabase ingyenes csomag auto-pause ellen: a küldési kapcsolóktól és
+        // az órai szűrőtől függetlenül, minden cron-futáskor (naponta kétszer)
+        // egy olcsó olvasás. Hibája nem érinti az alatta lévő jobokat.
+        ctx.waitUntil(runKeepAliveJob());
 
         if (!shouldRunReminderJob(now)) {
             console.log(
