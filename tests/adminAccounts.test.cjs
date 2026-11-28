@@ -33,3 +33,20 @@ test('sent invitations have a dedicated, filterable status', () => {
 test('cleared filters return every account', () => {
     assert.equal(filterAccounts(accounts, '  ', [], [], []).length, 3);
 });
+
+test('deleted users appear in the list, filterable by the "deleted" status', () => {
+    const { deletedUserToAccount } = data.exports;
+    const deleted = deletedUserToAccount({ id: 'x', full_name: 'Teszt Anna', deleted_at: '2026-11-29T10:00:00Z', deletion_source: 'self' });
+    const all = [...accounts, deleted];
+    assert.equal(deleted.status, 'deleted');
+    assert.equal(accountName(deleted), 'Teszt Anna');
+    assert.deepEqual(filterAccounts(all, '', ['deleted'], [], []).map(a => a.id), ['deleted:x']);
+    assert.deepEqual(filterAccounts(all, 'anna', [], [], []).map(a => a.id), ['deleted:x']);
+    assert.equal(filterAccounts(all, '', [], [], []).length, 4);
+});
+test('deleted users have no role or county, so those filters exclude them', () => {
+    const { deletedUserToAccount } = data.exports;
+    const deleted = deletedUserToAccount({ id: 'x', full_name: 'Teszt Anna', deleted_at: '2026-11-29T10:00:00Z', deletion_source: 'admin' });
+    assert.equal(filterAccounts([deleted], '', [], ['user'], []).length, 0);
+    assert.equal(filterAccounts([deleted], '', [], [], ['__missing']).length, 0);
+});

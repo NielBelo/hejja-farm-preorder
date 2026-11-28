@@ -16,6 +16,9 @@ function roleLabel(role: string) {
     return role === "admin" ? "Adminisztrátor" : role === "user" ? "Vásárló" : role;
 }
 function accountBadge(account: AdminAccount) {
+    if (account.status === "deleted") {
+        return { label: accountStatusLabels.deleted, className: "bg-[#FCEEEE] text-[#C83D3D]" };
+    }
     if (account.status !== "registered") {
         return { label: accountStatusLabels[account.status], className: "bg-gray-100 text-gray-600" };
     }
@@ -73,7 +76,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
     const [deleteError, setDeleteError] = useState<string | null>(null);
     const filtered = filterAccounts(accounts, search, statuses, roles, counties);
     const selectionCount = statuses.length + roles.length + counties.length + (search.trim() ? 1 : 0);
-    const countyOptions = [...new Set(accounts.map((account) => account.county || "__missing"))]
+    const countyOptions = [...new Set(accounts.filter((account) => account.status !== "deleted").map((account) => account.county || "__missing"))]
         .sort((a, b) => a.localeCompare(b, "hu"))
         .map((value) => ({ value, label: value === "__missing" ? "Nincs megadva" : value }));
 
@@ -95,7 +98,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                         className="mt-1.5 w-full rounded-lg border border-zinc-200 bg-white px-3 py-2.5 text-sm font-normal outline-[#43852D]" />
                 </label>
                 <OrderFilterDropdown label="Állapot" options={Object.entries(accountStatusLabels).map(([value, label]) => ({ value, label }))} selected={statuses} disabled={editing} onChange={(values) => { setStatuses(values); setOpenId(null); }} />
-                <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
+                <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.filter((account) => account.status !== "deleted").map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Megye" options={countyOptions} selected={counties} disabled={editing} onChange={(values) => { setCounties(values); setOpenId(null); }} />
             </div>
             <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
@@ -107,6 +110,25 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
             {accounts.length ? "Nincs a kiválasztott szűrőknek megfelelő felhasználó." : "Még nincs megjeleníthető felhasználó vagy meghívott."}
         </div>}
         {filtered.map((account) => {
+            if (account.status === "deleted") {
+                // Törölt felhasználó: csak a naplózott adatok ismertek, ezért
+                // a kártya nem nyitható le, és nincs rajta művelet.
+                const deletedBadge = accountBadge(account);
+                return <article key={account.id} className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+                    <div className="flex items-center gap-3 px-4 py-3">
+                        <UserCircleIcon aria-hidden="true" className="h-8 w-8 shrink-0 text-gray-300" />
+                        <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="break-words font-semibold text-gray-500">{accountName(account)}</span>
+                                <span className={`rounded-md px-2.5 py-1 text-xs font-semibold ${deletedBadge.className}`}>{deletedBadge.label}</span>
+                            </div>
+                            <p className="mt-1.5 break-words text-sm text-gray-500">
+                                Törölve: {date(account.deleted_at ?? null)} · {account.deletion_source === "self" ? "Saját törlés" : "Admin törölte"}
+                            </p>
+                        </div>
+                    </div>
+                </article>;
+            }
             const sentDates = account.invites
                 .map((invite) => invite.sent_at)
                 .filter((value): value is string => Boolean(value))

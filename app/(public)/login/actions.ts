@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
+import { getLoginFailure } from "@/lib/loginErrors";
 
 export type LoginState = {
   error: string | null;
@@ -61,9 +62,24 @@ if (emailError || passwordError) {
   });
 
 if (error) {
+  // Csak hibás belépési adatoknál nézzük meg, hogy a cím létezik-e (pl.
+  // hálózati hibánál vagy sebességkorlátnál nem). Ha az ellenőrzés
+  // sikertelen, az általános hibaüzenet marad.
+  let emailExists: boolean | null = null;
+
+  if (error.code === "invalid_credentials") {
+    const { data, error: lookupError } = await supabase.rpc("login_email_exists", {
+      p_email: email,
+    });
+
+    emailExists = !lookupError && typeof data === "boolean" ? data : null;
+  }
+
+  const failure = getLoginFailure(emailExists);
+
   return {
-    error: "Hibás e-mail cím vagy jelszó.",
-    emailError: null,
+    error: failure.field === "form" ? failure.message : null,
+    emailError: failure.field === "email" ? failure.message : null,
     passwordError: null,
     email,
   };

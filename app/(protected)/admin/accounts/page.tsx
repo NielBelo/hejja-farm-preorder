@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { createClient } from "@/lib/supabase/server";
-import type { AdminAccount } from "@/lib/adminAccountData";
+import { deletedUserToAccount, type AdminAccount, type DeletedUserRow } from "@/lib/adminAccountData";
 import AdminAccountList from "@/components/admin/AdminAccountList";
-import DeletedUsersList from "@/components/admin/DeletedUsersList";
 
 export default async function AdminAccountsPage() {
     const currentUser = await getCurrentUser();
@@ -25,10 +24,13 @@ export default async function AdminAccountsPage() {
     }
     accounts.sort((a, b) => `${a.last_name ?? ""} ${a.first_name ?? ""} ${a.email ?? ""}`.localeCompare(`${b.last_name ?? ""} ${b.first_name ?? ""} ${b.email ?? ""}`, "hu"));
 
+    // A törölt felhasználók naplója is a listába kerül ("Törölt" állapottal),
+    // a legutóbb törölttel kezdve, az élő fiókok után.
     const { data: deletedUsers } = await supabase
         .from("deleted_users")
         .select("id, full_name, deleted_at, deletion_source")
         .order("deleted_at", { ascending: false });
+    const allAccounts = [...accounts, ...((deletedUsers ?? []) as DeletedUserRow[]).map(deletedUserToAccount)];
 
     return (
         <div className="mx-auto w-full max-w-5xl">
@@ -41,9 +43,8 @@ export default async function AdminAccountsPage() {
             <div className="mt-6">
                 {failed ? <div role="alert" className="rounded-xl border border-[#C83D3D]/30 bg-[#FCEEEE] p-5 text-sm text-[#C83D3D]">
                     A felhasználók betöltése sikertelen. Kérjük, próbálja újra az oldal frissítésével. Ha a hiba továbbra is fennáll, jelezze az üzemeltetőnek.
-                </div> : <AdminAccountList accounts={accounts} />}
+                </div> : <AdminAccountList accounts={allAccounts} />}
             </div>
-            <DeletedUsersList users={deletedUsers ?? []} />
         </div>
     );
 }

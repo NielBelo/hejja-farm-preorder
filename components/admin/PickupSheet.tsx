@@ -42,6 +42,7 @@ function SelectDropdown({
     options,
     value,
     disabled,
+    fitContent = false,
     onChange,
 }: {
     ariaLabel: string;
@@ -49,6 +50,10 @@ function SelectDropdown({
     options: SelectOption[];
     value: string;
     disabled: boolean;
+    // A mező a legszélesebb opció feliratához igazodó, állandó szélességű (a
+    // kiválasztott elemtől függetlenül), a feliratok egy sorban maradnak
+    // levágás és tördelés nélkül - a szezonválasztóhoz.
+    fitContent?: boolean;
     onChange: (value: string) => void;
 }) {
     const [open, setOpen] = useState(false);
@@ -70,7 +75,7 @@ function SelectDropdown({
     return (
         <div
             ref={root}
-            className="relative min-w-0 flex-1 sm:max-w-xs"
+            className={fitContent ? "relative sm:w-max" : "relative min-w-0 flex-1 sm:max-w-xs"}
             onBlur={(event) => {
                 if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
             }}
@@ -94,7 +99,18 @@ function SelectDropdown({
                 className="flex w-full items-center gap-2 rounded-lg border border-[#D4CCBE] bg-[#F4F1EA] px-3 py-2 text-left text-sm font-medium text-gray-700 transition hover:bg-[#F0F5EB] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#43852D] disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-300"
             >
                 <CalendarDaysIcon aria-hidden="true" className="h-5 w-5 shrink-0 text-gray-500" />
-                <span id={`${id}-value`} className="min-w-0 flex-1 truncate">{selectedLabel}</span>
+                {fitContent ? (
+                    // A rejtett másolatok (ugyanabban a rács-cellában) adják a
+                    // legszélesebb opció szélességét, így a mező nem ugrál.
+                    <span id={`${id}-value`} className="grid min-w-0 flex-1 whitespace-nowrap">
+                        <span className="col-start-1 row-start-1">{selectedLabel}</span>
+                        {options.map((option) => (
+                            <span key={option.value} aria-hidden="true" className="invisible col-start-1 row-start-1">{option.label}</span>
+                        ))}
+                    </span>
+                ) : (
+                    <span id={`${id}-value`} className="min-w-0 flex-1 truncate">{selectedLabel}</span>
+                )}
                 <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 transition-transform ${expanded ? "rotate-180" : ""}`} />
             </button>
 
@@ -123,7 +139,7 @@ function SelectDropdown({
                                     : "text-gray-700 hover:bg-[#F0F5EB]"
                                 }`}
                             >
-                                <span>{option.label}</span>
+                                <span className={fitContent ? "whitespace-nowrap" : undefined}>{option.label}</span>
                                 <CheckIcon aria-hidden="true" className={`h-4 w-4 shrink-0 ${selected ? "text-gray-700" : "invisible"}`} />
                             </button>
                         );
@@ -283,6 +299,7 @@ export default function PickupSheet({
                                 options={seasonOptions}
                                 value={activeSeason}
                                 disabled={seasonOptions.length === 0}
+                                fitContent
                                 onChange={handleSeasonChange}
                             />
                         </div>
@@ -376,26 +393,6 @@ export default function PickupSheet({
                     <DistributionChart title="Terméktípusok eloszlása" entries={distributions.products} />
                     <DistributionChart title="Csomagolástípusok eloszlása" entries={distributions.packages} />
                     <DistributionChart title="Méret eloszlása" entries={distributions.sizes} />
-                </div>
-
-                <div className="mt-3 grid items-stretch gap-4">
-                    <section aria-live="polite" className="h-full rounded-lg border border-[#D4CCBE] bg-white px-4 py-4 shadow-sm">
-                        <h2 className="text-center text-sm font-semibold text-gray-700">Napi összesítés</h2>
-                        <div className="mt-3 grid grid-cols-3 divide-x divide-[#D4CCBE] text-center text-gray-600">
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.customerCount}</strong>
-                                <span className="text-xs">vevő</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.orderCount}</strong>
-                                <span className="text-xs">rendelés</span>
-                            </div>
-                            <div className="px-1">
-                                <strong className="block text-xl font-semibold tabular-nums text-gray-800">{summary.itemCount}</strong>
-                                <span className="text-xs">tétel</span>
-                            </div>
-                        </div>
-                    </section>
                 </div>
 
                 <div className="mx-auto mt-6 flex w-full max-w-4xl items-center gap-4">
