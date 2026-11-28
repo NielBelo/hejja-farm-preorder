@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { CalendarDaysIcon, CheckIcon, ChevronDownIcon, PrinterIcon } from "@heroicons/react/24/outline";
 import {
     formatPhoneNumber,
+    formatPrintHeaderDate,
     getInitialPickupDate,
     getPickupDistributions,
     summarizePickupOrders,
@@ -23,7 +24,14 @@ const percentageFormatter = new Intl.NumberFormat("hu-HU", {
     maximumFractionDigits: 1,
 });
 
-type SelectOption = { value: string; label: string };
+const PRINT_PRODUCT_ROWS = [{ label: "Egész" }, { label: "Darab" }, { label: "Extra" }];
+const PRINT_SIZE_COLUMNS = [
+    { label: "Kisebb", title: "Kicsi" },
+    { label: "Átlagos", title: "Átlagos" },
+    { label: "Nagyobb", title: "Nagy" },
+];
+
+type SelectOption ={ value: string; label: string };
 
 // Közös lenyíló választó a szezon- és az átvételinap-választóhoz (lásd
 // PickupSheet lent) - ugyanaz a megjelenés/viselkedés, csak a felkínált
@@ -202,7 +210,6 @@ export default function PickupSheet({
         [pickupDates, activeSeason]
     );
     const activeDate = selectedDate || getInitialPickupDate(pickupDatesForSeason, today);
-    const activeDateLabel = pickupDatesForSeason.find((date) => date.value === activeDate)?.label ?? "";
     const activePickupDate = pickupDatesForSeason.find((date) => date.value === activeDate);
     // A DUNAVECSE nap dátuma megegyezhet egy normál nap dátumával, két
     // különböző szezon pedig (elvben) azonos dátumú napot is tartalmazhat
@@ -232,26 +239,36 @@ export default function PickupSheet({
         activePickupDate?.availableStock ?? 0
     );
     const distributions = useMemo(() => getPickupDistributions(visibleOrders), [visibleOrders]);
-    const wholeChickenCount = distributions.products.find((entry) => entry.label === "Egész")?.quantity ?? 0;
-    const choppedChickenCount = distributions.products.find((entry) => entry.label === "Darab")?.quantity ?? 0;
-    const printSummaryLabel = `Összesítés: ${summary.chickenCount} csirke (${wholeChickenCount} egész · ${choppedChickenCount} darabolt) · ${summary.itemCount} tétel · ${summary.customerCount} vevő`;
+    const printTitle = `RENDELÉSI NAP ${formatPrintHeaderDate(activePickupDate?.date ?? "")}${activePickupDate?.kind === "dunavecse" ? " – DUNAVECSE" : ""}`;
+    // A lapmargó közepén (globals.css @top-center) megjelenő kis dátum.
+    const printMarginDate = formatPrintHeaderDate(activePickupDate?.date ?? "");
 
     useEffect(() => {
         const root = document.documentElement;
         const previousDate = root.style.getPropertyValue("--pickup-print-date");
-        const previousSummary = root.style.getPropertyValue("--pickup-print-summary");
 
-        root.style.setProperty("--pickup-print-date", JSON.stringify(activeDateLabel));
-        root.style.setProperty("--pickup-print-summary", JSON.stringify(printSummaryLabel));
+        root.style.setProperty("--pickup-print-date", JSON.stringify(printMarginDate));
 
         return () => {
             if (previousDate) root.style.setProperty("--pickup-print-date", previousDate);
             else root.style.removeProperty("--pickup-print-date");
-
-            if (previousSummary) root.style.setProperty("--pickup-print-summary", previousSummary);
-            else root.style.removeProperty("--pickup-print-summary");
         };
-    }, [activeDateLabel, printSummaryLabel]);
+    }, [printMarginDate]);
+
+    // A nyomtatási fejléc kereszttáblája: sorok a termékek, oszlopok a
+    // méretek (summarizeProduct / summarizeSize címkék), db-ban.
+    const printMatrix = useMemo(() => {
+        const rows = PRINT_PRODUCT_ROWS.map(() => PRINT_SIZE_COLUMNS.map(() => 0));
+        for (const order of visibleOrders) {
+            for (const item of order.items) {
+                const row = PRINT_PRODUCT_ROWS.findIndex(({ label }) => label === summarizeProduct(item.products?.name));
+                const column = PRINT_SIZE_COLUMNS.findIndex(({ label }) => label === summarizeSize(item.size_preference));
+                if (row >= 0 && column >= 0) rows[row][column] += item.quantity;
+            }
+        }
+        return rows;
+    }, [visibleOrders]);
+    const printColumnTotals = PRINT_SIZE_COLUMNS.map((_, column) => printMatrix.reduce((sum, row) => sum + row[column], 0));
 
     return (
         <div className="pickup-print-page">
@@ -395,7 +412,8 @@ export default function PickupSheet({
                     Nincs aktív rendelés a kiválasztott átvételi napra.
                 </div>
             ) : (
-                <div className="overflow-hidden rounded-xl border border-black bg-white shadow-sm print:rounded-none print:shadow-none">
+                <div className="rounded-xl border border-[#D4CCBE] bg-white p-4 sm:p-6 print:rounded-none print:border-0 print:p-0">
+                <div className="bg-white">
                     <table className="w-full table-fixed border-collapse text-center text-[clamp(9px,1.4vw,15px)] leading-none text-gray-800 print:text-[11pt] [&_td]:align-middle [&_th]:align-middle">
                         <colgroup>
                             <col className="w-[22.5%]" />
@@ -408,6 +426,42 @@ export default function PickupSheet({
                             <col className="w-[9%]" />
                         </colgroup>
                         <thead className="bg-[#E8DFD0] font-semibold text-[#604D35] print:table-header-group">
+                            <tr className="bg-white text-black">
+                                <th colSpan={8} className="px-4 pt-5 pb-4 text-center text-[1.9em] leading-tight font-bold">{printTitle}</th>
+                            </tr>
+                            <tr className="bg-white text-black">
+                                <th colSpan={8} className="px-4 pb-5 font-semibold">
+                                    <table className="mx-auto w-3/5 border-collapse text-center text-[1.25em] leading-tight">
+                                        <thead>
+                                            <tr>
+                                                <th className="border border-black px-2 py-1.5" />
+                                                {PRINT_SIZE_COLUMNS.map((column) => (
+                                                    <th key={column.label} className="border border-black px-2 py-1.5">{column.title}</th>
+                                                ))}
+                                                <th className="border border-black bg-[#E8DFD0] px-2 py-1.5">Összesen</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {PRINT_PRODUCT_ROWS.map((product, rowIndex) => (
+                                                <tr key={product.label}>
+                                                    <th className="border border-black px-2 py-1.5 text-left">{product.label}</th>
+                                                    {printMatrix[rowIndex].map((count, column) => (
+                                                        <td key={column} className="border border-black px-2 py-1.5 font-normal tabular-nums">{count} db</td>
+                                                    ))}
+                                                    <td className="border border-black bg-[#E8DFD0] px-2 py-1.5 tabular-nums">{printMatrix[rowIndex].reduce((sum, count) => sum + count, 0)} db</td>
+                                                </tr>
+                                            ))}
+                                            <tr className="bg-[#E8DFD0]">
+                                                <th className="border border-black px-2 py-1.5 text-left">Összesen</th>
+                                                {printColumnTotals.map((count, column) => (
+                                                    <td key={column} className="border border-black px-2 py-1.5 tabular-nums">{count} db</td>
+                                                ))}
+                                                <td className="border border-black px-2 py-1.5 tabular-nums">{printColumnTotals.reduce((sum, count) => sum + count, 0)} db</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </th>
+                            </tr>
                             <tr>
                                 <th className="overflow-hidden whitespace-nowrap border border-black px-2 py-0.5">Rendelési adatok</th>
                                 <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5 text-center">Tétel</th>
@@ -416,7 +470,7 @@ export default function PickupSheet({
                                 <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Csom.</th>
                                 <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Méret</th>
                                 <th className="overflow-hidden whitespace-nowrap border border-black px-1.5 py-0.5">Megjegyzés</th>
-                                <th className="overflow-hidden whitespace-nowrap border border-black px-1 py-0.5 text-center">Státusz</th>
+                                <th className="overflow-hidden whitespace-nowrap border border-black px-1 py-0.5 text-center print:shadow-[inset_-1px_0_0_#000]">Státusz</th>
                             </tr>
                         </thead>
                         {visibleOrders.map((order, orderIndex) => {
@@ -442,9 +496,17 @@ export default function PickupSheet({
                                                 <td className="break-words border border-black px-1.5 py-0.5 font-medium">{summarizeProduct(item?.products?.name)}</td>
                                                 <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{item ? `${item.quantity} db` : "—"}</td>
                                                 <td className="break-words border border-black px-1.5 py-0.5">{summarizePrintPackage(item?.packages?.name)}</td>
-                                                <td className="break-words border border-black px-1.5 py-0.5">{summarizeSize(item?.size_preference)}</td>
+                                                {(() => {
+                                                    const size = item ? summarizeSize(item.size_preference) : "";
+                                                    const sizeBackground = size === "Kisebb" ? "bg-[#F2A9A0]" : size === "Nagyobb" ? "bg-[#A9D48F]" : "";
+                                                    return (
+                                                        <td className={`break-words border border-black px-1.5 py-0.5 ${sizeBackground}`}>
+                                                            {size === "Átlagos" ? "" : size}
+                                                        </td>
+                                                    );
+                                                })()}
                                                 <td className="max-w-52 break-words border border-black px-1.5 py-0.5">{item?.note || "—"}</td>
-                                                <td className="border border-black px-1 py-0.5 text-center align-middle">
+                                                <td className="border border-black px-1 py-0.5 text-center align-middle print:shadow-[inset_-1px_0_0_#000]">
                                                     <span aria-label="Teljesítési státusz jelölőnégyzet" className="inline-block h-3.5 w-3.5 rounded-[2px] border border-black bg-white print:h-3 print:w-3" />
                                                 </td>
                                         </tr>
@@ -453,6 +515,7 @@ export default function PickupSheet({
                             );
                         })}
                     </table>
+                </div>
                 </div>
             )}
         </div>

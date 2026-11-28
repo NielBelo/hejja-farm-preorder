@@ -74,6 +74,16 @@ export function formatPickupDate(value: string) {
     return pickupDateFormatter.format(new Date(`${normalized}T00:00:00Z`));
 }
 
+// A nyomtatási fejléc első sora: "2026. 10. 26. SZERDA".
+export function formatPrintHeaderDate(value: string) {
+    const normalized = normalizePickupDate(value);
+    if (!normalized) return "";
+    const [year, month, day] = normalized.split("-");
+    const weekday = new Intl.DateTimeFormat("hu-HU", { timeZone: "UTC", weekday: "long" })
+        .format(new Date(`${normalized}T00:00:00Z`));
+    return `${year}. ${month}. ${day}. ${weekday.toLocaleUpperCase("hu")}`;
+}
+
 export function sortPickupOrders(orders: PickupSheetOrder[]) {
     return [...orders].sort((left, right) => {
         const byName = left.customerName.localeCompare(right.customerName, "hu", {
@@ -190,6 +200,7 @@ export function summarizeProduct(name: string | null | undefined) {
     const normalized = name.toLocaleLowerCase("hu");
     if (normalized.includes("darab")) return "Darab";
     if (normalized.includes("egész")) return "Egész";
+    if (normalized.includes("extra")) return "Extra";
     return name;
 }
 

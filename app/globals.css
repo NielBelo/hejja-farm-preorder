@@ -116,23 +116,26 @@ input[type="number"] {
 @media print {
   @page {
     size: A4 portrait;
-    margin: 23mm 12mm;
-    /* A fejléc (top-center) alatt minden oldalon kb. egy üres sornyi
-       hellyel kezdődjön a táblázat tartalma - mivel a fejléc a lapmargó
-       részeként minden oldalon megismétlődik, ezt csak a lapmargó
-       (nem a táblázatot körülvevő elem paddingje) tudja oldalanként
-       egyenletesen biztosítani. */
-    margin-top: 25.5mm;
+    /* A fejléc (dátum + összesítők) a táblázat ismétlődő thead-jében van
+       (components/admin/PickupSheet.tsx), nem a lapmargóban. */
+    margin: 14mm 12mm 20mm;
+
+    /* A felső három margódoboz explicit definiálása (a bal és a jobb üres)
+       elnyomja a böngésző alapértelmezett fejlécét (nyomtatási idő, cím);
+       csak középen jelenik meg kicsiben az átvételi nap. */
+    @top-left {
+      content: "";
+    }
 
     @top-center {
-      content: "Rendelésátvételi lista · " var(--pickup-print-date, "") "\A" var(--pickup-print-summary, "");
-      white-space: pre-line;
-      color: #374151;
-      font-size: 10pt;
-      font-weight: 400;
-      line-height: 1.3;
-      text-align: center;
-      padding-top: 7mm;
+      content: var(--pickup-print-date, "");
+      color: #4b5563;
+      font-size: 9pt;
+      padding-top: 4mm;
+    }
+
+    @top-right {
+      content: "";
     }
 
     @bottom-center {
