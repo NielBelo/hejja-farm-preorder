@@ -44,7 +44,7 @@ export default async function PreorderPage() {
 
   const { data: packages } = await supabase
     .from("packages")
-    .select("id, name, description");
+    .select("id, name, description, image_url");
 
   // A DUNAVECSE technikai nap sosem szerepelhet a normál napválasztóban
   // (ott csak kind = 'normal' napok jelenhetnek meg) - a Bács-Kiskun
@@ -73,6 +73,24 @@ export default async function PreorderPage() {
     .replace("{weight_max}", String(season?.weight_max))
     .replace("{price}", String(season?.price));
 
+  // A súly- és ársáv szövege az aktív szezonból jön; ha nincs aktív szezon,
+  // a legutóbbi (év, majd évszak szerint: Ősz a Tavasz után) nem törölt szezonból.
+  let infoSeason = season;
+  if (!infoSeason) {
+    const { data: latestSeasons } = await supabase
+      .from("season_parameters")
+      .select("year, season, weight_min, weight_max, price")
+      .is("archived_at", null);
+    infoSeason =
+      [...(latestSeasons ?? [])].sort(
+        (a, b) => b.year - a.year || Number(b.season === "Ősz") - Number(a.season === "Ősz")
+      )[0] ?? null;
+  }
+  const priceInfoText =
+    infoSeason?.weight_min != null && infoSeason?.weight_max != null && infoSeason?.price != null
+      ? `A csirkék átlagos súlya felpucolva ${infoSeason.weight_min}–${infoSeason.weight_max} kg, az alapár pedig ${infoSeason.price} Ft/kg.`
+      : null;
+
   return (
     <>
       <main className="mx-auto mt-4 w-full max-w-5xl">
@@ -88,6 +106,7 @@ export default async function PreorderPage() {
               startDate={season?.time_window_start}
               endDate={season?.time_window_end}
               seasonText={orderInfo2Text}
+              fallbackText={priceInfoText}
             />
           </div>
         </PreorderIntro>

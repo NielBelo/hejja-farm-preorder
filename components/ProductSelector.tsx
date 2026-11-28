@@ -4,6 +4,7 @@ import Image from "next/image";
 import {
     ChevronRightIcon,
     ChevronDownIcon,
+    MagnifyingGlassPlusIcon,
     TrashIcon,
     XMarkIcon,
 } from "@heroicons/react/24/outline";
@@ -28,6 +29,7 @@ type PackageOption = {
     id: number;
     name: string;
     description: string | null;
+    image_url?: string | null;
 };
 
 type OrderItem = {
@@ -598,24 +600,7 @@ export default function ProductSelector({
                                             >
                                                 <div className="flex h-full flex-col gap-3">
                                                     {product.image_url && (
-                                                        <span
-                                                            role="button"
-                                                            tabIndex={0}
-                                                            title="Kattintson a kép nagyításához"
-                                                            aria-label={`${product.name} képének nagyítása`}
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                setZoomedImage({ src: product.image_url!, alt: product.name });
-                                                            }}
-                                                            onKeyDown={(event) => {
-                                                                if (event.key === "Enter" || event.key === " ") {
-                                                                    event.preventDefault();
-                                                                    event.stopPropagation();
-                                                                    setZoomedImage({ src: product.image_url!, alt: product.name });
-                                                                }
-                                                            }}
-                                                            className="group relative block w-full cursor-zoom-in overflow-hidden rounded-lg"
-                                                        >
+                                                        <span className="group relative block w-full overflow-hidden rounded-lg">
                                                             <Image
                                                                 src={product.image_url}
                                                                 alt={product.name}
@@ -623,8 +608,26 @@ export default function ProductSelector({
                                                                 height={200}
                                                                 className="block h-auto w-full"
                                                             />
-                                                            <span className="absolute inset-0 flex items-center justify-center bg-black/0 px-3 text-center text-base font-semibold text-white opacity-0 transition group-hover:bg-black/55 group-hover:opacity-100 group-focus-visible:bg-black/55 group-focus-visible:opacity-100">
-                                                                Kattintson a nagyításhoz
+                                                            <span
+                                                                role="button"
+                                                                tabIndex={0}
+                                                                title="Kép nagyítása"
+                                                                aria-label={`${product.name} képének nagyítása`}
+                                                                onClick={(event) => {
+                                                                    event.stopPropagation();
+                                                                    setZoomedImage({ src: product.image_url!, alt: product.name });
+                                                                }}
+                                                                onKeyDown={(event) => {
+                                                                    if (event.key === "Enter" || event.key === " ") {
+                                                                        event.preventDefault();
+                                                                        event.stopPropagation();
+                                                                        setZoomedImage({ src: product.image_url!, alt: product.name });
+                                                                    }
+                                                                }}
+                                                                className="absolute right-2 top-2 flex cursor-zoom-in items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-sm font-semibold text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                                                            >
+                                                                <MagnifyingGlassPlusIcon aria-hidden="true" className="h-5 w-5" />
+                                                                Nagyítás
                                                             </span>
                                                         </span>
                                                     )}
@@ -730,13 +733,50 @@ export default function ProductSelector({
                                                         }
                           `}
                                                 >
-                                                    <h3 className="text-lg font-semibold text-gray-700">
-                                                        {pack.name}
-                                                    </h3>
+                                                    <div className="flex items-start gap-4">
+                                                        <div className="min-w-0 flex-1">
+                                                            <h3 className="text-lg font-semibold text-gray-700">
+                                                                {pack.name}
+                                                            </h3>
 
-                                                    <p className="mt-1 text-base text-gray-500">
-                                                        {pack.description}
-                                                    </p>
+                                                            <p className="mt-1 text-base text-gray-500">
+                                                                {pack.description}
+                                                            </p>
+                                                        </div>
+
+                                                        {pack.image_url && (
+                                                            <span className="group relative block w-28 shrink-0 overflow-hidden rounded-lg">
+                                                                <Image
+                                                                    src={pack.image_url}
+                                                                    alt={pack.name}
+                                                                    width={160}
+                                                                    height={160}
+                                                                    className="block h-auto w-full"
+                                                                />
+                                                                <span
+                                                                    role="button"
+                                                                    tabIndex={0}
+                                                                    title="Kép nagyítása"
+                                                                    aria-label={`${pack.name} képének nagyítása`}
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setZoomedImage({ src: pack.image_url!, alt: pack.name });
+                                                                    }}
+                                                                    onKeyDown={(event) => {
+                                                                        if (event.key === "Enter" || event.key === " ") {
+                                                                            event.preventDefault();
+                                                                            event.stopPropagation();
+                                                                            setZoomedImage({ src: pack.image_url!, alt: pack.name });
+                                                                        }
+                                                                    }}
+                                                                    className="absolute bottom-1 left-1/2 flex -translate-x-1/2 cursor-zoom-in items-center gap-1 whitespace-nowrap rounded-full bg-black/60 px-2 py-1 text-xs font-semibold text-white opacity-0 transition hover:bg-black/80 focus-visible:opacity-100 group-hover:opacity-100 [@media(hover:none)]:opacity-100"
+                                                                >
+                                                                    <MagnifyingGlassPlusIcon aria-hidden="true" className="h-4 w-4" />
+                                                                    Nagyítás
+                                                                </span>
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </button>
                                             );
                                         })}

@@ -29,6 +29,7 @@ type PackageOption = {
     id: number;
     name: string;
     description: string | null;
+    image_url?: string | null;
 };
 
 type PickupDay = {

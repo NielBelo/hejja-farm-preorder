@@ -6,15 +6,16 @@ export default function SeasonOrderInfo({
     startDate,
     endDate,
     seasonText,
+    fallbackText,
 }: {
     startDate?: string | null;
     endDate?: string | null;
     seasonText?: string | null;
+    // A rendelési időablakon kívül mutatott szöveg (a szezon súly- és ársávjával).
+    fallbackText?: string | null;
 }) {
     const isOrderingOpen = useOrderWindow(startDate, endDate);
-    const text = isOrderingOpen
-        ? seasonText
-        : "Csirkéink átlagos vágott súlya szezononként változik, jellemzően 2–3 kg. Átvételkor a tényleges súly és az aktuális kilogrammonkénti ár alapján, a helyszínen számolunk el.";
+    const text = isOrderingOpen ? seasonText : fallbackText;
 
     if (!text) {
         return null;
@@ -24,7 +25,7 @@ export default function SeasonOrderInfo({
         .split(/(\d+(?:[.,]\d+)?\s*[–-]\s*\d+(?:[.,]\d+)?\s*kg|\d[\d\s]*\s*Ft\/kg)/gi)
         .map((part, index) =>
             /(?:kg|Ft\/kg)$/i.test(part.trim()) ? (
-                <span key={index} className="font-extrabold text-[#43852D]">
+                <span key={index} className="text-[#43852D]">
                     {part}
                 </span>
             ) : (

@@ -56,6 +56,10 @@ const withLegacyPrice = (input: SeasonInput, products: ProductOption[]): SeasonI
   return price === undefined ? input : { ...input, price };
 };
 
+// Új átvételi nap alapértelmezett méretlimitjei.
+const DEFAULT_SMALL_SIZE_LIMIT = 20;
+const DEFAULT_LARGE_SIZE_LIMIT = 40;
+
 const blank = (products: ProductOption[] = []): SeasonInput => ({
   year: new Date().getFullYear(),
   type: "Tavasz",
@@ -69,7 +73,7 @@ const blank = (products: ProductOption[] = []): SeasonInput => ({
   pickupTimeStart: "17:00",
   pickupTimeEnd: "18:00",
   localPickupTimeStart: "17:00",
-  pickupDays: [{ date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null }],
+  pickupDays: [{ date: "", limit: 1, active: true, smallSizeLimit: DEFAULT_SMALL_SIZE_LIMIT, largeSizeLimit: DEFAULT_LARGE_SIZE_LIMIT }],
   active: false,
 });
 
@@ -225,6 +229,24 @@ function StatusBadge({ active }: { active: boolean }) {
 
 // A törölt (archivált) nap/szezon jelzője: ugyanolyan lapos jelző, mint az
 // Aktív/Inaktív, ugyanakkora hellyel.
+// A törölt napok alapból összecsukva; a gomb lenyitja/visszacsukja őket.
+function DeletedDaysToggle({ count, children }: { count: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <button
+        type="button"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+      >
+        {open ? "Törölt napok elrejtése" : "Törölt napok megjelenítése"} ({count})
+      </button>
+      {open && <div className="mt-2">{children}</div>}
+    </div>
+  );
+}
+
 function DeletedBadge() {
   return (
     <span className={`${statusIndicatorClass} text-red-600`}>
@@ -879,7 +901,13 @@ function Editor({
                   ...value,
                   pickupDays: [
                     ...value.pickupDays,
-                    { date: "", limit: 1, active: true, smallSizeLimit: null, largeSizeLimit: null },
+                    {
+                      date: "",
+                      limit: 1,
+                      active: true,
+                      smallSizeLimit: DEFAULT_SMALL_SIZE_LIMIT,
+                      largeSizeLimit: DEFAULT_LARGE_SIZE_LIMIT,
+                    },
                   ],
                 })
               }
@@ -892,7 +920,9 @@ function Editor({
         </div>
 
         {listedDeletedDays.length > 0 && (
-          <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
+          <div className="mt-4 border-t border-gray-100 pt-3">
+           <DeletedDaysToggle count={listedDeletedDays.length}>
+            <div className="space-y-2">
             <div className="inline-flex items-center gap-1">
               <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Törölt napok</span>
               <InfoTip>
@@ -932,6 +962,8 @@ function Editor({
                   </button>
                 </div>
             ))}
+            </div>
+           </DeletedDaysToggle>
           </div>
         )}
       </EditorSection>
@@ -1092,6 +1124,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [liveConfirmMessage, setLiveConfirmMessage] = useState<string | null>(null);
   // restoringKey: "season-<id>" - melyik szezon visszaállítása fut.
+  const [showArchived, setShowArchived] = useState(false);
   const [restoringKey, setRestoringKey] = useState<string | null>(null);
   const [restoreError, setRestoreError] = useState<string | null>(null);
   const closeEditor = () => {
@@ -1390,7 +1423,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                 )}
 
                 {s.deletedDays.length > 0 && (
-                  <div>
+                  <DeletedDaysToggle count={s.deletedDays.length}>
                     <div className="inline-flex items-center gap-1">
                       <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">Törölt napok</span>
                       <InfoTip>
@@ -1418,7 +1451,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         />
                       ))}
                     </div>
-                  </div>
+                  </DeletedDaysToggle>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2 border-t border-gray-100 pt-3">
@@ -1549,6 +1582,17 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
             </span>
             Törölt szezonok
           </h2>
+          <button
+            type="button"
+            aria-expanded={showArchived}
+            onClick={() => setShowArchived((v) => !v)}
+            className="inline-flex items-center gap-1.5 rounded-lg border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+          >
+            {showArchived ? "Törölt szezonok elrejtése" : "Törölt szezonok megjelenítése"} (
+            {seasons.filter((s) => s.archived).length})
+          </button>
+          {showArchived && (
+          <div className="mt-2">
           <div className="grid gap-3">
             {seasons
               .filter((s) => s.archived)
@@ -1623,6 +1667,8 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
             <Notice tone="error" title="A visszaállítás nem sikerült" className="mt-2" reveal>
               <p>{restoreError}</p>
             </Notice>
+          )}
+          </div>
           )}
         </section>
       )}
