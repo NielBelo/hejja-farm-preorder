@@ -54,6 +54,13 @@ export function formatSeasonLabel(year: number, season: string) {
     return `${year}-${yearSuffix(year)} ${adjective} szezon`;
 }
 
+// A nyitómondat alakja: "2026 őszi szezonjára" (évszám toldalék nélkül).
+function formatLaunchSeasonLabel(year: number, season: string) {
+    const normalized = season.trim().toLowerCase();
+    const adjective = SEASON_ADJECTIVES[normalized] ?? normalized;
+    return `${year} ${adjective} szezonjára`;
+}
+
 function formatDateTime(value: string) {
     return new Intl.DateTimeFormat("hu-HU", {
         dateStyle: "long",
@@ -66,7 +73,7 @@ function buildHtml(data: SeasonLaunchData, subject: string, options: SeasonLaunc
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");
     const orderUrl = escapeHtml(options.orderUrl ?? DEFAULT_ORDER_URL);
     const seasonLabel = formatSeasonLabel(data.year, data.season);
-    const seasonLabelInflected = `${seasonLabel}jára`;
+    const seasonLabelInflected = formatLaunchSeasonLabel(data.year, data.season);
 
     return `<!doctype html>
 <html lang="hu">
@@ -90,7 +97,7 @@ function buildHtml(data: SeasonLaunchData, subject: string, options: SeasonLaunc
                             </p>
 
                             <p style="margin:0 0 20px;font-size:14px;line-height:22px;color:#4b5563;">
-                                A Héjja Ökofarm <strong>${escapeHtml(seasonLabelInflected)}</strong> hamarosan megnyílik az előrendelési lehetőség.
+                                A Héjja Ökofarm-os csirkék <strong>${escapeHtml(seasonLabelInflected)}</strong> az előrendelési lehetőség megnyílt.
                             </p>
 
                             <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="margin-bottom:26px;background:#F0F5EB;border-left:3px solid #43852D;border-radius:0 8px 8px 0;">
@@ -166,7 +173,7 @@ export function buildSeasonLaunchEmail(
     const text = [
         "Kedves Vásárlónk!",
         "",
-        `A Héjja Ökofarm ${seasonLabel}jára hamarosan megnyílik az előrendelési lehetőség.`,
+        `A Héjja Ökofarm-os csirkék ${formatLaunchSeasonLabel(data.year, data.season)} az előrendelési lehetőség megnyílt.`,
         "",
         seasonLabel,
         `Előrendelés kezdete: ${formatDateTime(data.orderStart)}`,

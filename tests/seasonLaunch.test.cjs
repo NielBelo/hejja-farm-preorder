@@ -30,7 +30,8 @@ test('season label is natural Hungarian', () => {
 test('subject and body use dynamic season data and Budapest time', () => {
     const email = buildSeasonLaunchEmail(data);
     assert.equal(email.subject, 'Héjja Ökofarm – indul a 2027-es tavaszi előrendelés!');
-    assert.ok(email.html.includes('2027-es tavaszi szezonjára'));
+    assert.ok(email.html.includes('2027 tavaszi szezonjára</strong> az előrendelési lehetőség megnyílt.'));
+    assert.ok(email.text.includes('A Héjja Ökofarm-os csirkék 2027 tavaszi szezonjára az előrendelési lehetőség megnyílt.'));
     assert.ok(email.html.includes('2027. január 15.'));
     assert.ok(email.html.includes('8:00'));
     assert.ok(email.html.includes('20:00'));
