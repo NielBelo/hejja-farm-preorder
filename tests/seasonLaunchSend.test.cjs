@@ -29,6 +29,9 @@ const smtp2go = {
 };
 
 const guard = load('../lib/email/seasonLaunchGuard.ts');
+const sendingSwitch = load('../lib/email/sendingSwitch.ts');
+const switchMod = load('../lib/email/seasonLaunchSwitch.ts', { '@/lib/email/sendingSwitch': sendingSwitch });
+const reminderSwitch = load('../lib/email/reminderSwitch.ts', { '@/lib/email/sendingSwitch': sendingSwitch });
 const sends = load('../lib/email/seasonLaunchSends.ts');
 const staleness = load('../lib/email/reminderStaleness.ts');
 const runHelpers = load('../lib/email/reminderRun.ts');
@@ -103,7 +106,6 @@ let env;
 beforeEach(() => {
     env = { ...process.env };
     delete process.env.SEASON_LAUNCH_TEST_RECIPIENT;
-    delete process.env.SEASON_LAUNCH_EMAIL_SENDING_ENABLED;
 });
 afterEach(() => {
     process.env = env;
@@ -126,17 +128,55 @@ test('a guard alapból blokkol: nincs claim, nincs küldés, nincs DB-lekérdez�
     assert.equal(supabase.rows.size, 0);
 });
 
-test('a guard NODE_ENV=production nélkül is blokkol, flaggel is', () => {
-    process.env.SEASON_LAUNCH_EMAIL_SENDING_ENABLED = 'true';
+test('a guard NODE_ENV=production nélkül is blokkol, bekapcsolt kapcsolóval is', () => {
     process.env.NODE_ENV = 'development';
-    assert.equal(guard.isSeasonLaunchSendingBlocked(), true);
+    assert.equal(guard.isSeasonLaunchSendingBlocked(true), true);
     process.env.NODE_ENV = 'production';
-    assert.equal(guard.isSeasonLaunchSendingBlocked(), false);
-    delete process.env.SEASON_LAUNCH_EMAIL_SENDING_ENABLED;
-    assert.equal(guard.isSeasonLaunchSendingBlocked(), true);
+    assert.equal(guard.isSeasonLaunchSendingBlocked(true), false);
+    assert.equal(guard.isSeasonLaunchSendingBlocked(false), true);
+    // Csak a pontos true nyit: semmi más érték nem.
+    assert.equal(guard.isSeasonLaunchSendingBlocked(undefined), true);
+    assert.equal(guard.isSeasonLaunchSendingBlocked('true'), true);
     // Az emlékeztető kapcsolója NEM nyitja ki a szezonlevelet.
     process.env.REMINDER_EMAIL_SENDING_ENABLED = 'true';
-    assert.equal(guard.isSeasonLaunchSendingBlocked(), true);
+    assert.equal(guard.isSeasonLaunchSendingBlocked(false), true);
+});
+
+test('production + kikapcsolt kapcsoló: a küldő útvonal nem küld, nem foglal, nem kérdez', async () => {
+    process.env.NODE_ENV = 'production';
+    const supabase = makeSupabase();
+    const result = await mod.sendSeasonLaunchEmails(supabase, '2026-10-06');
+    assert.equal(result.blocked, true);
+    const off = await mod.sendSeasonLaunchEmails(supabase, '2026-10-06', undefined, { sendingEnabled: false });
+    assert.equal(off.blocked, true);
+    const outcomes = await mod.processSeasonLaunchChunk(supabase, season, recipients, new Date(), { sendingEnabled: false });
+    assert.deepEqual(outcomes.map((o) => o.kind), ['skipped', 'skipped', 'skipped']);
+    assert.equal(supabase.rows.size, 0);
+});
+
+test('kapcsoló (KV): alapból kikapcsolt, hiba esetén is kikapcsolt, csak a pontos true kapcsol be', async () => {
+    const kvOf = (value) => ({ get: async () => value, put: async () => {} });
+    assert.equal((await switchMod.readSeasonLaunchSwitch(undefined)).enabled, false);
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kvOf(null))).enabled, false);
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kvOf('nem json'))).enabled, false);
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kvOf('{"enabled":"true"}'))).enabled, false);
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kvOf('{"enabled":1}'))).enabled, false);
+    const throwing = { get: async () => { throw new Error('KV down'); }, put: async () => {} };
+    assert.equal((await switchMod.readSeasonLaunchSwitch(throwing)).enabled, false);
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kvOf('{"enabled":true,"updatedAt":"2026-11-28T10:00:00.000Z","updatedBy":"a@b.hu"}'))).enabled, true);
+});
+
+test('kapcsoló (KV): írás-olvasás körút, hibás/hiányzó KV esetén null', async () => {
+    const store = new Map();
+    const kv = { get: async (k) => store.get(k) ?? null, put: async (k, v) => { store.set(k, v); } };
+    const on = await switchMod.writeSeasonLaunchSwitch(kv, true, 'admin@example.hu', new Date('2026-11-28T10:00:00Z'));
+    assert.deepEqual(on, { enabled: true, updatedAt: '2026-11-28T10:00:00.000Z', updatedBy: 'admin@example.hu' });
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kv)).enabled, true);
+    await switchMod.writeSeasonLaunchSwitch(kv, false, 'admin@example.hu');
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kv)).enabled, false);
+    assert.equal(await switchMod.writeSeasonLaunchSwitch(null, true, 'x'), null);
+    const failing = { get: async () => null, put: async () => { throw new Error('KV down'); } };
+    assert.equal(await switchMod.writeSeasonLaunchSwitch(failing, true, 'x'), null);
 });
 
 test('hamis küldővel mindenki pontosan egyszer kap levelet, második futás kihagy', async () => {
@@ -229,4 +269,47 @@ test('teljes futás: csomagolás, összesítés, üres címek kihagyva', async (
 
 test('egy csomag költségvetése: címzettenként 3 hívás, legfeljebb 25 subrequest (a 50-es keret fele)', () => {
     assert.ok(mod.SEASON_LAUNCH_CHUNK_SIZE * 3 <= 25);
+});
+
+test('emlékeztető kapcsoló: KV-érték nélkül a régi env beállítás érvényes, KV-értékkel a KV dönt', async () => {
+    const empty = { get: async () => null, put: async () => {} };
+    assert.equal((await reminderSwitch.resolveReminderSending(empty, 'true')).state.enabled, true);
+    assert.equal((await reminderSwitch.resolveReminderSending(empty, 'true')).inheritedFromEnv, true);
+    assert.equal((await reminderSwitch.resolveReminderSending(empty, undefined)).state.enabled, false);
+    assert.equal((await reminderSwitch.resolveReminderSending(empty, 'false')).state.enabled, false);
+
+    const off = { get: async () => '{"enabled":false}', put: async () => {} };
+    const resolvedOff = await reminderSwitch.resolveReminderSending(off, 'true');
+    assert.equal(resolvedOff.state.enabled, false, 'a KV-ban mentett kikapcsolás felülírja a régi env-et');
+    assert.equal(resolvedOff.inheritedFromEnv, false);
+
+    const on = { get: async () => '{"enabled":true}', put: async () => {} };
+    assert.equal((await reminderSwitch.resolveReminderSending(on, undefined)).state.enabled, true);
+});
+
+test('emlékeztető kapcsoló: elérhetetlen KV esetén KIKAPCSOLT még bekapcsolt régi env mellett is', async () => {
+    const throwing = { get: async () => { throw new Error('KV down'); }, put: async () => {} };
+    assert.equal((await reminderSwitch.resolveReminderSending(throwing, 'true')).state.enabled, false);
+    assert.equal((await reminderSwitch.resolveReminderSending(undefined, 'true')).state.enabled, false);
+});
+
+test('emlékeztető kapcsoló: az env-be íródó érték a feloldott állapotot követi', async () => {
+    process.env.REMINDER_EMAIL_SENDING_ENABLED = 'true';
+    const off = { get: async () => '{"enabled":false}', put: async () => {} };
+    assert.equal(await reminderSwitch.applyReminderSwitchToEnv(off), false);
+    assert.equal(process.env.REMINDER_EMAIL_SENDING_ENABLED, 'false');
+    const on = { get: async () => '{"enabled":true}', put: async () => {} };
+    assert.equal(await reminderSwitch.applyReminderSwitchToEnv(on), true);
+    assert.equal(process.env.REMINDER_EMAIL_SENDING_ENABLED, 'true');
+    assert.equal(await reminderSwitch.applyReminderSwitchToEnv(undefined), false);
+    assert.equal(process.env.REMINDER_EMAIL_SENDING_ENABLED, 'false');
+});
+
+test('emlékeztető és szezonértesítő kapcsoló külön kulcson él', async () => {
+    const store = new Map();
+    const kv = { get: async (k) => store.get(k) ?? null, put: async (k, v) => { store.set(k, v); } };
+    await reminderSwitch.writeReminderSwitch(kv, true, 'a@b.hu');
+    assert.equal((await switchMod.readSeasonLaunchSwitch(kv)).enabled, false);
+    assert.equal((await reminderSwitch.resolveReminderSending(kv, undefined)).state.enabled, true);
+    assert.notEqual(switchMod.SEASON_LAUNCH_SWITCH_KEY, reminderSwitch.REMINDER_SWITCH_KEY);
 });

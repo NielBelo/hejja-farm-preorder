@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentUser } from "@/lib/auth/getCurrentUser";
-import { setMaintenanceConfig, type MaintenanceConfig } from "@/lib/maintenance/config";
+import { getKv, setMaintenanceConfig, type MaintenanceConfig } from "@/lib/maintenance/config";
+import { writeSeasonLaunchSwitch } from "@/lib/email/seasonLaunchSwitch";
+import { writeReminderSwitch } from "@/lib/email/reminderSwitch";
 
 export type MaintenanceConfigInput = {
     active: boolean;
@@ -38,4 +40,38 @@ export async function updateMaintenanceConfig(input: MaintenanceConfigInput) {
 
     revalidatePath("/", "layout");
     return { success: true as const, config };
+}
+
+// A szezonindítási értesítő automatikus küldésének be-/kikapcsolása. Csak
+// superadmin. Magát a küldést a worker a szezon kezdőnapján 08:00-kor végzi.
+export async function updateSeasonLaunchSwitch(enabled: boolean) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.isSuperAdmin) {
+        return { success: false as const, error: "Superadmin jogosultság szükséges." };
+    }
+
+    const saved = await writeSeasonLaunchSwitch(await getKv(), enabled === true, currentUser.email);
+    if (!saved) {
+        return { success: false as const, error: "A kapcsoló mentése sikertelen. Kérjük, próbálja újra." };
+    }
+
+    revalidatePath("/admin/accounts/maintenance");
+    return { success: true as const, state: saved };
+}
+
+// Az átvételi emlékeztetők automatikus küldésének be-/kikapcsolása. Csak
+// superadmin. A küldést a worker minden nap 08:00-kor (budapesti idő) végzi.
+export async function updateReminderSwitch(enabled: boolean) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser?.isSuperAdmin) {
+        return { success: false as const, error: "Superadmin jogosultság szükséges." };
+    }
+
+    const saved = await writeReminderSwitch(await getKv(), enabled === true, currentUser.email);
+    if (!saved) {
+        return { success: false as const, error: "A kapcsoló mentése sikertelen. Kérjük, próbálja újra." };
+    }
+
+    revalidatePath("/admin/accounts/maintenance");
+    return { success: true as const, state: saved };
 }

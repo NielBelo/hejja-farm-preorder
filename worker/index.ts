@@ -41,6 +41,8 @@ import {
     handleSeasonLaunchChunkRequest,
     SEASON_LAUNCH_CHUNK_PATH,
 } from "./seasonLaunchChunk";
+import { readSeasonLaunchSwitch, type SeasonLaunchSwitchKv } from "../lib/email/seasonLaunchSwitch";
+import { applyReminderSwitchToEnv } from "../lib/email/reminderSwitch";
 import { getCalendarDate } from "../lib/orderWindow";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
@@ -58,6 +60,7 @@ type ExecutionContextLike = {
 
 type WorkerEnvLike = {
     WORKER_SELF_REFERENCE?: { fetch(request: Request): Promise<Response> };
+    MAINTENANCE_KV?: SeasonLaunchSwitchKv;
 };
 
 async function runReminderJob(pickupDateIso: string, env: WorkerEnvLike) {
@@ -77,11 +80,14 @@ async function runReminderJob(pickupDateIso: string, env: WorkerEnvLike) {
     //     ("supabaseKey is required"), amit korábban csak a lenti try/catch
     //     kapott el és logolt hibaként - pedig ez valójában a guard által
     //     szándékosan megakadályozott, biztonságos állapot, nem hiba.
+    // A kapcsoló állapotát (superadmin KV-kapcsoló, átmenetileg a régi env
+    // beállítás tartalékkal) a guard ELŐTT oldjuk fel, lásd lib/email/reminderSwitch.ts.
+    const reminderEnabled = await applyReminderSwitchToEnv(env.MAINTENANCE_KV);
     if (isReminderSendingBlocked()) {
         console.log(
             `[reminder] scheduled no-op: a küldés jelenleg ki van kapcsolva `
             + `(NODE_ENV=${process.env.NODE_ENV ?? "development"}, `
-            + `REMINDER_EMAIL_SENDING_ENABLED=${process.env.REMINDER_EMAIL_SENDING_ENABLED ?? "nincs beállítva"}) - `
+            + `kapcsoló=${reminderEnabled ? "be" : "ki"}) - `
             + `Supabase-kliens sem jön létre. Érintett átvételi nap: ${pickupDateIso}.`,
         );
         return;
@@ -116,12 +122,13 @@ async function runReminderJob(pickupDateIso: string, env: WorkerEnvLike) {
 }
 
 // Szezonindítási értesítő: a szezon kezdőnapján, a 08:00-s futáskor megy ki.
-// A guard (NODE_ENV === "production" ÉS SEASON_LAUNCH_EMAIL_SENDING_ENABLED
-// === "true", lásd lib/email/seasonLaunchGuard.ts) a Supabase kliens
-// létrehozása ELŐTT dönt: kikapcsolt állapotban semmi nem történik.
+// A guard (NODE_ENV === "production" ÉS a superadmin KV-kapcsolója bekapcsolva,
+// lásd lib/email/seasonLaunchGuard.ts és seasonLaunchSwitch.ts) a Supabase
+// kliens létrehozása ELŐTT dönt: kikapcsolt állapotban semmi nem történik.
 // Az emlékeztetőtől független futás: egyik hibája nem érinti a másikat.
 async function runSeasonLaunchJob(todayIso: string, env: WorkerEnvLike) {
-    if (isSeasonLaunchSendingBlocked()) {
+    const sendingEnabled = (await readSeasonLaunchSwitch(env.MAINTENANCE_KV)).enabled;
+    if (isSeasonLaunchSendingBlocked(sendingEnabled)) {
         console.log(`[season-launch] scheduled no-op: a küldés ki van kapcsolva (${todayIso}).`);
         return;
     }
@@ -135,7 +142,7 @@ async function runSeasonLaunchJob(todayIso: string, env: WorkerEnvLike) {
         const runChunk = env.WORKER_SELF_REFERENCE
             ? createSeasonLaunchChunkRunner(env.WORKER_SELF_REFERENCE)
             : undefined;
-        const result = await sendSeasonLaunchEmails(supabase, todayIso, runChunk);
+        const result = await sendSeasonLaunchEmails(supabase, todayIso, runChunk, { sendingEnabled });
         console.log(`[season-launch] scheduled futás eredménye (${todayIso}):`, result);
     } catch (error) {
         console.error(`[season-launch] scheduled futás hiba (${todayIso}):`, error);
@@ -146,10 +153,10 @@ const worker = {
     async fetch(request: Request, env: WorkerEnvLike, ctx: unknown) {
         const { pathname } = new URL(request.url);
         if (pathname === REMINDER_CHUNK_PATH) {
-            return handleReminderChunkRequest(request);
+            return handleReminderChunkRequest(request, env.MAINTENANCE_KV);
         }
         if (pathname === SEASON_LAUNCH_CHUNK_PATH) {
-            return handleSeasonLaunchChunkRequest(request);
+            return handleSeasonLaunchChunkRequest(request, env.MAINTENANCE_KV);
         }
         return openNextWorker.fetch(request, env, ctx);
     },

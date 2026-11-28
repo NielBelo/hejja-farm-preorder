@@ -41,10 +41,13 @@ export type SeasonLaunchChunkRunner = (
     runAt: Date,
 ) => Promise<SeasonLaunchOutcome[]>;
 
-// Csak tesztben adható meg: a küldő cseréje. Éles útvonalon SOSEM adjuk át,
-// ezért a guard ott megkerülhetetlen.
+// send: csak tesztben adható meg (a küldő cseréje), éles útvonalon SOSEM adjuk
+// át, ezért a guard ott megkerülhetetlen.
+// sendingEnabled: a superadmin kapcsolójának (KV) állapota, a hívó olvassa be;
+// hiányában KIKAPCSOLTNAK számít.
 export type SeasonLaunchDeps = {
     send?: typeof sendSmtp2GoEmail;
+    sendingEnabled?: boolean;
 };
 
 export type SeasonLaunchRunResult = {
@@ -242,7 +245,7 @@ export async function processSeasonLaunchChunk(
     deps: SeasonLaunchDeps = {},
 ): Promise<SeasonLaunchOutcome[]> {
     // Éles útvonalon deps.send üres, ezért a guard megkerülhetetlen.
-    if (!deps.send && isSeasonLaunchSendingBlocked()) {
+    if (!deps.send && isSeasonLaunchSendingBlocked(deps.sendingEnabled === true)) {
         return recipients.map(() => ({ kind: "skipped" }));
     }
 
@@ -287,7 +290,7 @@ export async function sendSeasonLaunchEmails(
         uncertain: [],
     };
 
-    if (!deps.send && isSeasonLaunchSendingBlocked()) {
+    if (!deps.send && isSeasonLaunchSendingBlocked(deps.sendingEnabled === true)) {
         return { ...result, blocked: true };
     }
 

@@ -6,6 +6,8 @@ import {
 } from "../lib/email/sendReminderEmail";
 import type { ReminderOrderTarget } from "../lib/email/reminderData";
 import type { ReminderOutcome } from "../lib/email/reminderRun";
+import { applyReminderSwitchToEnv } from "../lib/email/reminderSwitch";
+import type { SendingSwitchKv } from "../lib/email/sendingSwitch";
 
 // Belső végpont a napi emlékeztető-csomagok futtatásához. A Worker a saját
 // szolgáltatás-bindingjén (WORKER_SELF_REFERENCE) keresztül hívja meg, így
@@ -18,12 +20,18 @@ type ServiceBindingLike = {
     fetch(request: Request): Promise<Response>;
 };
 
-export async function handleReminderChunkRequest(request: Request): Promise<Response> {
+export async function handleReminderChunkRequest(
+    request: Request,
+    kv: SendingSwitchKv | null | undefined,
+): Promise<Response> {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceKey || request.headers.get("authorization") !== `Bearer ${serviceKey}`) {
         return new Response("Forbidden", { status: 403 });
     }
 
+    // Csomagonként újra feloldjuk a kapcsolót: ha a superadmin közben
+    // kikapcsolja, a hátralévő csomagok már nem mennek ki.
+    await applyReminderSwitchToEnv(kv);
     if (isReminderSendingBlocked()) {
         return new Response("Sending blocked", { status: 409 });
     }

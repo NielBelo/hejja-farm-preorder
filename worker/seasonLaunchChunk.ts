@@ -7,6 +7,7 @@ import {
     type SeasonLaunchRecipient,
     type SeasonLaunchSeason,
 } from "../lib/email/sendSeasonLaunch";
+import { readSeasonLaunchSwitch, type SeasonLaunchSwitchKv } from "../lib/email/seasonLaunchSwitch";
 
 // Belső végpont a szezonindítási értesítő csomagjaihoz (ugyanaz a minta, mint
 // worker/reminderChunk.ts): minden csomag külön worker-futásban, saját 50
@@ -17,13 +18,19 @@ type ServiceBindingLike = {
     fetch(request: Request): Promise<Response>;
 };
 
-export async function handleSeasonLaunchChunkRequest(request: Request): Promise<Response> {
+export async function handleSeasonLaunchChunkRequest(
+    request: Request,
+    kv: SeasonLaunchSwitchKv | null | undefined,
+): Promise<Response> {
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!serviceKey || request.headers.get("authorization") !== `Bearer ${serviceKey}`) {
         return new Response("Forbidden", { status: 403 });
     }
 
-    if (isSeasonLaunchSendingBlocked()) {
+    // A kapcsolót csomagonként újra beolvassuk: ha a superadmin közben
+    // kikapcsolja, a hátralévő csomagok már nem mennek ki.
+    const sendingEnabled = (await readSeasonLaunchSwitch(kv)).enabled;
+    if (isSeasonLaunchSendingBlocked(sendingEnabled)) {
         return new Response("Sending blocked", { status: 409 });
     }
 
@@ -38,7 +45,7 @@ export async function handleSeasonLaunchChunkRequest(request: Request): Promise<
         { auth: { persistSession: false, autoRefreshToken: false } },
     );
 
-    const outcomes = await processSeasonLaunchChunk(supabase, body.season, body.recipients, new Date(body.runAt));
+    const outcomes = await processSeasonLaunchChunk(supabase, body.season, body.recipients, new Date(body.runAt), { sendingEnabled });
     return Response.json({ outcomes });
 }
 

@@ -26,7 +26,7 @@ type MinimalKvNamespace = {
   put(key: string, value: string): Promise<void>;
 };
 
-async function getKv(): Promise<MinimalKvNamespace | null> {
+export async function getKv(): Promise<MinimalKvNamespace | null> {
   try {
     const { env } = await getCloudflareContext({ async: true });
     const kv = (env as unknown as { MAINTENANCE_KV?: MinimalKvNamespace })

@@ -24,6 +24,7 @@ process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';
 let processed = null;
 const route = load('../worker/reminderChunk.ts', {
     '@supabase/supabase-js': require('@supabase/supabase-js'),
+    '../lib/email/reminderSwitch': { applyReminderSwitchToEnv: async () => true },
     '../lib/email/sendReminderEmail': {
         isReminderSendingBlocked: () => false,
         processReminderChunk: async (_sb, targets) => {
