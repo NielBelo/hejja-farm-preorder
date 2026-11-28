@@ -418,7 +418,7 @@ function OrderStatsLine({
 // Natív <select> helyett - a böngésző saját legördülő listája nem
 // stílusozható (apró betűméret, a design egyik eleméhez sem illeszkedik),
 // ezért ugyanazt a listbox-mintát használjuk, mint az admin fiókszerkesztő
-// vármegye-választója (AdminAccountEditor.tsx CountySelect).
+// megye-választója (AdminAccountEditor.tsx CountySelect).
 function Listbox({
   label,
   value,
@@ -975,11 +975,11 @@ function Editor({
           hint={
             <InfoTip>
               <p>
-                A Bács-Kiskun vármegyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem szerkeszthető
+                A Bács-Kiskun megyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem szerkeszthető
                 és nem törölhető, csak aktiválható/deaktiválható. Kapacitása korlátlan, nincs napi limitje.
               </p>
               <p className="mt-1.5">
-                Deaktiváláskor a Bács-Kiskun vármegyei vásárlók nem tudnak új rendelést leadni erre a szezonra, de a
+                Deaktiváláskor a Bács-Kiskun megyei vásárlók nem tudnak új rendelést leadni erre a szezonra, de a
                 már leadott rendeléseik változatlanul megmaradnak.
               </p>
             </InfoTip>
@@ -988,7 +988,7 @@ function Editor({
           <div className="flex flex-wrap items-end gap-2 rounded-lg border border-gray-200 p-3">
             <div className="min-w-[10rem] flex-1">
               <p className="truncate text-sm font-semibold text-gray-800">
-                Vágási nap: {dunavecse.date ? formatDate(dunavecse.date) : "–"}
+                Vágási nap: {dunavecse.date ? formatDate(dunavecse.date) : "-"}
               </p>
               <p className="text-xs text-gray-500">Korlátlan kapacitás</p>
               <OrderStatsLine
@@ -1323,16 +1323,16 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                     title="Árak"
                     rows={products.map((product): [string, React.ReactNode] => {
                       const price = s.prices?.find((entry) => entry.productId === product.id)?.price;
-                      return [product.name, price === undefined ? "–" : `${formatCount(price)} Ft/kg`];
+                      return [product.name, price === undefined ? "-" : `${formatCount(price)} Ft/kg`];
                     })}
                   />
                   <InfoCard
                     accent="blue"
                     title="Előrendelés"
                     rows={[
-                      ["Kezdete", s.orderStart ? formatDate(s.orderStart) : "–"],
-                      ["Vége", s.orderEnd ? formatDate(s.orderEnd) : "–"],
-                      ["Súly", `${s.weightMin}–${s.weightMax} kg`],
+                      ["Kezdete", s.orderStart ? formatDate(s.orderStart) : "-"],
+                      ["Vége", s.orderEnd ? formatDate(s.orderEnd) : "-"],
+                      ["Súly", `${s.weightMin}-${s.weightMax} kg`],
                     ]}
                   />
                   <div className={`rounded-lg border border-l-[3px] border-gray-200 ${ACCENTS.purple.bar} bg-white p-3`}>
@@ -1343,11 +1343,11 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         <dl className="mt-1 divide-y divide-gray-100">
                           <div className="flex items-baseline justify-between gap-3 py-1 first:pt-0 last:pb-0">
                             <dt className="text-sm text-gray-500">Kezdete</dt>
-                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeStart || "–"}</dd>
+                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeStart || "-"}</dd>
                           </div>
                           <div className="flex items-baseline justify-between gap-3 py-1 first:pt-0 last:pb-0">
                             <dt className="text-sm text-gray-500">Vége</dt>
-                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeEnd || "–"}</dd>
+                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.pickupTimeEnd || "-"}</dd>
                           </div>
                         </dl>
                       </div>
@@ -1356,7 +1356,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                         <dl className="mt-1">
                           <div className="flex items-baseline justify-between gap-3">
                             <dt className="text-sm text-gray-500">Kezdete</dt>
-                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.localPickupTimeStart || "–"}</dd>
+                            <dd className="text-sm font-semibold tabular-nums text-gray-900">{s.localPickupTimeStart || "-"}</dd>
                           </div>
                         </dl>
                       </div>
@@ -1397,12 +1397,12 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                       <span className="text-xs font-semibold uppercase tracking-wide text-pink-600">DUNAVECSE (Bács-Kiskun, technikai nap)</span>
                       <InfoTip>
                         <p>
-                          A Bács-Kiskun vármegyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem
+                          A Bács-Kiskun megyei vásárlók rendelései automatikusan ehhez a naphoz kerülnek - nem
                           szerkeszthető és nem törölhető, csak aktiválható/deaktiválható. Kapacitása korlátlan,
                           nincs napi limitje.
                         </p>
                         <p className="mt-1.5">
-                          Deaktiváláskor a Bács-Kiskun vármegyei vásárlók nem tudnak új rendelést leadni erre a
+                          Deaktiváláskor a Bács-Kiskun megyei vásárlók nem tudnak új rendelést leadni erre a
                           szezonra, de a már leadott rendeléseik változatlanul megmaradnak.
                         </p>
                       </InfoTip>
@@ -1410,7 +1410,7 @@ export default function SeasonManager({ seasons, products }: { seasons: Season[]
                     <div className="mt-2">
                       <DayCard
                         accent="pink"
-                        title={`Vágási nap: ${s.dunavecse.date ? formatDate(s.dunavecse.date) : "–"}`}
+                        title={`Vágási nap: ${s.dunavecse.date ? formatDate(s.dunavecse.date) : "-"}`}
                         status={s.active ? <StatusBadge active={s.dunavecse.active} /> : null}
                         facts={[
                           ["Kapacitás", "Korlátlan"],

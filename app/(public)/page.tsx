@@ -4,7 +4,7 @@ import { ArrowRightIcon, MapPinIcon, PhoneIcon, UserIcon } from "@heroicons/reac
 
 export const metadata: Metadata = {
   title: "Héjja Ökofarm",
-  description: "Héjja Ökofarm – online csirke-előrendelés.",
+  description: "Héjja Ökofarm - online csirke-előrendelés.",
 };
 
 const CONTACT_EMAIL = "hejjaokofarm@gmail.com";

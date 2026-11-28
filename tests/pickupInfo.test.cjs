@@ -29,8 +29,8 @@ function loadTsModule(absolutePath) {
 const { getPickupWindowInfo, getBacsKiskunPickupRangeInfo, isBekesCounty, isBacsKiskunCounty } =
     loadTsModule(path.join(__dirname, '../lib/pickupInfo.ts'));
 
-const BEKES_LOCATION = 'Kútvölgy Tanya 1132/A, Hódmezővásárhely – Héjja Ökofarm';
-const DEFAULT_LOCATION = 'Hódmezővásárhely, Vámház u. 8/A – Albert Garden Kertészeti Áruda parkolójában';
+const BEKES_LOCATION = 'Kútvölgy Tanya 1132/A, Hódmezővásárhely - Héjja Ökofarm';
+const DEFAULT_LOCATION = 'Hódmezővásárhely, Vámház u. 8/A - Albert Garden Kertészeti Áruda parkolójában';
 
 const baseInput = {
     pickupDate: '2026-10-07',
@@ -84,17 +84,17 @@ test('isBacsKiskunCounty matches only an exact "Bács-Kiskun" value, trimming su
 test('Bacs-Kiskun pickup range stays within the same month', () => {
     const info = getBacsKiskunPickupRangeInfo('2026-10-06');
     assert.equal(info.cuttingDayLabel, 'október 6.');
-    assert.equal(info.rangeLabel, 'október 6. – 7.');
+    assert.equal(info.rangeLabel, 'október 6. - 7.');
 });
 
 test('Bacs-Kiskun pickup range crosses a month boundary using real date arithmetic', () => {
     const info = getBacsKiskunPickupRangeInfo('2026-10-31');
     assert.equal(info.cuttingDayLabel, 'október 31.');
-    assert.equal(info.rangeLabel, 'október 31. – november 1.');
+    assert.equal(info.rangeLabel, 'október 31. - november 1.');
 });
 
 test('Bacs-Kiskun pickup range crosses a year boundary using real date arithmetic', () => {
     const info = getBacsKiskunPickupRangeInfo('2026-12-31');
     assert.equal(info.cuttingDayLabel, 'december 31.');
-    assert.equal(info.rangeLabel, 'december 31. – január 1.');
+    assert.equal(info.rangeLabel, 'december 31. - január 1.');
 });

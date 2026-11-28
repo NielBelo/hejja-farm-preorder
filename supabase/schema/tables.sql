@@ -1,3 +1,10 @@
+CREATE TABLE public.deleted_users (
+  id uuid DEFAULT gen_random_uuid() NOT NULL,
+  full_name text NOT NULL,
+  deleted_at timestamp with time zone DEFAULT now() NOT NULL,
+  deletion_source text NOT NULL
+);
+
 CREATE TABLE public.keepalive (
   id smallint NOT NULL,
   last_ping timestamp with time zone DEFAULT now() NOT NULL
@@ -25,7 +32,7 @@ CREATE TABLE public.order_versions (
 
 CREATE TABLE public.orders (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
-  user_id uuid NOT NULL,
+  user_id uuid,
   season_parameter_id bigint NOT NULL,
   pickup_day_id bigint NOT NULL,
   status text DEFAULT 'submitted'::text NOT NULL,
@@ -168,6 +175,10 @@ CREATE TABLE public.user_roles (
   is_superadmin boolean DEFAULT false NOT NULL
 );
 
+ALTER TABLE public.deleted_users ADD CONSTRAINT deleted_users_deletion_source_check CHECK ((deletion_source = ANY (ARRAY['admin'::text, 'self'::text])));
+
+ALTER TABLE public.deleted_users ADD CONSTRAINT deleted_users_pkey PRIMARY KEY (id);
+
 ALTER TABLE public.keepalive ADD CONSTRAINT keepalive_pkey PRIMARY KEY (id);
 
 ALTER TABLE public.keepalive ADD CONSTRAINT keepalive_id_check CHECK ((id = 1));
@@ -266,7 +277,7 @@ ALTER TABLE public.orders ADD CONSTRAINT orders_pickup_day_id_fkey FOREIGN KEY (
 
 ALTER TABLE public.orders ADD CONSTRAINT orders_season_parameter_id_fkey FOREIGN KEY (season_parameter_id) REFERENCES season_parameters(id);
 
-ALTER TABLE public.orders ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE public.orders ADD CONSTRAINT orders_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE SET NULL;
 
 ALTER TABLE public.pickup_days ADD CONSTRAINT pickup_days_season_parameter_id_fkey FOREIGN KEY (season_parameter_id) REFERENCES season_parameters(id);
 

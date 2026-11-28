@@ -61,3 +61,31 @@ export async function touchKeepAlive(
         return { ok: false, reason: error instanceof Error ? error.message : String(error) };
     }
 }
+
+// A 3 évnél régebbi törölt-felhasználó napló sorok törlése (lásd
+// supabase/migrations/20261129000000_account_deletion_anonymization.sql).
+// Naponta fut a keep-alive cronnal együtt; hibája nem érinti a többi jobot.
+export async function purgeExpiredDeletedUsers(
+    supabaseUrl: string | undefined,
+    serviceRoleKey: string | undefined,
+    fetchImpl: FetchLike = fetch,
+): Promise<KeepAliveResult> {
+    if (!supabaseUrl || !serviceRoleKey) {
+        return { ok: false, reason: "hiányzó Supabase URL vagy service role kulcs" };
+    }
+
+    try {
+        const response = await fetchImpl(`${supabaseUrl}/rest/v1/rpc/purge_expired_deleted_users`, {
+            method: "POST",
+            headers: {
+                apikey: serviceRoleKey,
+                Authorization: `Bearer ${serviceRoleKey}`,
+                "Content-Type": "application/json",
+            },
+            body: "{}",
+        });
+        return response.ok ? { ok: true } : { ok: false, reason: `HTTP ${response.status}` };
+    } catch (error) {
+        return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    }
+}

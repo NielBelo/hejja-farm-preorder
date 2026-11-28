@@ -1,7 +1,7 @@
 import "server-only";
 
 export function buildRegistrationInvite({ recipientName, invitationUrl }: { recipientName?: string; invitationUrl: string }) {
-    const subject = "Héjja Ökofarm – meghívó csirke előrendeléshez";
+    const subject = "Héjja Ökofarm - meghívó csirke előrendeléshez";
     const escape = (value: string) => value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     const greeting = recipientName?.trim() ? `Kedves ${recipientName.trim()}!` : "Kedves Vásárlónk!";
     const url = escape(invitationUrl);

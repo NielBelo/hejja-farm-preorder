@@ -82,7 +82,7 @@ export default function EmailPreviewSwitcher({
                                             {variant.label}
                                         </p>
                                         <iframe
-                                            title={`${preview.iframeTitle} – ${variant.label}`}
+                                            title={`${preview.iframeTitle} - ${variant.label}`}
                                             srcDoc={variant.html}
                                             sandbox="allow-popups allow-popups-to-escape-sandbox"
                                             className="w-full rounded-xl border-0 bg-[#F3F6F0]"

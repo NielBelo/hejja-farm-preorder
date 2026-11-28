@@ -19,7 +19,7 @@ const BACS_KISKUN_SAMPLE_COUNTY = "Bács-Kiskun";
 const NO_ACTIVE_SEASON_MESSAGE =
     "Nincs jelenleg aktív szezon beállítva, és nincs elérhető valós rendelés sem mintaadatként, ezért az átvételi időpontot tartalmazó e-mail előnézete nem elérhető. Állítson be aktív szezont a Szezonok oldalon, majd térjen vissza ide.";
 const NO_REMINDER_SAMPLE_MESSAGE =
-    "Nincs elérhető, nem Bács-Kiskun vármegyei (DUNAVECSE) valós rendelés az emlékeztető e-mail előnézetéhez - a Bács-Kiskun vármegyei vásárlók ugyanis sosem kapnak emlékeztetőt.";
+    "Nincs elérhető, nem Bács-Kiskun megyei (DUNAVECSE) valós rendelés az emlékeztető e-mail előnézetéhez - a Bács-Kiskun megyei vásárlók ugyanis sosem kapnak emlékeztetőt.";
 
 function formatDateTime(value: string) {
     return new Intl.DateTimeFormat("hu-HU", {
@@ -132,7 +132,7 @@ export default async function AdminEmailPreviewPage({
     });
 
     // Az emlékeztető mintaadata (reminderSample) a legutóbbi, NEM
-    // Bács-Kiskun vármegyei valós rendelésből származik (lásd
+    // Bács-Kiskun megyei valós rendelésből származik (lásd
     // lib/email/reminderData.ts getLatestReminderSampleOrder) - ezért itt
     // nincs (és nem is lehet) DUNAVECSE/Bács-Kiskun variáns, csak a
     // tanyasi (Békés) és a városi (más megye) ág.
@@ -153,7 +153,7 @@ export default async function AdminEmailPreviewPage({
         : "registration-invite" as const;
     const previews = {
         registration: {
-            subject: "Sikeres regisztráció – képernyőn megjelenő tájékoztató",
+            subject: "Sikeres regisztráció - képernyőn megjelenő tájékoztató",
             html: "",
             iframeTitle: "Sikeres regisztráció tájékoztató",
             height: 0,
@@ -173,9 +173,9 @@ export default async function AdminEmailPreviewPage({
         "order-created": (createdOrderEmailBekes && createdOrderEmailVarosi && createdOrderEmailBacsKiskun) ? {
             subject: createdOrderEmailBekes.subject,
             variants: [
-                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: createdOrderEmailVarosi.html },
-                { label: "Tanyasi átvétel – Békés megye", html: createdOrderEmailBekes.html },
-                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: createdOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel - Csongrád-Csanád és egyéb megyék", html: createdOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel - Békés megye", html: createdOrderEmailBekes.html },
+                { label: "Rugalmas átvétel - Bács-Kiskun megye (Dunavecse)", html: createdOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Új rendelés visszaigazoló e-mail",
             height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
@@ -185,9 +185,9 @@ export default async function AdminEmailPreviewPage({
         "order-updated": (updatedOrderEmailBekes && updatedOrderEmailVarosi && updatedOrderEmailBacsKiskun) ? {
             subject: updatedOrderEmailBekes.subject,
             variants: [
-                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: updatedOrderEmailVarosi.html },
-                { label: "Tanyasi átvétel – Békés megye", html: updatedOrderEmailBekes.html },
-                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: updatedOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel - Csongrád-Csanád és egyéb megyék", html: updatedOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel - Békés megye", html: updatedOrderEmailBekes.html },
+                { label: "Rugalmas átvétel - Bács-Kiskun megye (Dunavecse)", html: updatedOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Rendelésmódosító e-mail",
             modifiedAt: latestUpdate?.modifiedAt,
@@ -199,9 +199,9 @@ export default async function AdminEmailPreviewPage({
         "order-cancelled": (cancelledOrderEmailBekes && cancelledOrderEmailVarosi && cancelledOrderEmailBacsKiskun) ? {
             subject: cancelledOrderEmailBekes.subject,
             variants: [
-                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: cancelledOrderEmailVarosi.html },
-                { label: "Tanyasi átvétel – Békés megye", html: cancelledOrderEmailBekes.html },
-                { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", html: cancelledOrderEmailBacsKiskun.html },
+                { label: "Városi átvétel - Csongrád-Csanád és egyéb megyék", html: cancelledOrderEmailVarosi.html },
+                { label: "Tanyasi átvétel - Békés megye", html: cancelledOrderEmailBekes.html },
+                { label: "Rugalmas átvétel - Bács-Kiskun megye (Dunavecse)", html: cancelledOrderEmailBacsKiskun.html },
             ],
             iframeTitle: "Rendeléstörlő e-mail",
             height: Math.max(760, 560 + (orderDataBase?.items.length ?? 0) * 110),
@@ -211,8 +211,8 @@ export default async function AdminEmailPreviewPage({
         reminder: (reminderEmailBekes && reminderEmailVarosi) ? {
             subject: reminderEmailBekes.subject,
             variants: [
-                { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", html: reminderEmailVarosi.html },
-                { label: "Tanyasi átvétel – Békés megye", html: reminderEmailBekes.html },
+                { label: "Városi átvétel - Csongrád-Csanád és egyéb megyék", html: reminderEmailVarosi.html },
+                { label: "Tanyasi átvétel - Békés megye", html: reminderEmailBekes.html },
             ],
             iframeTitle: "Átvétel előtti emlékeztető e-mail",
             height: Math.max(760, 560 + (reminderSample?.data.items.length ?? 0) * 110),
@@ -227,7 +227,7 @@ export default async function AdminEmailPreviewPage({
         "order-created": "A vásárló közvetlenül az új előrendelés leadása után kapja meg, amikor a rendszer sikeresen rögzítette a rendelését.",
         "order-updated": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését módosítja, és a rendszer elmenti a változtatást.",
         "order-cancelled": "A vásárló akkor kapja meg, amikor a korábban leadott rendelését törli, és a rendszer rögzíti a lemondást.",
-        reminder: "A vásárló az átvételi nap előtti napon kapja meg, hogy emlékeztesse a másnapi átvételre. Bács-Kiskun vármegyei (DUNAVECSE) vásárló nem kap emlékeztetőt.",
+        reminder: "A vásárló az átvételi nap előtti napon kapja meg, hogy emlékeztesse a másnapi átvételre. Bács-Kiskun megyei (DUNAVECSE) vásárló nem kap emlékeztetőt.",
     };
 
     return (

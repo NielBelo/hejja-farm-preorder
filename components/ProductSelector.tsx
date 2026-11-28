@@ -58,7 +58,7 @@ type ProductSelectorProps = {
     initialItems?: OrderItem[];
     collapseAllSignal?: number;
     onItemOpen?: () => void;
-    /** Bács-Kiskun vármegyei vásárlóknál a megjegyzés-mező fölötti szöveg speciális - lásd lib/countyGroups.ts BACS_KISKUN_NOTE_LABEL. */
+    /** Bács-Kiskun megyei vásárlóknál a megjegyzés-mező fölötti szöveg speciális - lásd lib/countyGroups.ts BACS_KISKUN_NOTE_LABEL. */
     noteLabel?: string;
     /**
      * Az adott napon még rendelhető kisebb/nagyobb méretű csirkék darabszáma

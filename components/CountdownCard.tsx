@@ -26,7 +26,7 @@ function formatSeasonTitle(year?: number | null, season?: string | null) {
     SEASON_ADJECTIVES[name.toLowerCase()] ??
     name.charAt(0).toUpperCase() + name.slice(1);
 
-  return `${year} – ${adjective} szezon`;
+  return `${year} - ${adjective} szezon`;
 }
 
 function formatDate(dateString: string) {

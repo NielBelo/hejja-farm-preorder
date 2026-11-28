@@ -111,7 +111,7 @@ export type AdminOrder = {
     cancelledByName?: string | null;
     created_at: string;
     current_version_id: number;
-    user_id: string;
+    user_id: string | null;
     pickup_day_id: number;
     season_parameter_id: number | null;
     pickup_days: AdminPickupDay;

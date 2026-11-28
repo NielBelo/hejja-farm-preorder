@@ -97,7 +97,7 @@ export default function PickupDaySelector({
                         key={number}
                         type="button"
                         disabled
-                        aria-label={`${number}. nap – jelenleg nem elérhető`}
+                        aria-label={`${number}. nap - jelenleg nem elérhető`}
                         className="relative flex h-[178px] cursor-not-allowed flex-col items-center justify-start rounded-xl border-2 border-gray-300 bg-gray-100 p-3 text-center"
                     >
                         <div className="flex flex-1 items-center justify-center">

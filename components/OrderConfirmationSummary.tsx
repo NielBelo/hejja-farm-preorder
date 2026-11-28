@@ -49,7 +49,7 @@ const OrderConfirmationSummary = forwardRef<HTMLDivElement, OrderConfirmationSum
         },
         ref
     ) {
-        // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/
+        // A Bács-Kiskun megyei vásárlóknak nincs átvételi helyszínük/
         // idejük: helyette a szezon "vágási napjából" (ugyanaz a dátum, mint
         // amit a Bács-Kiskun vásárló az előrendelő oldalon lát) számolt
         // kétnapos dátumtartomány jelenik meg, és a T-1 automatikus

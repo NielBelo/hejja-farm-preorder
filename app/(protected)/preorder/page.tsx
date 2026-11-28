@@ -48,7 +48,7 @@ export default async function PreorderPage() {
 
   // A DUNAVECSE technikai nap sosem szerepelhet a normál napválasztóban
   // (ott csak kind = 'normal' napok jelenhetnek meg) - a Bács-Kiskun
-  // vármegyei vásárlók automatikus "vágási nap" kártyáját külön, a
+  // megyei vásárlók automatikus "vágási nap" kártyáját külön, a
   // pickup_days.kind = 'dunavecse' sorból töltjük.
   const { data: pickupDays } = await supabase
     .from("pickup_days")
@@ -88,7 +88,7 @@ export default async function PreorderPage() {
   }
   const priceInfoText =
     infoSeason?.weight_min != null && infoSeason?.weight_max != null && infoSeason?.price != null
-      ? `A csirkék átlagos súlya felpucolva ${infoSeason.weight_min}–${infoSeason.weight_max} kg, az alapár pedig ${infoSeason.price} Ft/kg.`
+      ? `A csirkék átlagos súlya felpucolva ${infoSeason.weight_min}-${infoSeason.weight_max} kg, az alapár pedig ${infoSeason.price} Ft/kg.`
       : null;
 
   return (

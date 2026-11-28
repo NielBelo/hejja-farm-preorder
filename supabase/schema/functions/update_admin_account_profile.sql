@@ -22,7 +22,7 @@ begin
   if trim(profile_data ->> 'first_name') = '' or trim(profile_data ->> 'last_name') = ''
     or trim(profile_data ->> 'county') = '' or trim(profile_data ->> 'city') = ''
     or (profile_data ->> 'phone') !~ '^\+36[0-9]{9}$' then
-    raise exception 'Hiányzó név, vármegye, település vagy érvénytelen telefonszám.' using errcode = '22023';
+    raise exception 'Hiányzó név, megye, település vagy érvénytelen telefonszám.' using errcode = '22023';
   end if;
 
   requested_role := profile_data ->> 'role';

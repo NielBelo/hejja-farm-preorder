@@ -5,7 +5,7 @@
 // dátum/idő formázás közös helperben él. Nincs "server-only" jelölés, mert a
 // webes visszaigazolás a böngészőben (kliens oldalon) is felhasználja.
 //
-// A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük (lásd
+// A Bács-Kiskun megyei vásárlóknak nincs átvételi helyszínük/idejük (lásd
 // getBacsKiskunPickupRangeInfo lent) - ezt a getPickupWindowInfo hívói döntik
 // el a lib/countyGroups helperrel, ez a függvény csak a Békés/egyéb
 // megkülönböztetést végzi.
@@ -14,9 +14,9 @@ import { isBekesCounty } from "@/lib/countyGroups";
 const BUDAPEST_TIME_ZONE = "Europe/Budapest";
 
 const BEKES_LOCATION =
-    "Kútvölgy Tanya 1132/A, Hódmezővásárhely – Héjja Ökofarm";
+    "Kútvölgy Tanya 1132/A, Hódmezővásárhely - Héjja Ökofarm";
 const DEFAULT_LOCATION =
-    "Hódmezővásárhely, Vámház u. 8/A – Albert Garden Kertészeti Áruda parkolójában";
+    "Hódmezővásárhely, Vámház u. 8/A - Albert Garden Kertészeti Áruda parkolójában";
 
 const pickupMonthDayFormatter = new Intl.DateTimeFormat("hu-HU", {
     month: "long",
@@ -99,11 +99,11 @@ export function getPickupWindowInfo({
 export type BacsKiskunPickupRangeInfo = {
     /** a "vágási nap", pl. "október 6." - ugyanaz, mint a /preorder oldalon */
     cuttingDayLabel: string;
-    /** kétnapos dátumtartomány, pl. "október 6. – 7." vagy "október 31. – november 1." */
+    /** kétnapos dátumtartomány, pl. "október 6. - 7." vagy "október 31. - november 1." */
     rangeLabel: string;
 };
 
-// A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
+// A Bács-Kiskun megyei vásárlóknak nincs átvételi helyszínük/idejük -
 // helyette a szezon utolsó normál átvételi napja ("vágási nap") és az azt
 // követő naptári nap alkotta kétnapos dátumtartomány jelenik meg. A
 // hónap-/évváltást valódi dátumművelettel (setUTCDate), nem szöveges
@@ -132,6 +132,6 @@ export function getBacsKiskunPickupRangeInfo(
 
     return {
         cuttingDayLabel,
-        rangeLabel: `${cuttingDayLabel} – ${rangeEndLabel}`,
+        rangeLabel: `${cuttingDayLabel} - ${rangeEndLabel}`,
     };
 }

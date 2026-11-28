@@ -112,8 +112,8 @@ export default function PreorderManager({
     sizeAvailabilityRows?: SizeAvailabilityRow[];
     productPrices?: Record<number, number>;
 }) {
-    // A vármegye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
-    // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun vármegyei
+    // A megye alapján a három csoport (Békés, Bács-Kiskun, egyéb) központi
+    // felismerése - lásd lib/countyGroups.ts. Bács-Kiskun megyei
     // vásárlónál nincs átvételi nap választás: a rendelés automatikusan a
     // szezon DUNAVECSE napjához kerül, amit itt egy PickupDay-alakú
     // "virtuális" objektumként kezelünk, hogy a meglévő ProductSelector/
@@ -156,7 +156,7 @@ export default function PreorderManager({
         }
         : null;
 
-    // Bács-Kiskun vármegyei vásárlónál nincs napválasztás: a ténylegesen
+    // Bács-Kiskun megyei vásárlónál nincs napválasztás: a ténylegesen
     // "aktívan kezelt" nap az aktív DUNAVECSE nap, minden más vásárlónál a
     // kézzel kiválasztott nap. Ezt render közben származtatjuk (nem
     // effektussal szinkronizáljuk state-be), hogy ne legyen felesleges,
@@ -344,7 +344,7 @@ export default function PreorderManager({
         if (isBacsKiskun) {
             if (!dunavecsePickupDay?.is_active) {
                 setSubmitError(
-                    "A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun vármegyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort."
+                    "A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun megyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort."
                 );
                 return;
             }
@@ -538,7 +538,7 @@ export default function PreorderManager({
                             </p>
                         ) : (
                             <p className="text-center text-lg font-semibold text-gray-700">
-                                A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun vármegyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort.
+                                A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun megyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort.
                             </p>
                         )}
                     </section>

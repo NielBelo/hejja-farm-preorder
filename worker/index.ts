@@ -44,7 +44,7 @@ import {
 import { readSeasonLaunchSwitch, type SeasonLaunchSwitchKv } from "../lib/email/seasonLaunchSwitch";
 import { applyReminderSwitchToEnv } from "../lib/email/reminderSwitch";
 import { getCalendarDate } from "../lib/orderWindow";
-import { pingSupabase, touchKeepAlive } from "./keepAlive";
+import { pingSupabase, purgeExpiredDeletedUsers, touchKeepAlive } from "./keepAlive";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
 // scheduled handler paramétereit minimális, a ténylegesen használt alakra
@@ -160,8 +160,10 @@ async function runKeepAliveJob() {
     // Írás: a közösségi tapasztalatok szerint a puszta olvasás nem mindig
     // elég a Supabase auto-pause ellen, ezért valódi írás is megy.
     const write = await touchKeepAlive(url, serviceRoleKey);
+    // 3 évnél régebbi törölt-felhasználó napló sorok törlése (adatmegőrzési határ).
+    const purge = await purgeExpiredDeletedUsers(url, serviceRoleKey);
 
-    for (const [name, result] of [["olvasás", read], ["írás", write]] as const) {
+    for (const [name, result] of [["olvasás", read], ["írás", write], ["törölt-felhasználó napló purge", purge]] as const) {
         if (result.ok) {
             console.log(`[keep-alive] ${name} ok`);
         } else {

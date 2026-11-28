@@ -31,9 +31,9 @@ export function isEmailLogType(value: string): value is EmailLogType {
 }
 
 // A levéltípus a tényleges tárgyból következik (a küldő szolgáltatótól független). A sablonok tárgya:
-// "<márka> – <típusszöveg>[ (<változó adat, pl. rendelésszám>)]". A márkaelőtag történetileg változott
+// "<márka> - <típusszöveg>[ (<változó adat, pl. rendelésszám>)]". A márkaelőtag történetileg változott
 // ("Héjja Ökofarm", "Héjja-Farm", "Héjja-Ökofarm"), ezért csak a "Héjja" kezdetet várjuk el, a típus pedig a
-// kötőjel utáni szöveg ELEJÉRE-VÉGÉRE illesztett minta – így pl. az admin "emlékeztető futás összesítő" levél
+// kötőjel utáni szöveg ELEJÉRE-VÉGÉRE illesztett minta - így pl. az admin "emlékeztető futás összesítő" levél
 // nem számít átvételi emlékeztetőnek. Ami semmire nem illik: "other".
 const typePatterns: Array<[RegExp, EmailLogType]> = [
     [/^rendelés visszaigazolása(?: \(.*\))?$/, "new_order"],
@@ -45,9 +45,10 @@ const typePatterns: Array<[RegExp, EmailLogType]> = [
 ];
 export function classifyEmailType(subject: string): EmailLogType {
     const normalized = subject.normalize("NFC").replace(/\s+/g, " ").trim().toLocaleLowerCase("hu");
+    // Szándékosan elfogadja a hosszú gondolatjeleket is: a szolgáltatók naplójában a régebben kiküldött levelek tárgya még azokat tartalmazza.
     const parts = normalized.split(/ [–—-] /);
     if (parts.length < 2 || !parts[0].startsWith("héjja")) return "other";
-    const rest = parts.slice(1).join(" – ");
+    const rest = parts.slice(1).join(" - ");
     return typePatterns.find(([pattern]) => pattern.test(rest))?.[1] ?? "other";
 }
 

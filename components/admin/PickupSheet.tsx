@@ -239,7 +239,7 @@ export default function PickupSheet({
         activePickupDate?.availableStock ?? 0
     );
     const distributions = useMemo(() => getPickupDistributions(visibleOrders), [visibleOrders]);
-    const printTitle = `RENDELÉSI NAP ${formatPrintHeaderDate(activePickupDate?.date ?? "")}${activePickupDate?.kind === "dunavecse" ? " – DUNAVECSE" : ""}`;
+    const printTitle = `RENDELÉSI NAP ${formatPrintHeaderDate(activePickupDate?.date ?? "")}${activePickupDate?.kind === "dunavecse" ? " - DUNAVECSE" : ""}`;
     // A lapmargó közepén (globals.css @top-center) megjelenő kis dátum.
     const printMarginDate = formatPrintHeaderDate(activePickupDate?.date ?? "");
 
@@ -494,7 +494,7 @@ export default function PickupSheet({
                                                 )}
                                                 <td className="border border-black px-1.5 py-0.5 text-center">{itemIndex + 1}.</td>
                                                 <td className="break-words border border-black px-1.5 py-0.5 font-medium">{summarizeProduct(item?.products?.name)}</td>
-                                                <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{item ? `${item.quantity} db` : "—"}</td>
+                                                <td className="border border-black px-1.5 py-0.5 text-center font-semibold">{item ? `${item.quantity} db` : "-"}</td>
                                                 <td className="break-words border border-black px-1.5 py-0.5">{summarizePrintPackage(item?.packages?.name)}</td>
                                                 {(() => {
                                                     const size = item ? summarizeSize(item.size_preference) : "";
@@ -505,7 +505,7 @@ export default function PickupSheet({
                                                         </td>
                                                     );
                                                 })()}
-                                                <td className="max-w-52 break-words border border-black px-1.5 py-0.5">{item?.note || "—"}</td>
+                                                <td className="max-w-52 break-words border border-black px-1.5 py-0.5">{item?.note || "-"}</td>
                                                 <td className="border border-black px-1 py-0.5 text-center align-middle print:shadow-[inset_-1px_0_0_#000]">
                                                     <span aria-label="Teljesítési státusz jelölőnégyzet" className="inline-block h-3.5 w-3.5 rounded-[2px] border border-black bg-white print:h-3 print:w-3" />
                                                 </td>

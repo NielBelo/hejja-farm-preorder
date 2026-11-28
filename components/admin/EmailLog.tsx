@@ -18,12 +18,12 @@ const typeOptions = Object.entries(emailTypeLabels).map(([value, label]) => ({ v
 const providerOptions = Object.entries(providerLabels).map(([value, label]) => ({ value, label }));
 
 export default function EmailLog() {
-    // Szerkesztés alatt álló mezők – önmagukban sosem indítanak lekérdezést.
+    // Szerkesztés alatt álló mezők - önmagukban sosem indítanak lekérdezést.
     const [draftSearch, setDraftSearch] = useState("");
     const [draftStatus, setDraftStatus] = useState("");
     const [draftProvider, setDraftProvider] = useState("");
     const [draftType, setDraftType] = useState("");
-    // Ténylegesen alkalmazott szűrők – csak a Keresés / Szűrők törlése változtatja őket.
+    // Ténylegesen alkalmazott szűrők - csak a Keresés / Szűrők törlése változtatja őket.
     const [applied, setApplied] = useState({ query: "", status: "", provider: "", type: "" });
     // tokens[i] az i. oldal lekérdezési tokenje (a 0. oldalé üres).
     const [tokens, setTokens] = useState<string[]>([""]);

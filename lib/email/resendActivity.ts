@@ -68,7 +68,7 @@ export async function fetchResendRows({ recipient, status, type, cursor }: { rec
         if (response.status === 429) throw new EmailLogError("A Resend lekérdezési korlátját elértük.", 429);
         if (response.status === 401 || response.status === 403) {
             // Küldésre korlátozott kulcs nem listázhat: teljes hozzáférésű kulcs kell (RESEND_READ_API_KEY).
-            throw new EmailLogError("A Resend API-kulcs nem olvashat e-maileket – teljes hozzáférésű kulcs szükséges (RESEND_READ_API_KEY).");
+            throw new EmailLogError("A Resend API-kulcs nem olvashat e-maileket - teljes hozzáférésű kulcs szükséges (RESEND_READ_API_KEY).");
         }
         if (!response.ok) {
             console.error(`[resend] list emails HTTP ${response.status}`);

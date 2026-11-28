@@ -20,9 +20,9 @@ import { getLatestOrderNotificationData } from "@/lib/email/orderNotificationDat
 // döntésből (lib/pickupInfo, lib/countyGroups) származik, mint éles
 // rendelésnél.
 const countyVariants = [
-    { label: "Városi átvétel – Csongrád-Csanád és egyéb megyék", county: "Csongrád-Csanád" },
-    { label: "Tanyasi átvétel – Békés megye", county: "Békés" },
-    { label: "Rugalmas átvétel – Bács-Kiskun megye (Dunavecse)", county: "Bács-Kiskun" },
+    { label: "Városi átvétel - Csongrád-Csanád és egyéb megyék", county: "Csongrád-Csanád" },
+    { label: "Tanyasi átvétel - Békés megye", county: "Békés" },
+    { label: "Rugalmas átvétel - Bács-Kiskun megye (Dunavecse)", county: "Bács-Kiskun" },
 ];
 
 export default async function AdminOrderConfirmationPreviewPage() {

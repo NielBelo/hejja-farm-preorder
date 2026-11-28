@@ -22,7 +22,7 @@ export function validateAdminAccount(input: unknown): { account: AdminAccountUpd
         if (profile[key].length > 100) return { error: "Egy mező legfeljebb 100 karakter lehet." };
     }
     if (!profile.first_name || !profile.last_name || !profile.county || !profile.city) {
-        return { error: "A vezetéknév, keresztnév, vármegye és település megadása kötelező." };
+        return { error: "A vezetéknév, keresztnév, megye és település megadása kötelező." };
     }
     const normalizedPhone = normalizeHungarianPhone(profile.phone);
     if (!normalizedPhone) return { error: "Adjon meg érvényes magyar telefonszámot (pl. +36 30 123 4567)." };

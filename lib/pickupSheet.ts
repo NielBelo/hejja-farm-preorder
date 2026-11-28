@@ -13,7 +13,7 @@ export type PickupSheetItem = {
 export type PickupSheetOrder = {
     id: number;
     public_order_number: string;
-    user_id: string;
+    user_id: string | null;
     pickupDate: string;
     // A DUNAVECSE (Bács-Kiskun) technikai nap ugyanazon a naptári napon van,
     // mint a szezon utolsó NORMÁL átvételi napja (lásd
@@ -119,7 +119,7 @@ export function getPickupDateOptions(pickupDays: PickupSheetPickupDay[]) {
             kind,
             seasonValue,
             label: kind === "dunavecse"
-                ? `${formatPickupDate(date)} – DUNAVECSE (Bács-Kiskun)`
+                ? `${formatPickupDate(date)} - DUNAVECSE (Bács-Kiskun)`
                 : formatPickupDate(date),
             plannedStock: pickupDay.planned_stock ?? 0,
             availableStock: pickupDay.available_stock ?? 0,
@@ -151,7 +151,7 @@ export function getInitialPickupDate(
 
 export function summarizePickupOrders(orders: PickupSheetOrder[]) {
     return {
-        customerCount: new Set(orders.map((order) => order.user_id)).size,
+        customerCount: new Set(orders.map((order) => order.user_id ?? `deleted-${order.id}`)).size,
         orderCount: new Set(orders.map((order) => order.id)).size,
         itemCount: orders.reduce((total, order) => total + order.items.length, 0),
         chickenCount: orders.reduce(
@@ -185,7 +185,7 @@ export function formatPhoneNumber(phone: string) {
 // kompakt statisztikai kártyán, hogy egy átnevezés is automatikusan
 // megjelenjen további kódmódosítás nélkül.
 export function summarizePackage(name: string | null | undefined) {
-    if (!name) return "—";
+    if (!name) return "-";
     return name.replace(/\s*csomagolás\s*/iu, "").trim() || name;
 }
 
@@ -196,7 +196,7 @@ export function summarizePrintPackage(name: string | null | undefined) {
 }
 
 export function summarizeProduct(name: string | null | undefined) {
-    if (!name) return "—";
+    if (!name) return "-";
     const normalized = name.toLocaleLowerCase("hu");
     if (normalized.includes("darab")) return "Darab";
     if (normalized.includes("egész")) return "Egész";

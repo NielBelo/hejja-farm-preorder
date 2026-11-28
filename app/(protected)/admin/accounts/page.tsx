@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/getCurrentUser";
 import { createClient } from "@/lib/supabase/server";
 import type { AdminAccount } from "@/lib/adminAccountData";
 import AdminAccountList from "@/components/admin/AdminAccountList";
+import DeletedUsersList from "@/components/admin/DeletedUsersList";
 
 export default async function AdminAccountsPage() {
     const currentUser = await getCurrentUser();
@@ -24,6 +25,11 @@ export default async function AdminAccountsPage() {
     }
     accounts.sort((a, b) => `${a.last_name ?? ""} ${a.first_name ?? ""} ${a.email ?? ""}`.localeCompare(`${b.last_name ?? ""} ${b.first_name ?? ""} ${b.email ?? ""}`, "hu"));
 
+    const { data: deletedUsers } = await supabase
+        .from("deleted_users")
+        .select("id, full_name, deleted_at, deletion_source")
+        .order("deleted_at", { ascending: false });
+
     return (
         <div className="mx-auto w-full max-w-5xl">
             <h1 className="sr-only">Fiók / Szerkesztés</h1>
@@ -37,6 +43,7 @@ export default async function AdminAccountsPage() {
                     A felhasználók betöltése sikertelen. Kérjük, próbálja újra az oldal frissítésével. Ha a hiba továbbra is fennáll, jelezze az üzemeltetőnek.
                 </div> : <AdminAccountList accounts={accounts} />}
             </div>
+            <DeletedUsersList users={deletedUsers ?? []} />
         </div>
     );
 }

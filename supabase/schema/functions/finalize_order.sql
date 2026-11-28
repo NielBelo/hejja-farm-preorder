@@ -126,7 +126,7 @@ begin
 
 
     ------------------------------------------------------------
-    -- 7/A. Bács-Kiskun vármegyei vásárló felismerése (ÚJ)
+    -- 7/A. Bács-Kiskun megyei vásárló felismerése (ÚJ)
     --
     -- Strukturált profiladatból, nem a kliens által beküldött
     -- pickup_day_id-ből: ez akadályozza meg, hogy egy tetszőleges
@@ -143,7 +143,7 @@ begin
     ------------------------------------------------------------
     -- 7/B. A ténylegesen használt átvételi nap meghatározása (ÚJ)
     --
-    -- Bács-Kiskun vármegyei vásárlónál a kliens által küldött
+    -- Bács-Kiskun megyei vásárlónál a kliens által küldött
     -- p_pickup_day_id-t figyelmen kívül hagyjuk, és mindig a szezon saját
     -- DUNAVECSE napjához rendeljük a rendelést.
     ------------------------------------------------------------
@@ -190,19 +190,19 @@ begin
     ------------------------------------------------------------
     -- 8/A. DUNAVECSE jogosultság ellenőrzése (ÚJ)
     --
-    -- Nem Bács-Kiskun vármegyei vásárló nem rendelhet a DUNAVECSE
+    -- Nem Bács-Kiskun megyei vásárló nem rendelhet a DUNAVECSE
     -- technikai napra, és fordítva - a második eset a 7/B lépés miatt a
     -- gyakorlatban nem fordulhat elő, de védelmi rétegként itt is
     -- ellenőrizzük.
     ------------------------------------------------------------
     if v_pickup_kind = 'dunavecse' and not v_is_bacskiskun then
         raise exception
-            'A kiválasztott átvételi nap csak Bács-Kiskun vármegyei vásárlók számára elérhető.';
+            'A kiválasztott átvételi nap csak Bács-Kiskun megyei vásárlók számára elérhető.';
     end if;
 
     if v_pickup_kind = 'normal' and v_is_bacskiskun then
         raise exception
-            'Bács-Kiskun vármegyei vásárlóként nem választható egyedi átvételi nap; a rendelés automatikusan a szezon vágási napjához kerül.';
+            'Bács-Kiskun megyei vásárlóként nem választható egyedi átvételi nap; a rendelés automatikusan a szezon vágási napjához kerül.';
     end if;
 
 
@@ -212,7 +212,7 @@ begin
     if v_pickup_is_active is not true then
         if v_is_bacskiskun then
             raise exception
-                'A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun vármegyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort.';
+                'A jelenlegi szezonban átmenetileg nem lehetséges rendelést leadni Bács-Kiskun megyei vásárlóként. Kérjük, próbálja meg később, vagy keresse az adminisztrátort.';
         end if;
 
         raise exception

@@ -87,8 +87,8 @@ export async function getAdminOrdersByPickupDayIds(
     const userIds = [
         ...new Set(typedOrders.flatMap((order) => (
             order.status === "cancelled" && order.cancelled_by
-                ? [order.user_id, order.cancelled_by]
-                : [order.user_id]
+                ? [order.user_id, order.cancelled_by].filter((id): id is string => id !== null)
+                : order.user_id ? [order.user_id] : []
         ))),
     ];
 
@@ -110,7 +110,7 @@ export async function getAdminOrdersByPickupDayIds(
 
         return {
             ...order,
-            profile: profileMap.get(order.user_id) ?? null,
+            profile: (order.user_id ? profileMap.get(order.user_id) : undefined) ?? null,
             cancelledByName: cancelledByProfile
                 ? [cancelledByProfile.last_name, cancelledByProfile.first_name]
                     .filter(Boolean)

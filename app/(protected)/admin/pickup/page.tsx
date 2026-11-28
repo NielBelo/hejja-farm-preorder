@@ -18,7 +18,7 @@ import {
 type RawOrder = {
     id: number;
     public_order_number: string;
-    user_id: string;
+    user_id: string | null;
     pickup_days: { pickup_date: string; kind: string; year: number; season: string | null } | null;
     current_version: { order_items: PickupSheetItem[] } | null;
 };
@@ -72,7 +72,7 @@ export default async function AdminPickupPage() {
     if (pickupDaysResult.error) throw new Error(pickupDaysResult.error.message);
 
     const rawOrders = (ordersResult.data ?? []) as unknown as RawOrder[];
-    const userIds = [...new Set(rawOrders.map((order) => order.user_id))];
+    const userIds = [...new Set(rawOrders.flatMap((order) => (order.user_id ? [order.user_id] : [])))];
     const { data: profiles, error: profileError } = userIds.length > 0
         ? await supabase
             .from("profiles")
@@ -84,7 +84,7 @@ export default async function AdminPickupPage() {
 
     const profileMap = new Map((profiles ?? []).map((profile) => [profile.id, profile]));
     const orders = sortPickupOrders(rawOrders.map<PickupSheetOrder>((order) => {
-        const profile = profileMap.get(order.user_id);
+        const profile = order.user_id ? profileMap.get(order.user_id) : undefined;
         return {
             id: order.id,
             public_order_number: order.public_order_number,
@@ -93,8 +93,8 @@ export default async function AdminPickupPage() {
             pickupKind: order.pickup_days?.kind === "dunavecse" ? "dunavecse" : "normal",
             pickupSeasonValue: getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value,
             customerName: [profile?.last_name, profile?.first_name]
-                .filter(Boolean).join(" ").trim() || "Ismeretlen vásárló",
-            phone: profile?.phone ?? "—",
+                .filter(Boolean).join(" ").trim() || (order.user_id ? "Ismeretlen vásárló" : "Törölt felhasználó"),
+            phone: profile?.phone ?? "-",
             items: order.current_version?.order_items ?? [],
         };
     }));

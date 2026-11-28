@@ -142,7 +142,7 @@ export function buildReminderEmail(
     htmlOptions: ReminderEmailHtmlOptions = {},
 ): ReminderEmail {
     if (isBacsKiskunCounty(data.county)) {
-        throw new Error("Bács-Kiskun vármegyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető e-mail.");
+        throw new Error("Bács-Kiskun megyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető e-mail.");
     }
 
     const pickupWindow = getPickupWindowInfo({
@@ -152,7 +152,7 @@ export function buildReminderEmail(
         localPickupTimeStart: data.localPickupTimeStart,
         county: data.county,
     });
-    const subject = `Héjja Ökofarm – rendelés átvételi emlékeztető (${data.orderNumber})`;
+    const subject = `Héjja Ökofarm - rendelés átvételi emlékeztető (${data.orderNumber})`;
 
     const text = [
         `Kedves ${data.customerName}!`,

@@ -35,7 +35,7 @@ export default async function LoginPage({
       {registered && (
         <p className="mb-6 rounded-lg border border-[#43852D]/30 bg-[#F0F5EB] p-4 text-center text-sm leading-6 text-[#43852D]">
           A regisztráció sikerült! Küldtünk egy <strong>újabb e-mailt</strong>{" "}
-          egy megerősítő linkkel — kattints rá, és az automatikusan
+          egy megerősítő linkkel - kattints rá, és az automatikusan
           bejelentkeztet a weboldalra. A megerősítés nélkül a fiókod{" "}
           <strong>nem fog működni</strong>.
         </p>

@@ -25,7 +25,7 @@ export default function AdminCustomerDetails({ order, id }: {
             value: profile?.phone?.replace(/^(\+36)(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3 $4"),
             icon: PhoneIcon,
         },
-        { label: "Vármegye", value: profile?.county, icon: MapIcon },
+        { label: "Megye", value: profile?.county, icon: MapIcon },
         { label: "Település", value: profile?.city, icon: MapPinIcon },
     ];
 

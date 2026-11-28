@@ -20,7 +20,7 @@ export function useMaintenanceState(): MaintenanceState {
 
 // A karbantartási állapotot a szerver oldali layout adja át (lásd
 // app/(protected)/layout.tsx), amely minden oldalbetöltésnél/navigációnál
-// frissen lekérdezi azt – admin bypass-szal együtt. Kliensoldali
+// frissen lekérdezi azt - admin bypass-szal együtt. Kliensoldali
 // újraellenőrzés (pollozás vagy visibilitychange) szándékosan nincs: egy már
 // megnyitott oldal nem hív automatikusan /api/maintenance-status végpontot.
 export default function MaintenanceStateProvider({

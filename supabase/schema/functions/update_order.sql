@@ -135,7 +135,7 @@ begin
     -- Normál felhasználó csak a saját rendelését módosíthatja.
     -- Admin bármely felhasználó rendelését módosíthatja.
     ------------------------------------------------------------
-    if v_order_user_id <> v_user_id
+    if v_order_user_id is distinct from v_user_id
        and not v_is_admin then
 
         raise exception

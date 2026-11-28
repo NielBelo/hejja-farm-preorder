@@ -6,7 +6,7 @@ import { useMaintenanceState } from "./MaintenanceStateProvider";
 // sticky headerrel együtt mozog és minden interakciót elnyel. A blokkolt
 // állapotot a megosztott MaintenanceStateProvider szolgáltatja, így ez a
 // réteg akkor is életbe lép, ha a karbantartás egy már nyitott oldalon,
-// pollozás közben válik aktívvá – nem csak kezdeti betöltéskor.
+// pollozás közben válik aktívvá - nem csak kezdeti betöltéskor.
 export default function HeaderMaintenanceBlockLayer() {
   const { blocked } = useMaintenanceState();
   if (!blocked) return null;

@@ -1,3 +1,7 @@
+REVOKE ALL ON TABLE public.deleted_users FROM PUBLIC, anon, authenticated, service_role;
+GRANT DELETE ON TABLE public.deleted_users TO service_role;
+GRANT SELECT ON TABLE public.deleted_users TO authenticated;
+GRANT SELECT ON TABLE public.deleted_users TO service_role;
 REVOKE ALL ON TABLE public.keepalive FROM PUBLIC, anon, authenticated, service_role;
 GRANT DELETE ON TABLE public.keepalive TO service_role;
 GRANT INSERT ON TABLE public.keepalive TO service_role;

@@ -35,7 +35,7 @@ function formatPickupOption(date: string) {
     if (!date) return "Nincs megadva";
     const parsed = new Date(`${date}T00:00:00Z`);
     if (Number.isNaN(parsed.getTime())) return "Nincs megadva";
-    return `${date.replaceAll("-", ". ")}. – ${weekdayFormatter.format(parsed)}`;
+    return `${date.replaceAll("-", ". ")}. - ${weekdayFormatter.format(parsed)}`;
 }
 
 const seasonOrder: Record<string, number> = { tél: 0, tavasz: 1, nyár: 2, ősz: 3 };
@@ -93,7 +93,7 @@ export function getOrderFilterValues(order: AdminOrder, today: string): Record<F
         season: [getPickupSeason(order.pickup_days?.year, order.pickup_days?.season).value],
         pickup: [pickup],
         county: [order.profile?.county?.trim() || "Nincs megadva"],
-        name: [order.user_id],
+        name: [order.user_id ?? "deleted-user"],
         status: [order.status === "cancelled" ? "cancelled" : !today || !pickup ? "unknown" : pickup < today ? "past" : "current"],
     };
 }
@@ -124,7 +124,7 @@ export function getOrderFilterOptions(orders: AdminOrder[], today: string): Reco
     for (const order of orders) {
         const values = getOrderFilterValues(order, today);
         const name = [order.profile?.last_name, order.profile?.first_name].filter(Boolean).join(" ").trim();
-        options.name.set(order.user_id, name || "Ismeretlen felhasználó");
+        options.name.set(order.user_id ?? "deleted-user", name || (order.user_id ? "Ismeretlen felhasználó" : "Törölt felhasználó"));
         options.county.set(values.county[0], values.county[0]);
         const date = values.pickup[0];
         const season = getPickupSeason(order.pickup_days?.year, order.pickup_days?.season);

@@ -53,7 +53,7 @@ function normalizeConfig(raw: unknown): MaintenanceConfig {
 
 // A karbantartási beállítások lekérése. Ha a KV nem elérhető (pl. hiányzó
 // binding, helyi fejlesztői környezet) vagy a beolvasás hibázik, biztonságos
-// alapértelmezésként inaktív karbantartást adunk vissza – egy infrastruktúra
+// alapértelmezésként inaktív karbantartást adunk vissza - egy infrastruktúra
 // hiba miatt nem szabad véletlenül minden látogatót kizárni.
 export async function getMaintenanceConfig(): Promise<MaintenanceConfig> {
   const kv = await getKv();
@@ -99,7 +99,7 @@ export function isMaintenanceBlocking(
 }
 
 // A kliensoldali pollozó végpont (app/api/maintenance-status) válasza. Nem
-// blokkolt állapotban szándékosan csak egyetlen mezőt tartalmaz – a
+// blokkolt állapotban szándékosan csak egyetlen mezőt tartalmaz - a
 // pollozás minimális payloadú maradjon, és blokkolt állapotban se szivárogjon
 // ki több adat (üzenet, időpont), mint amit a felhasználó úgyis megkapna a
 // MaintenanceOverlay-en.

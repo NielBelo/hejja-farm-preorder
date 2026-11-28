@@ -45,7 +45,7 @@ export function buildAdminReminderSummary(input: AdminReminderSummaryInput): Adm
     const { runAt, pickupDateIso, stats, failures, uncertain } = input;
     const pickupDateLabel = formatPickupDateLabel(pickupDateIso);
     const runAtLabel = runAtFormatter.format(runAt);
-    const subject = `Héjja Ökofarm – emlékeztető futás összesítő (${pickupDateLabel})`;
+    const subject = `Héjja Ökofarm - emlékeztető futás összesítő (${pickupDateLabel})`;
 
     const statRows: Array<[string, string]> = [
         ["Futás időpontja", runAtLabel],

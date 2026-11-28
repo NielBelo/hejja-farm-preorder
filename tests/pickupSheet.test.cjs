@@ -118,7 +118,7 @@ test('keeps the DUNAVECSE technical pickup day as a separate, selectable option 
             date: '2026-09-27',
             kind: 'dunavecse',
             seasonValue: season,
-            label: '2026. szeptember 27., vasárnap – DUNAVECSE (Bács-Kiskun)',
+            label: '2026. szeptember 27., vasárnap - DUNAVECSE (Bács-Kiskun)',
             plannedStock: 0,
             availableStock: 0,
         },
@@ -160,7 +160,7 @@ test('sorts by customer name and then by natural order identifier', () => {
 
 test('formats stored Hungarian phone numbers', () => {
     assert.equal(formatPhoneNumber('+36301234567'), '+36 30 123 4567');
-    assert.equal(formatPhoneNumber('—'), '—');
+    assert.equal(formatPhoneNumber('-'), '-');
 });
 
 test('shortens package and size descriptions for the compact table', () => {

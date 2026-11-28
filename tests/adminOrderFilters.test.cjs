@@ -102,7 +102,7 @@ test('different customers with the same name remain distinct', () => {
 test('timestamp pickup dates display the Hungarian weekday and share the same calendar-day option', () => {
     const entries = [order(5, 'Pest', '2026-09-27T00:00:00', [1]), order(6, 'Pest', '2026-09-27', [2])];
     assert.deepEqual(getOrderFilterOptions(entries, today).pickup, [
-        { value: '2026-09-27', label: '2026. 09. 27. – vasárnap' },
+        { value: '2026-09-27', label: '2026. 09. 27. - vasárnap' },
     ]);
     for (const entry of entries) {
         assert.equal(matchesOrderFilters(entry, { ...emptyFilters, pickup: ['2026-09-27'] }, today), true);

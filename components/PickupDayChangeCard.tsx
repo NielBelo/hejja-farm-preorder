@@ -122,7 +122,7 @@ export default function PickupDayChangeCard({
                                         day: "numeric",
                                     }).format(new Date(pickupDayForDisplay.pickup_date))}
                                 </span>
-                                {" "}– <span className={stockStatus.iconClass}>{stockStatus.text}</span>
+                                {" "}- <span className={stockStatus.iconClass}>{stockStatus.text}</span>
                             </span>
                         )}
                     </div>

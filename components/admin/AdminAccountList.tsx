@@ -96,7 +96,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                 </label>
                 <OrderFilterDropdown label="Állapot" options={Object.entries(accountStatusLabels).map(([value, label]) => ({ value, label }))} selected={statuses} disabled={editing} onChange={(values) => { setStatuses(values); setOpenId(null); }} />
                 <OrderFilterDropdown label="Szerepkör" options={[...new Set(accounts.map((account) => account.role))].sort().map((value) => ({ value, label: roleLabel(value) }))} selected={roles} disabled={editing} onChange={(values) => { setRoles(values); setOpenId(null); }} />
-                <OrderFilterDropdown label="Vármegye" options={countyOptions} selected={counties} disabled={editing} onChange={(values) => { setCounties(values); setOpenId(null); }} />
+                <OrderFilterDropdown label="Megye" options={countyOptions} selected={counties} disabled={editing} onChange={(values) => { setCounties(values); setOpenId(null); }} />
             </div>
             <div className="mt-3 flex flex-wrap justify-between gap-2 text-xs text-zinc-500">
                 <p role="status" aria-live="polite"><span className="font-semibold text-zinc-700">{filtered.length}</span> / {accounts.length} fiók és meghívott</p>
@@ -143,7 +143,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
                                 <ProfileField label="Név" value={[account.last_name, account.first_name].filter(Boolean).join(" ")} icon={UserIcon} />
                                 <ProfileField label="E-mail cím" value={account.email} icon={EnvelopeIcon} />
                                 <ProfileField label="Telefonszám" value={account.phone?.replace(/^(\+36)(\d{2})(\d{3})(\d{4})$/, "$1 $2 $3 $4") ?? null} icon={PhoneIcon} />
-                                <ProfileField label="Vármegye" value={account.county} icon={MapIcon} />
+                                <ProfileField label="Megye" value={account.county} icon={MapIcon} />
                                 <ProfileField label="Település" value={account.city} icon={MapPinIcon} />
                             </dl>}
                         </section>
@@ -194,7 +194,7 @@ export default function AdminAccountList({ accounts: initialAccounts }: { accoun
         {confirmingAccount && <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !deleting) setConfirmingAccount(null); }}>
             <div className="w-full max-w-lg rounded-xl bg-white p-6 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="delete-account-title">
                 <h2 id="delete-account-title" className="text-lg font-semibold text-gray-900">{confirmingAccount.user_id ? "Fiók törlésének megerősítése" : "Meghívó törlésének megerősítése"}</h2>
-                <p className="mt-3 text-sm leading-6 text-gray-700">{confirmingAccount.user_id ? "A fiókhoz tartozó személyes adatok, rendelések, hozzájárulások és meghívók is végleg törlődnek." : "A fel nem használt meghívó végleg törlődik."}</p>
+                <p className="mt-3 text-sm leading-6 text-gray-700">{confirmingAccount.user_id ? "A fiókhoz tartozó személyes adatok, hozzájárulások és meghívók végleg törlődnek. A rendelések névtelenítve, statisztikai célból megmaradnak. A törlés nem vonható vissza, és csak a törölt felhasználó neve és a törlés ideje kerül naplózásra. Aktív, még le nem zajlott átvételi napra szóló rendelés mellett a törlés nem engedélyezett." : "A fel nem használt meghívó végleg törlődik."}</p>
                 <p className="mt-2 break-words text-sm font-semibold text-gray-900">{accountName(confirmingAccount)} · {confirmingAccount.email}</p>
                 {deleteError && <p role="alert" className="mt-3 text-sm text-[#C83D3D]">{deleteError}</p>}
                 <div className="mt-5 flex justify-end gap-2">

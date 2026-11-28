@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import ProfileEditor from "@/components/ProfileEditor";
 import ProfilePrivacyNotice from "@/components/ProfilePrivacyNotice";
 import CustomerFooter from "@/components/CustomerFooter";
+import DeleteAccountSection from "@/components/DeleteAccountSection";
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -62,6 +63,8 @@ export default async function ProfilePage() {
           profile={profile}
         />
       </div>
+
+      <DeleteAccountSection />
 
     </main>
     <CustomerFooter />

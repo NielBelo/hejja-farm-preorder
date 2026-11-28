@@ -20,7 +20,7 @@ type LatestVersionRow = {
 type OrderRow = {
     public_order_number: string;
     season_parameter_id: number;
-    user_id: string;
+    user_id: string | null;
     pickup_days: { pickup_date: string } | null;
 };
 
@@ -76,6 +76,9 @@ export async function getLatestOrderUpdate(
     }
 
     const order = orderData as unknown as OrderRow;
+    if (!order.user_id) {
+        throw new Error("A rendelés felhasználója törölve lett, értesítés nem küldhető.");
+    }
     const [profileResult, seasonResult, prices] = await Promise.all([
         supabase
             .from("profiles")

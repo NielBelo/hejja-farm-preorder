@@ -167,7 +167,7 @@ export function buildSeasonLaunchEmail(
     options: SeasonLaunchEmailOptions = {},
 ): SeasonLaunchEmail {
     const seasonLabel = formatSeasonLabel(data.year, data.season);
-    const subject = `Héjja Ökofarm – indul a ${seasonLabel.replace(/ szezon$/, " előrendelés")}!`;
+    const subject = `Héjja Ökofarm - indul a ${seasonLabel.replace(/ szezon$/, " előrendelés")}!`;
     const orderUrl = options.orderUrl ?? DEFAULT_ORDER_URL;
 
     const text = [

@@ -1,4 +1,4 @@
-// A vásárlói vármegye-csoportok központi, egy helyen karbantartott
+// A vásárlói megye-csoportok központi, egy helyen karbantartott
 // felismerése. Ne szórjuk szét a `county === "..."` feltételeket a
 // komponensekben/lib-ekben - mindenki ezt a helpert használja, hogy a három
 // csoport (Békés, Bács-Kiskun, egyéb) kezelése egy helyről bővíthető és
@@ -32,7 +32,7 @@ export function isBacsKiskunCounty(county?: string | null) {
 }
 
 // A rendelési tételnél megjelenő megjegyzés-mező felirata Bács-Kiskun
-// vármegyei vásárlóknál - a beviteli mező funkciója változatlan, csak ez a
+// megyei vásárlóknál - a beviteli mező funkciója változatlan, csak ez a
 // hozzá tartozó szöveg speciális ennél a csoportnál (mind az előrendelő
 // oldalon, mind a saját rendelés utólagos módosításakor).
 export const BACS_KISKUN_NOTE_LABEL =

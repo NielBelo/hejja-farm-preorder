@@ -1,10 +1,10 @@
 # Éles Supabase séma tükör
 
 Az éles adatbázis (public séma) **aktuális** állapota, forrása: `final/` biztonsági mentés (2026-11-21).
-Ez a mappa az igazság forrása arra, hogy mi fut élesben – nem a `sql/` mappa, és nem a régi migrációk.
+Ez a mappa az igazság forrása arra, hogy mi fut élesben - nem a `sql/` mappa, és nem a régi migrációk.
 
-- `functions/<név>.sql` – egy függvény = egy fájl: teljes definíció + `REVOKE/GRANT EXECUTE`
-- `tables.sql` – táblák, constraintek, indexek
+- `functions/<név>.sql` - egy függvény = egy fájl: teljes definíció + `REVOKE/GRANT EXECUTE`
+- `tables.sql` - táblák, constraintek, indexek
 - `triggers.sql`, `policies.sql` (RLS + policy-k), `table_grants.sql`
 
 ## Karbantartási szabály (kötelező)

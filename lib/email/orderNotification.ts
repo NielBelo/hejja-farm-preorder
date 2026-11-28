@@ -56,7 +56,7 @@ export function formatPricePerKg(price: number) {
 
 export function formatItem(item: OrderNotificationItem, index: number) {
     const lines = [
-        `${index + 1}. ${item.productName} – ${item.quantity} db`,
+        `${index + 1}. ${item.productName} - ${item.quantity} db`,
         `   Csomagolás: ${item.packageName}`,
     ];
 
@@ -134,7 +134,7 @@ function buildHtml(
     const isCancelled = data.kind === "cancelled";
     const cancelIconSrc = escapeHtml(options.cancelIconSrc ?? DEFAULT_CANCEL_ICON_SRC);
     const totalQuantity = data.items.reduce((sum, item) => sum + item.quantity, 0);
-    // A Bács-Kiskun vármegyei vásárlóknak nincs átvételi helyszínük/idejük -
+    // A Bács-Kiskun megyei vásárlóknak nincs átvételi helyszínük/idejük -
     // helyette a "vágási nap" + az azt követő nap alkotta kétnapos
     // dátumtartomány jelenik meg, "Átvétel időpontja"/"Átvétel helye" sorok nélkül.
     const isBacsKiskun = getCountyGroup(data.county) === "bacsKiskun";
@@ -268,10 +268,10 @@ export function buildOrderNotification(
     const isCreated = data.kind === "created";
     const isCancelled = data.kind === "cancelled";
     const subject = isCreated
-        ? `Héjja Ökofarm – rendelés visszaigazolása (${data.orderNumber})`
+        ? `Héjja Ökofarm - rendelés visszaigazolása (${data.orderNumber})`
         : isCancelled
-            ? `Héjja Ökofarm – rendelés törölve (${data.orderNumber})`
-            : `Héjja Ökofarm – rendelés módosítva (${data.orderNumber})`;
+            ? `Héjja Ökofarm - rendelés törölve (${data.orderNumber})`
+            : `Héjja Ökofarm - rendelés módosítva (${data.orderNumber})`;
     const heading = isCreated
         ? "Rendelését sikeresen rögzítettük."
         : isCancelled

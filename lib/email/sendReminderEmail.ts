@@ -166,14 +166,14 @@ async function processLoadedReminder(
         if (isBacsKiskunCounty(loaded.data.county)) {
             // Védekező dupla ellenőrzés: getReminderOrderTargetsForDate már
             // kizárja a DUNAVECSE napot, de emlékeztető Bács-Kiskun
-            // vármegyei vásárlónak így sem mehet ki.
+            // megyei vásárlónak így sem mehet ki.
             return failBeforeSend(
                 supabase,
                 claim.id,
                 orderId,
                 orderNumber,
                 recipient,
-                "Bács-Kiskun vármegyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető.",
+                "Bács-Kiskun megyei (DUNAVECSE) vásárlónak nem küldhető emlékeztető.",
             );
         }
 

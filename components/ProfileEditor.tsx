@@ -634,8 +634,8 @@ function ReadOnlyProfile({
 
             <InfoField
                 icon={<MapIcon className="h-6 w-6" />}
-                label="Vármegye"
-                value={profile.county ?? "—"}
+                label="Megye"
+                value={profile.county ?? "-"}
             />
 
             {/* 2. SOR */}
@@ -648,7 +648,7 @@ function ReadOnlyProfile({
             <InfoField
                 icon={<MapPinIcon className="h-6 w-6" />}
                 label="Település"
-                value={profile.city.trim() || "—"}
+                value={profile.city.trim() || "-"}
             />
 
             {/* 3. SOR */}
@@ -897,7 +897,7 @@ function CountySelect({
     return (
         <div ref={containerRef} className="relative">
             <FieldLabel required>
-                Vármegye
+                Megye
             </FieldLabel>
 
             {/* KIVÁLASZTÓ MEZŐ */}
@@ -926,7 +926,7 @@ function CountySelect({
                             : "text-gray-400"
                     }
                 >
-                    {value || "Válasszon vármegyét"}
+                    {value || "Válasszon megyét"}
                 </span>
 
                 <ChevronDownIcon

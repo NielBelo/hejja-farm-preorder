@@ -28,7 +28,7 @@ export function buildRegistrationConfirmation(
     data: RegistrationConfirmationData,
     options: RegistrationConfirmationOptions = {},
 ): RegistrationConfirmation {
-    const subject = "Héjja Ökofarm – erősítsd meg az e-mail-címedet";
+    const subject = "Héjja Ökofarm - erősítsd meg az e-mail-címedet";
     const firstName = escapeHtml(data.firstName);
     const confirmationUrl = escapeHtml(data.confirmationUrl);
     const logoSrc = escapeHtml(options.logoSrc ?? "cid:hejja-logo");

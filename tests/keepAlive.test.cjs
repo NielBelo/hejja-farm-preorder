@@ -76,3 +76,22 @@ test('touchKeepAlive reports failures without throwing', async () => {
     );
     assert.equal((await touchKeepAlive('https://x.supabase.co', undefined)).ok, false);
 });
+
+test('purges expired deleted users through the service-role RPC', async () => {
+    let seen;
+    const result = await mod.exports.purgeExpiredDeletedUsers('https://x.supabase.co', 'srv', async (url, init) => {
+        seen = { url, init };
+        return { ok: true, status: 200 };
+    });
+    assert.deepEqual(result, { ok: true });
+    assert.equal(seen.url, 'https://x.supabase.co/rest/v1/rpc/purge_expired_deleted_users');
+    assert.equal(seen.init.method, 'POST');
+    assert.equal(seen.init.headers.Authorization, 'Bearer srv');
+});
+
+test('purge skips the request without a service role key', async () => {
+    const result = await mod.exports.purgeExpiredDeletedUsers('https://x.supabase.co', undefined, async () => {
+        throw new Error('must not be called');
+    });
+    assert.equal(result.ok, false);
+});

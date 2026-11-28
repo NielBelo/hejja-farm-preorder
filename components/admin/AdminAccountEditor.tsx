@@ -30,10 +30,10 @@ function CountySelect({ value, onChange, disabled }: { value: string; onChange: 
     }, []);
 
     return <div ref={containerRef} className="relative">
-        <label className="text-xs font-medium text-gray-500">Vármegye</label>
+        <label className="text-xs font-medium text-gray-500">Megye</label>
         <button type="button" disabled={disabled} onClick={() => setIsOpen((open) => !open)} aria-haspopup="listbox" aria-expanded={isOpen}
             className={`mt-1 flex w-full items-center justify-between rounded-lg border bg-white px-3 py-2 text-left text-sm text-gray-800 outline-none transition disabled:opacity-60 ${isOpen ? "border-[rgb(67,133,45)] ring-2 ring-[rgb(67,133,45)]/10" : "border-gray-300"}`}>
-            <span className={value ? "text-gray-800" : "text-gray-400"}>{value || "Válasszon vármegyét"}</span>
+            <span className={value ? "text-gray-800" : "text-gray-400"}>{value || "Válasszon megyét"}</span>
             <ChevronDownIcon aria-hidden="true" className={`h-4 w-4 shrink-0 text-gray-400 transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
         </button>
         {isOpen && <div className="absolute left-0 right-0 z-40 mt-1.5 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">

@@ -19,7 +19,7 @@ import {
 
 // A Sablonok → Emlékeztető menüpont előnézetéhez a legutóbb leadott, még nem
 // visszavont ("submitted") rendelések közül az elsőt adja vissza, amelynek
-// vásárlója NEM Bács-Kiskun vármegyei - a DUNAVECSE/Bács-Kiskun vásárlók
+// vásárlója NEM Bács-Kiskun megyei - a DUNAVECSE/Bács-Kiskun vásárlók
 // ugyanis sosem kapnak emlékeztetőt (lásd getReminderOrderTargetsForDate lent),
 // ezért az előnézet se az ő rendelésükkel jelenjen meg.
 export async function getLatestReminderSampleOrder(
@@ -38,7 +38,7 @@ export async function getLatestReminderSampleOrder(
         return null;
     }
 
-    const userIds = [...new Set(latestOrders.map((order) => order.user_id))];
+    const userIds = [...new Set(latestOrders.flatMap((order) => (order.user_id ? [order.user_id] : [])))];
     const { data: profiles } = await supabase
         .from("profiles")
         .select("id, county")
@@ -46,7 +46,7 @@ export async function getLatestReminderSampleOrder(
     const countyByUserId = new Map((profiles ?? []).map((profile) => [profile.id, profile.county]));
 
     const candidate = latestOrders.find(
-        (order) => !isBacsKiskunCounty(countyByUserId.get(order.user_id)),
+        (order) => order.user_id !== null && !isBacsKiskunCounty(countyByUserId.get(order.user_id)),
     );
 
     if (!candidate) {
@@ -66,10 +66,10 @@ export type ReminderOrderTarget = {
 // átvételi naphoz tartozó rendelések - a DUNAVECSE technikai nap dátuma
 // alkalmanként (a szezon utolsó napján) megegyezhet egy normál nap
 // dátumával, ezért a kind szerinti szűrés szükséges a puszta dátumegyezés
-// mellett. A Bács-Kiskun vármegyei vásárló mindig a DUNAVECSE napra kerül
+// mellett. A Bács-Kiskun megyei vásárló mindig a DUNAVECSE napra kerül
 // (lásd supabase/migrations/20260921010000_bacskiskun_dunavecse.sql), így ez
 // a szűrés önmagában is kizárja őket; lib/email/sendReminderEmail.ts a
-// vásárló vármegyéjét a küldés előtt még egyszer, védekezően ellenőrzi.
+// vásárló megyéjét a küldés előtt még egyszer, védekezően ellenőrzi.
 //
 // A pickupDayId is szükséges (nem csak az orderId): a
 // lib/email/reminderSends.ts atomikus claim/finalize RPC-i a küldési
@@ -78,7 +78,7 @@ export type ReminderOrderTarget = {
 // is megköveteli.
 type BatchOrderRow = {
     id: number;
-    user_id: string;
+    user_id: string | null;
     season_parameter_id: number;
     public_order_number: string;
     pickup_days: { pickup_date: string } | null;
@@ -137,7 +137,7 @@ export async function loadReminderOrdersBatch(
     }
 
     const orders = (orderRows ?? []) as unknown as BatchOrderRow[];
-    const userIds = [...new Set(orders.map((order) => order.user_id))];
+    const userIds = [...new Set(orders.flatMap((order) => (order.user_id ? [order.user_id] : [])))];
     const seasonIds = [...new Set(orders.map((order) => order.season_parameter_id))];
 
     const [profilesResult, seasonsResult, prices] = await Promise.all([
@@ -163,7 +163,7 @@ export async function loadReminderOrdersBatch(
     const seasons = new Map(((seasonsResult.data ?? []) as unknown as BatchSeasonRow[]).map((row) => [row.id, row]));
 
     for (const order of orders) {
-        const profile = profiles.get(order.user_id);
+        const profile = order.user_id ? profiles.get(order.user_id) : undefined;
         const season = seasons.get(order.season_parameter_id);
         const pickupDate = order.pickup_days?.pickup_date;
         const items = order.current_version?.order_items;

@@ -21,7 +21,7 @@ type OrderItemRow = {
 
 type OrderRow = {
     id: number;
-    user_id: string;
+    user_id: string | null;
     season_parameter_id: number;
     public_order_number: string;
     pickup_days: { pickup_date: string } | null;
@@ -161,6 +161,9 @@ export async function loadOrderNotificationData(
     }
 
     const order = orderResult.data as unknown as OrderRow;
+    if (!order.user_id) {
+        throw new Error("A rendelés felhasználója törölve lett, értesítés nem küldhető.");
+    }
     const [profileResult, seasonResult, prices] = await Promise.all([
         supabase
             .from("profiles")

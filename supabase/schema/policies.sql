@@ -1,3 +1,5 @@
+ALTER TABLE public.deleted_users ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.keepalive ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
@@ -29,6 +31,10 @@ ALTER TABLE public.season_product_prices ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_consents ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.user_roles ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Admins can view deleted users" ON public.deleted_users AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
+   FROM user_roles
+  WHERE ((user_roles.user_id = auth.uid()) AND (user_roles.role = 'admin'::text)))));
 
 CREATE POLICY "Admins can view all order items" ON public.order_items AS PERMISSIVE FOR SELECT TO authenticated USING ((EXISTS ( SELECT 1
    FROM user_roles

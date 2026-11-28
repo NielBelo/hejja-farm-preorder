@@ -183,41 +183,44 @@ test('végpontok közti lapozás a kurzorokkal: nincs kihagyott/duplikált sor, 
 
 test('e-mail típus: a tényleges sablontárgyak, változó rendelésszámmal és márkaváltozatokkal', () => {
     const t = shared.classifyEmailType;
-    assert.equal(t('Héjja Ökofarm – rendelés visszaigazolása (HF-2026-0001)'), 'new_order');
-    assert.equal(t('Héjja-Farm – rendelés visszaigazolása (12345)'), 'new_order');
-    assert.equal(t('Héjja Ökofarm – rendelés módosítva (HF-9)'), 'order_updated');
-    assert.equal(t('Héjja-Farm – rendelés módosítva (HF-9)'), 'order_updated');
-    assert.equal(t('Héjja Ökofarm – rendelés törölve (#7 / 2026)'), 'order_cancelled');
-    assert.equal(t('Héjja Ökofarm – meghívó csirke előrendeléshez'), 'invite');
-    assert.equal(t('Héjja-Farm – meghívó csirke előrendeléshez'), 'invite');
-    assert.equal(t('Héjja Ökofarm – erősítsd meg az e-mail-címedet'), 'confirmation');
-    assert.equal(t('Héjja-Ökofarm – erősítsd meg az e-mail-címedet'), 'confirmation');
-    assert.equal(t('Héjja Ökofarm – rendelés átvételi emlékeztető (HF-2026-0001)'), 'reminder');
-    assert.equal(t('  HÉJJA ÖKOFARM  –  Rendelés   átvételi emlékeztető (1)'), 'reminder');
+    assert.equal(t('Héjja Ökofarm - rendelés visszaigazolása (HF-2026-0001)'), 'new_order');
+    assert.equal(t('Héjja-Farm - rendelés visszaigazolása (12345)'), 'new_order');
+    assert.equal(t('Héjja Ökofarm - rendelés módosítva (HF-9)'), 'order_updated');
+    assert.equal(t('Héjja-Farm - rendelés módosítva (HF-9)'), 'order_updated');
+    assert.equal(t('Héjja Ökofarm - rendelés törölve (#7 / 2026)'), 'order_cancelled');
+    assert.equal(t('Héjja Ökofarm - meghívó csirke előrendeléshez'), 'invite');
+    assert.equal(t('Héjja-Farm - meghívó csirke előrendeléshez'), 'invite');
+    assert.equal(t('Héjja Ökofarm - erősítsd meg az e-mail-címedet'), 'confirmation');
+    assert.equal(t('Héjja-Ökofarm - erősítsd meg az e-mail-címedet'), 'confirmation');
+    assert.equal(t('Héjja Ökofarm - rendelés átvételi emlékeztető (HF-2026-0001)'), 'reminder');
+    assert.equal(t('  HÉJJA ÖKOFARM  -  Rendelés   átvételi emlékeztető (1)'), 'reminder');
     assert.equal(t('Héjja Ökofarm - rendelés törölve (1)'), 'order_cancelled');
+    // Régebben kiküldött levelek tárgya hosszú gondolatjelet tartalmaz.
+    assert.equal(t("Héjja Ökofarm – rendelés törölve (1)"), "order_cancelled");
+    assert.equal(t("Héjja Ökofarm — rendelés törölve (1)"), "order_cancelled");
 });
 
 test('e-mail típus: hasonló, de más levelek az Egyéb kategóriába kerülnek', () => {
     const t = shared.classifyEmailType;
-    assert.equal(t('Héjja Ökofarm – emlékeztető futás összesítő (2026. október 8.)'), 'other');
-    assert.equal(t('Héjja Ökofarm – Resend teszt'), 'other');
-    assert.equal(t('Héjja Ökofarm – rendelés visszaigazolása kérés'), 'other');
+    assert.equal(t('Héjja Ökofarm - emlékeztető futás összesítő (2026. október 8.)'), 'other');
+    assert.equal(t('Héjja Ökofarm - Resend teszt'), 'other');
+    assert.equal(t('Héjja Ökofarm - rendelés visszaigazolása kérés'), 'other');
     assert.equal(t('Rendelés törölve (12)'), 'other');
-    assert.equal(t('Más cég – rendelés törölve (12)'), 'other');
-    assert.equal(t('Héjja Ökofarm – rendelés törölve (1) és még valami'), 'other');
+    assert.equal(t('Más cég - rendelés törölve (12)'), 'other');
+    assert.equal(t('Héjja Ökofarm - rendelés törölve (1) és még valami'), 'other');
     assert.equal(t(''), 'other');
 });
 
 test('négy szűrő együtt, mindkét szolgáltatón, és az Egyéb típus', async () => {
     await withFetch((url) => url.includes('smtp2go')
         ? jsonResponse({ data: { events: [
-            smtp('a', '2026-10-14T10:00:00Z', 'delivered', { subject: 'Héjja Ökofarm – rendelés átvételi emlékeztető (HF-1)' }),
-            smtp('b', '2026-10-14T12:00:00Z', 'delivered', { subject: 'Héjja Ökofarm – emlékeztető futás összesítő (X)' }),
-            smtp('c', '2026-10-14T09:00:00Z', 'processed', { subject: 'Héjja Ökofarm – rendelés átvételi emlékeztető (HF-2)' }),
+            smtp('a', '2026-10-14T10:00:00Z', 'delivered', { subject: 'Héjja Ökofarm - rendelés átvételi emlékeztető (HF-1)' }),
+            smtp('b', '2026-10-14T12:00:00Z', 'delivered', { subject: 'Héjja Ökofarm - emlékeztető futás összesítő (X)' }),
+            smtp('c', '2026-10-14T09:00:00Z', 'processed', { subject: 'Héjja Ökofarm - rendelés átvételi emlékeztető (HF-2)' }),
         ] } })
         : jsonResponse({ has_more: false, data: [
-            { ...resend('d', '2026-10-14T11:00:00Z', 'delivered'), subject: 'Héjja Ökofarm – rendelés visszaigazolása (HF-3)' },
-            { ...resend('e', '2026-10-14T08:00:00Z', 'delivered'), subject: 'Héjja Ökofarm – rendelés átvételi emlékeztető (HF-4)' },
+            { ...resend('d', '2026-10-14T11:00:00Z', 'delivered'), subject: 'Héjja Ökofarm - rendelés visszaigazolása (HF-3)' },
+            { ...resend('e', '2026-10-14T08:00:00Z', 'delivered'), subject: 'Héjja Ökofarm - rendelés átvételi emlékeztető (HF-4)' },
         ] }),
     async () => {
         const base = { cursor: { g: null, r: null } };
@@ -233,7 +236,7 @@ test('négy szűrő együtt, mindkét szolgáltatón, és az Egyéb típus', asy
 });
 
 test('típusszűrő a Resend csonkolási figyelmeztetésével együtt működik', async () => {
-    const page = () => Array.from({ length: 100 }, (_, i) => ({ ...resend('x' + Math.random() + i, '2026-10-14T10:00:00Z', 'delivered'), subject: 'Héjja Ökofarm – rendelés törölve (1)' }));
+    const page = () => Array.from({ length: 100 }, (_, i) => ({ ...resend('x' + Math.random() + i, '2026-10-14T10:00:00Z', 'delivered'), subject: 'Héjja Ökofarm - rendelés törölve (1)' }));
     await withFetch(() => jsonResponse({ has_more: true, data: page() }), async (calls) => {
         const result = await searchEmailLog({ type: 'reminder', provider: 'resend', cursor: { g: null, r: null } });
         assert.equal(calls.length, 5);
