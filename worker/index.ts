@@ -35,6 +35,13 @@ import { createClient } from "@supabase/supabase-js";
 import { isReminderSendingBlocked, sendPickupReminders } from "../lib/email/sendReminderEmail";
 import { getTomorrowPickupDateIso, shouldRunReminderJob } from "./reminderSchedule";
 import { createReminderChunkRunner, handleReminderChunkRequest, REMINDER_CHUNK_PATH } from "./reminderChunk";
+import { isSeasonLaunchSendingBlocked, sendSeasonLaunchEmails } from "../lib/email/sendSeasonLaunch";
+import {
+    createSeasonLaunchChunkRunner,
+    handleSeasonLaunchChunkRequest,
+    SEASON_LAUNCH_CHUNK_PATH,
+} from "./seasonLaunchChunk";
+import { getCalendarDate } from "../lib/orderWindow";
 
 // A @cloudflare/workers-types csomag nincs telepítve a projektben, ezért a
 // scheduled handler paramétereit minimális, a ténylegesen használt alakra
@@ -108,10 +115,41 @@ async function runReminderJob(pickupDateIso: string, env: WorkerEnvLike) {
     }
 }
 
+// Szezonindítási értesítő: a szezon kezdőnapján, a 08:00-s futáskor megy ki.
+// A guard (NODE_ENV === "production" ÉS SEASON_LAUNCH_EMAIL_SENDING_ENABLED
+// === "true", lásd lib/email/seasonLaunchGuard.ts) a Supabase kliens
+// létrehozása ELŐTT dönt: kikapcsolt állapotban semmi nem történik.
+// Az emlékeztetőtől független futás: egyik hibája nem érinti a másikat.
+async function runSeasonLaunchJob(todayIso: string, env: WorkerEnvLike) {
+    if (isSeasonLaunchSendingBlocked()) {
+        console.log(`[season-launch] scheduled no-op: a küldés ki van kapcsolva (${todayIso}).`);
+        return;
+    }
+
+    try {
+        const supabase = createClient(
+            process.env.NEXT_PUBLIC_SUPABASE_URL!,
+            process.env.SUPABASE_SERVICE_ROLE_KEY!,
+            { auth: { persistSession: false, autoRefreshToken: false } },
+        );
+        const runChunk = env.WORKER_SELF_REFERENCE
+            ? createSeasonLaunchChunkRunner(env.WORKER_SELF_REFERENCE)
+            : undefined;
+        const result = await sendSeasonLaunchEmails(supabase, todayIso, runChunk);
+        console.log(`[season-launch] scheduled futás eredménye (${todayIso}):`, result);
+    } catch (error) {
+        console.error(`[season-launch] scheduled futás hiba (${todayIso}):`, error);
+    }
+}
+
 const worker = {
     async fetch(request: Request, env: WorkerEnvLike, ctx: unknown) {
-        if (new URL(request.url).pathname === REMINDER_CHUNK_PATH) {
+        const { pathname } = new URL(request.url);
+        if (pathname === REMINDER_CHUNK_PATH) {
             return handleReminderChunkRequest(request);
+        }
+        if (pathname === SEASON_LAUNCH_CHUNK_PATH) {
+            return handleSeasonLaunchChunkRequest(request);
         }
         return openNextWorker.fetch(request, env, ctx);
     },
@@ -148,6 +186,11 @@ const worker = {
         // bekapcsolva, a küldés emiatt mindig blokkolva marad, és Supabase
         // kliens sem jön létre.
         ctx.waitUntil(runReminderJob(pickupDateIso, env));
+
+        const todayIso = getCalendarDate(now.toISOString());
+        if (todayIso) {
+            ctx.waitUntil(runSeasonLaunchJob(todayIso, env));
+        }
     },
 };
 

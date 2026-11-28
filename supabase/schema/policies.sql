@@ -18,6 +18,8 @@ ALTER TABLE public.registration_invites ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.reminder_sends ENABLE ROW LEVEL SECURITY;
 
+ALTER TABLE public.season_launch_sends ENABLE ROW LEVEL SECURITY;
+
 ALTER TABLE public.season_parameters ENABLE ROW LEVEL SECURITY;
 
 ALTER TABLE public.season_product_prices ENABLE ROW LEVEL SECURITY;

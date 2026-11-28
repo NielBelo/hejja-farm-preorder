@@ -109,6 +109,20 @@ CREATE TABLE public.reminder_sends (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+CREATE TABLE public.season_launch_sends (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  season_parameter_id bigint NOT NULL,
+  user_id uuid NOT NULL,
+  email text NOT NULL,
+  status text DEFAULT 'pending'::text NOT NULL,
+  attempted_at timestamp with time zone,
+  sent_at timestamp with time zone,
+  error_message text,
+  provider_message_id text,
+  created_at timestamp with time zone DEFAULT now() NOT NULL,
+  updated_at timestamp with time zone DEFAULT now() NOT NULL
+);
+
 CREATE TABLE public.season_parameters (
   id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
   year integer NOT NULL,
@@ -198,6 +212,18 @@ ALTER TABLE public.reminder_sends ADD CONSTRAINT reminder_sends_sent_has_sent_at
 
 ALTER TABLE public.reminder_sends ADD CONSTRAINT reminder_sends_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'failed'::text])));
 
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_pkey PRIMARY KEY (id);
+
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_season_parameter_id_user_id_key UNIQUE (season_parameter_id, user_id);
+
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_sent_has_sent_at CHECK ((((status = 'sent'::text) AND (sent_at IS NOT NULL)) OR (status <> 'sent'::text)));
+
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'sending'::text, 'sent'::text, 'failed'::text])));
+
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_season_parameter_id_fkey FOREIGN KEY (season_parameter_id) REFERENCES season_parameters(id) ON DELETE CASCADE;
+
+ALTER TABLE public.season_launch_sends ADD CONSTRAINT season_launch_sends_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id) ON DELETE CASCADE;
+
 ALTER TABLE public.season_parameters ADD CONSTRAINT seasons_pkey PRIMARY KEY (id);
 ALTER TABLE public.season_parameters ADD CONSTRAINT season_parameters_note_length_check CHECK (((note IS NULL) OR ((char_length(note) >= 1) AND (char_length(note) <= 100))));
 
@@ -256,6 +282,8 @@ ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_se
 ALTER TABLE public.season_product_prices ADD CONSTRAINT season_product_prices_product_id_fkey FOREIGN KEY (product_id) REFERENCES products(id);
 
 CREATE INDEX reminder_sends_status_idx ON public.reminder_sends USING btree (status);
+
+CREATE INDEX season_launch_sends_status_idx ON public.season_launch_sends USING btree (status);
 
 CREATE UNIQUE INDEX pickup_days_normal_unique_date_per_season ON public.pickup_days USING btree (season_parameter_id, pickup_date) WHERE (kind = 'normal'::text);
 
